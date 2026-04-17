@@ -1,4 +1,4 @@
-const sql = require('mssql/msnodesqlv8');
+/* const sql = require('mssql/msnodesqlv8');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
@@ -19,7 +19,40 @@ async function runSetup() {
   let pool;
   try {
     pool = await new sql.ConnectionPool({ connectionString }).connect();
-    console.log('✅ Conectado ao SQL Server (Windows Auth)\n');
+    console.log('✅ Conectado ao SQL Server (Windows Auth)\n'); */
+
+const sql = require('mssql');
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+const sqlConfig = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE || 'GestaoBI',
+    server: process.env.DB_SERVER || 'localhost',
+    options: {
+        encrypt: true,
+        trustServerCertificate: process.env.DB_SERVER === 'localhost' // true se for local, false se for Azure
+    }
+};
+
+const SALT_ROUNDS = 12;
+
+// ... restante dos usuários ...
+const usersToCreate = [
+  { email: 'admin@sistema.local', senha: 'admin', colaboradorNome: null, isAdmin: true, label: 'Administrador' },
+  { email: 'fbronzeri@elopar.com.br', senha: 'mudar123', colaboradorNome: '%bronzeri%', isAdmin: false, label: 'Fernando Bronzeri' },
+  { email: 'pmagliari@elopar.com.br', senha: 'mudar123', colaboradorNome: '%magliari%', isAdmin: false, label: 'Pedro Magliari' },
+  { email: 'pdamasceno.stefanini@elopar.com.br', senha: 'mudar123', colaboradorNome: '%damasceno%', isAdmin: false, label: 'Péricles Damasceno' },
+  { email: 'rcamargo@elopar.com.br', senha: 'mudar123', colaboradorNome: '%camargo%', isAdmin: false, label: 'Rodrigo Camargo' }
+];
+
+async function runSetup() {
+    console.log('🚀 Iniciando configuração do Banco de Dados GestaoBI...\n');
+    let pool;
+    try {
+        pool = await sql.connect(sqlConfig);
+        console.log('✅ Conectado ao Azure SQL Server\n');
 
     // --- 1. Tabelas Base (Hierarquia, Áreas, Cargos) ---
     console.log('📦 Verificando tabelas estruturais...');
