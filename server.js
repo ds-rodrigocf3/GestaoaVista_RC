@@ -1,5 +1,5 @@
 const express = require('express');
-const sql = require('mssql/msnodesqlv8');
+const sql = require('mssql');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -16,18 +16,29 @@ app.use(express.static(__dirname));
 const JWT_SECRET = process.env.JWT_SECRET || 'gestaobi-secret-2026-change-in-prod';
 const JWT_EXPIRES = '8h';
 
-const connectionString = `Driver={ODBC Driver 17 for SQL Server};Server=${process.env.DB_SERVER};Database=${process.env.DB_DATABASE};Trusted_Connection=yes;`;
+// Este objeto substitui a connectionString antiga e usa as variáveis da Azure
+const config = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_DATABASE,
+    options: {
+        encrypt: true, // Obrigatório para Azure SQL
+        trustServerCertificate: false
+    }
+};
 
-const poolPromise = new sql.ConnectionPool({ connectionString })
-  .connect()
-  .then((pool) => {
-    console.log('✅ Conectado ao banco GestaoBI');
-    return pool;
-  })
-  .catch((err) => {
-    console.error('❌ Falha na conexão com banco:', err.message);
-    return null;
-  });
+// Nova forma de conectar (mais estável para o ambiente Linux)
+const poolPromise = new sql.ConnectionPool(config)
+    .connect()
+    .then(pool => {
+        console.log('✅ Conectado ao Azure SQL com sucesso!');
+        return pool;
+    })
+    .catch(err => {
+        console.error('❌ Erro de conexão:', err);
+        process.exit(1);
+    });
 
 // ============================================================
 // MIDDLEWARE DE AUTENTICAÇÃO
