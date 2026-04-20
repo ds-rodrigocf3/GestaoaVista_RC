@@ -1,0 +1,87 @@
+## 🚀 Iniciando com SQL Server Local
+
+### Para Desenvolvimento (SQL Server Local)
+
+#### Opção A: Autenticação Windows (RECOMENDADO ⭐)
+
+1. **Edite o arquivo `.env`:**
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=windows
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+2. **Inicie o servidor como Administrador:**
+```bash
+node server.js
+```
+
+3. **Acesse em seu navegador:**
+```
+http://localhost:3000
+```
+
+#### Opção B: Autenticação SQL (user + password)
+
+1. **Edite o arquivo `.env`:**
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+PORT=3000
+```
+
+2. **Inicie o servidor:**
+```bash
+node server.js
+```
+
+3. **Acesse em seu navegador:**
+```
+http://localhost:3000
+```
+
+---
+
+### Alternativas de Servidor Local
+
+| Tipo | `LOCAL_DB_SERVER` |
+|------|------------------|
+| SQL Server LocalDB | `(localdb)\MSSQLLocalDB` |
+| SQL Server Express | `localhost\SQLEXPRESS` |
+| SQL Server (local) | `localhost` |
+| SQL Server (remoto) | `192.168.x.x\SQLEXPRESS` |
+
+---
+
+### Para Produção (Azure SQL)
+
+1. **Configure o arquivo `.env`:**
+```env
+USE_LOCAL_DB=false
+DB_USER=seu_usuario@servidor
+DB_PASSWORD=sua_senha
+DB_SERVER=seu_servidor.database.windows.net
+DB_DATABASE=sua_database
+PORT=3000
+```
+
+2. **Inicie o servidor:**
+```bash
+node server.js
+```
+
+---
+
+### 📖 Documentação Completa
+
+Veja `SETUP_DATABASE.md` para guia detalhado com:
+- Instalação do SQL Server
+- Configuração de autenticação (Windows ou SQL)
+- Solução de problemas
+- Exemplos de scripts SQL
+- Alternativas de servidor

@@ -6,25 +6,38 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
+
+// 1. LOGGER GLOBAL (Captura tudo primeiro)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 const path = require('path');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gestaobi-secret-2026-change-in-prod';
 const JWT_EXPIRES = '8h';
 
-// Este objeto substitui a connectionString antiga e usa as variáveis da Azure
+// LÓGICA DE CONEXÃO HÍBRIDA (AZURE vs LOCAL)
+const isAzure = process.env.WEBSITE_SITE_NAME || process.env.AZURE_FUNCTIONS_ENVIRONMENT;
+const serverAddressRaw = process.env.DB_SERVER || process.env.LOCAL_DB_SERVER || '127.0.0.1';
+const serverAddress = serverAddressRaw.split('\\')[0]; // Remove \SQLEXPRESS01 se houver
+
+const databaseName = process.env.DB_DATABASE || process.env.LOCAL_DB_NAME || process.env.DB_NAME;
+
 const config = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    server: process.env.DB_SERVER,
-    database: process.env.DB_DATABASE,
+    database: databaseName,
+    server: serverAddress,
+    port: parseInt(process.env.DB_PORT || 1433),
     options: {
-        encrypt: true, // Obrigatório para Azure SQL
-        trustServerCertificate: false
+        encrypt: true,
+        trustServerCertificate: true // Importante para local
     }
 };
 
@@ -32,7 +45,7 @@ const config = {
 const poolPromise = new sql.ConnectionPool(config)
     .connect()
     .then(pool => {
-        console.log('✅ Conectado ao Azure SQL com sucesso!');
+        console.log(`✅ Conectado ao SQL Server (${isAzure ? 'Azure' : 'Local'}) com sucesso!`);
         return pool;
     })
     .catch(err => {
@@ -1177,11 +1190,33 @@ app.delete('/api/status-tipos/:id', authMiddleware, adminMiddleware, async (req,
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// SERVING FILES
+app.use(express.static(__dirname));
+
+// Final 404 handler as JSON
+app.use((req, res, next) => {
+  console.warn(`⚠️ 404 Not Found: ${req.method} ${req.url}`);
+  res.status(404).json({ error: 'Rota não encontrada', path: req.url, method: req.method });
+});
+
+// Final Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err);
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
+
 // ============================================================
 // START SERVER
 // ============================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`   http://localhost:${PORT}`);
+  console.log('📡 Rotas de API Ativas:');
+  const routes = app._router ? app._router.stack : [];
+  routes.forEach(r => {
+    if (r.route && r.route.path) {
+      console.log(`   - ${Object.keys(r.route.methods).join(',').toUpperCase().padEnd(7)} ${r.route.path}`);
+    }
+  });
 });
+

@@ -17,11 +17,28 @@
     rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* ===== LOGOUT BUTTON ===== */
+    /* ===== USER BADGE — evita sobreposição com logout ===== */
+    .user-badge {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .user-badge-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(51, 204, 204, .06);
+      border: 1px solid rgba(51, 204, 204, .15);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .user-badge-content:hover { background: rgba(51, 204, 204, .12); }
     .logout-btn {
-      margin-top: 8px;
+      margin-top: 6px;
       width: 100%;
-      padding: 6px;
+      padding: 7px;
       background: transparent;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -34,7 +51,6 @@
       justify-content: center;
       gap: 6px;
     }
-
     .logout-btn:hover {
       background: rgba(239, 68, 68, 0.08);
       color: #ef4444;
@@ -153,15 +169,28 @@
 
     .user-badge {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      background: rgba(51, 204, 204, .1);
-      border: 1px solid rgba(51, 204, 204, .2);
-      border-radius: 10px;
+      flex-direction: column;    /* Empilha vertical: badge info + botão sair */
+      gap: 0;
       margin-top: auto;
-      cursor: pointer
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      overflow: hidden;          /* Evita barra horizontal */
     }
+
+    .user-badge-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(51, 204, 204, .06);
+      border: 1px solid rgba(51, 204, 204, .15);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .2s;
+      min-width: 0;              /* Respeita limites do container */
+    }
+
+    .user-badge-content:hover { background: rgba(51, 204, 204, .12); }
 
     .user-badge-avatar {
       width: 32px;
@@ -546,73 +575,104 @@
       justify-content: flex-end
     }
 
-    /* ===== RESPONSIVE & EXECUTIVE ===== */
+    /* ===== SIDEBAR MOBILE — DESLIZANTE VERTICAL ===== */
     @media (max-width: 1024px) {
+      /* App shell vira coluna única */
       .app-shell {
-        display: flex !important;
-        flex-direction: column !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
       }
 
+      /* Sidebar se torna painel fixo fora da tela */
       .sidebar {
-        width: 100% !important;
-        height: auto !important;
-        flex-direction: row !important;
-        padding: 12px !important;
-        overflow-x: auto;
-        white-space: nowrap;
-        border-right: none !important;
-        border-bottom: 1px solid var(--line);
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 280px !important;
+        max-width: 85vw !important;
+        height: 100vh !important;
+        z-index: 9995 !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 4px 0 32px rgba(0,0,0,0.18) !important;
+        flex-direction: column !important;  /* Sempre coluna */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding: 24px 18px !important;
+        border-right: 1px solid var(--line) !important;
+        border-bottom: none !important;
+        white-space: normal !important;     /* Texto quebra linha normalmente */
       }
 
+      /* Quando aberto, desliza para dentro */
+      .sidebar.open {
+        transform: translateX(0) !important;
+      }
+
+      /* Marca da empresa — visível na sidebar mobile */
       .brand {
-        display: none !important;
+        display: flex !important;
+        margin-bottom: 20px !important;
       }
 
+      /* Nav list sempre vertical */
       .nav-list {
         display: flex !important;
-        flex-direction: row !important;
-        gap: 12px !important;
-        align-items: center;
+        flex-direction: column !important;  /* VERTICAL */
+        gap: 4px !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
       }
 
+      /* Botões de nav ocupam largura total */
       .nav-button {
-        padding: 8px 14px !important;
-        border-radius: 10px !important;
+        width: 100% !important;
+        padding: 11px 14px !important;
+        border-radius: 12px !important;
         white-space: nowrap !important;
         display: flex !important;
+        flex-direction: row !important;     /* Ícone + texto lado a lado */
         align-items: center !important;
-        gap: 8px !important;
-        width: auto !important;
+        gap: 12px !important;
         margin-bottom: 0 !important;
         background: transparent !important;
-        border: 1px solid var(--line) !important;
+        border: none !important;
       }
 
       .nav-button.active {
-        background: rgba(51, 204, 204, 0.12) !important;
-        border-color: var(--primary) !important;
-        border-right-width: 1px !important;
-        border-radius: 10px !important;
+        background: linear-gradient(90deg, rgba(51,204,204,0.12) 0%, rgba(51,204,204,0.02) 100%) !important;
+        border-right: 3px solid var(--primary) !important;
+        border-radius: 12px 4px 4px 12px !important;
       }
 
+      /* Título e caption dos nav buttons — visíveis */
       .nav-button .nav-title {
-        font-size: 0.82rem !important;
+        font-size: 0.9rem !important;
         display: block !important;
         font-weight: 700 !important;
       }
 
       .nav-button .nav-caption {
-        display: none !important;
+        display: block !important;
+        font-size: 0.7rem !important;
+        color: var(--muted) !important;
       }
 
       .nav-button span.material-symbols-outlined {
         font-size: 20px !important;
         margin: 0 !important;
-        color: inherit !important;
+        flex-shrink: 0 !important;
       }
 
+      /* User badge fica no fim da sidebar (margin-top: auto) */
+      .user-badge {
+        margin-top: auto !important;
+        margin-left: 0 !important;
+      }
+
+      /* Conteúdo principal ocupa tela toda */
       .main-content {
-        padding: 20px !important;
+        padding: 16px !important;
       }
 
       .dashboard-grid {
@@ -621,11 +681,6 @@
 
       .executive-kpi-grid {
         grid-template-columns: 1fr 1fr !important;
-      }
-
-      .user-badge {
-        margin-top: 0 !important;
-        margin-left: auto;
       }
     }
 
@@ -744,6 +799,111 @@
       white-space: nowrap;
     }
 
+    /* ===== RESIZABLE COLUMNS & MODALS ===== */
+    .resizable-th {
+      position: relative;
+      user-select: none;
+      font-weight: 700;
+      color: var(--title);
+      font-size: 0.8rem;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      text-transform: none;
+    }
+    .resizer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 6px;
+      background: transparent;
+      cursor: col-resize;
+      z-index: 10;
+      transition: background 0.2s;
+    }
+    .resizer:hover, .resizer.resizing {
+      background: var(--primary);
+      opacity: 0.5;
+    }
+    
+    .modern-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    
+    .modern-table.resizing {
+      width: max-content;
+    }
+    
+    .modern-table td {
+      padding: 8px 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.8rem;
+    }
+    
+    .resizable-modal {
+      display: flex;
+      flex-direction: column;
+      position: relative !important;
+    }
+    .modal-resizer {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 15px;
+      height: 15px;
+      cursor: nwse-resize;
+      background: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
+      border-radius: 0 0 12px 0;
+      z-index: 100;
+    }
+
+    /* ===== SEARCHABLE SELECT (INTELLISENSE) ===== */
+    .searchable-select-container {
+      position: relative;
+      width: 100%;
+    }
+    .searchable-select-input {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.875rem;
+      box-sizing: border-box;
+    }
+    .searchable-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-top: 4px;
+      z-index: 5000;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    .searchable-select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s;
+    }
+    .searchable-select-option:hover {
+      background: rgba(51, 204, 204, 0.1);
+    }
+    .searchable-select-option.selected {
+      background: var(--primary);
+      color: #fff;
+    }
+
+
     .top-filters select {
       border: 1px solid var(--line);
       padding: 6px 8px;
@@ -789,6 +949,11 @@
       border-bottom: 2px solid var(--line);
       color: var(--muted);
       font-weight: 600;
+    }
+
+    table.resizing {
+      width: max-content !important;
+      table-layout: auto !important;
     }
 
     .admin-table td {
@@ -871,19 +1036,22 @@
       width: 100%;
       border: none;
       background: transparent;
-      font-size: inherit;
+      font-size: 0.8rem;
       color: inherit;
       outline: none;
+      padding: 0;
+      text-overflow: ellipsis;
     }
 
     .monday-select {
       width: 100%;
       border: none;
       background: transparent;
-      font-size: inherit;
+      font-size: 0.8rem;
       color: inherit;
       outline: none;
       cursor: pointer;
+      padding: 0;
     }
 
     .monday-dates {
@@ -1244,11 +1412,11 @@
     }
 
     function getStatusPillClass(s) {
-      if (s === 'Feito') return 'done';
-      if (s === 'Trabalhando') return 'working';
+      if (s === 'Concluído') return 'done';
+      if (s === 'Em Andamento') return 'working';
       if (s === 'Bloqueio') return 'stuck';
-      if (s === 'Pausada') return 'warning';
-      if (s === 'Cancelada') return 'rejected';
+      if (s === 'Pausado') return 'warning';
+      if (s === 'Cancelado') return 'rejected';
       return 'not-started';
     }
 
@@ -1266,6 +1434,118 @@
     function diffDays(start, end) {
       const ms = toDate(end) - toDate(start);
       return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    function SearchableSelect({ options, value, onChange, placeholder = "Selecione..." }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const [search, setSearch] = useState('');
+      const containerRef = React.useRef(null);
+
+      const filteredOptions = useMemo(() => {
+        const s = search.toLowerCase();
+        return options.filter(o => o.label.toLowerCase().includes(s));
+      }, [options, search]);
+
+      const selectedOption = options.find(o => String(o.value) === String(value));
+
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      return (
+        <div className="searchable-select-container" ref={containerRef}>
+          <input
+            type="text"
+            className="searchable-select-input"
+            placeholder={selectedOption ? selectedOption.label : placeholder}
+            value={isOpen ? search : ''}
+            onFocus={() => { setIsOpen(true); setSearch(''); }}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {isOpen && (
+            <div className="searchable-select-dropdown">
+              {filteredOptions.length > 0 ? filteredOptions.map(opt => (
+                <div
+                  key={opt.value}
+                  className={`searchable-select-option ${String(opt.value) === String(value) ? 'selected' : ''}`}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
+                >
+                  {opt.label}
+                </div>
+              )) : <div style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: '.8rem' }}>Nenhum resultado</div>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function ResizableHeader({ label, width, onResize, className = "" }) {
+      const [isResizing, setIsResizing] = useState(false);
+
+      const startResizing = useCallback((e) => {
+        e.preventDefault();
+        setIsResizing(true);
+        // Add a class to the whole table to switch to width: max-content if needed
+        const table = e.target.closest('table');
+        if (table) table.classList.add('resizing');
+      }, []);
+
+      const stopResizing = useCallback((e) => {
+        setIsResizing(false);
+        const th = document.getElementById(`th-${label.replace(/\s+/g, '')}`);
+        if (th && e && e.clientX) {
+          const rect = th.getBoundingClientRect();
+          const newWidth = e.clientX - rect.left;
+          if (newWidth > 40 && onResize) onResize(newWidth);
+        }
+      }, [label, onResize]);
+
+      const resize = useCallback((e) => {
+        if (isResizing) {
+          const th = document.getElementById(`th-${label.replace(/\s+/g, '')}`);
+          if (th) {
+            const table = th.closest('table');
+            if (table && !table.classList.contains('resizing')) {
+              table.classList.add('resizing');
+              table.style.width = 'max-content';
+            }
+            const rect = th.getBoundingClientRect();
+            const newWidth = e.clientX - rect.left;
+            if (newWidth > 40) {
+               th.style.width = `${newWidth}px`;
+            }
+          }
+        }
+      }, [isResizing, label]);
+
+      useEffect(() => {
+        if (isResizing) {
+          window.addEventListener('mousemove', resize);
+          window.addEventListener('mouseup', stopResizing);
+        }
+        return () => {
+          window.removeEventListener('mousemove', resize);
+          window.removeEventListener('mouseup', stopResizing);
+        };
+      }, [isResizing, resize, stopResizing]);
+
+      return (
+        <th id={`th-${label.replace(/\s+/g, '')}`} className={`resizable-th ${className}`} style={{ width: width ? `${width}px` : 'auto', borderRight: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: className.includes('center') ? 'center' : 'flex-start', padding: className.includes('center') ? '8px 4px' : '8px 12px', overflow: 'hidden' }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+            {className.includes('tooltip-target') && <span className="material-symbols-outlined" style={{ fontSize: '14px', marginLeft: '4px', opacity: 0.5, flexShrink: 0 }}>info</span>}
+          </div>
+          <div className={`resizer ${isResizing ? 'resizing' : ''}`} onMouseDown={startResizing} />
+        </th>
+      );
     }
 
     function getBrazilianHolidays(year) {
@@ -1382,6 +1662,12 @@
       const [currentUser, setCurrentUser] = useState(null);
       const [authToken, setAuthToken] = useState(null);
       const [showSettings, setShowSettings] = useState(false);
+      const [isDark, setIsDark] = useState(() => {
+        // Recupera preferência salva, ou usa preferência do sistema
+        const saved = localStorage.getItem('gbi_theme');
+        if (saved) return saved === 'dark';
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      });
       const [demandas, setDemandas] = useState([]);
       const [activeView, setActiveView] = useState('dashboard');
       const [requests, setRequests] = useState(initialRequests);
@@ -1390,6 +1676,34 @@
       const [areas, setAreas] = useState([]);
       const [cargos, setCargos] = useState([]);
       const [globalFilters, setGlobalFilters] = useState({ gestor: '', colaboradorId: '', gestorId: '' });
+
+      // Aplicar tema claro/escuro ao elemento html
+      useEffect(() => {
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        localStorage.setItem('gbi_theme', isDark ? 'dark' : 'light');
+      }, [isDark]);
+
+      // Carregar usuário do sessionStorage na inicialização
+      useEffect(() => {
+        console.log('🔄 App iniciando - carregando sessão do sessionStorage');
+        const savedUser = sessionStorage.getItem('gbi_user');
+        const savedToken = sessionStorage.getItem('gbi_token');
+        console.log('📦 sessionStorage -> gbi_user:', savedUser ? 'SIM' : 'NÃO', 'gbi_token:', savedToken ? 'SIM' : 'NÃO');
+        if (savedUser && savedToken) {
+          try {
+            const user = JSON.parse(savedUser);
+            console.log('✅ Usuário restaurado:', user.email, 'isAdmin:', user.isAdmin);
+            setCurrentUser(user);
+            setAuthToken(savedToken);
+          } catch (error) {
+            console.error('❌ Erro ao carregar usuário do sessionStorage:', error);
+            sessionStorage.removeItem('gbi_user');
+            sessionStorage.removeItem('gbi_token');
+          }
+        } else {
+          console.log('⚠️ Nenhuma sessão encontrada no sessionStorage');
+        }
+      }, []);
 
       const getSubordinateIds = (employees, managerId) => {
         const directSubordinates = employees.filter(e => String(e.gestorId) === String(managerId));
@@ -1433,9 +1747,26 @@
       }, [tasks, dbEmployees, globalFilters, getSubordinateIds]);
 
       const handleLogin = (user, token) => {
-        sessionStorage.setItem('gbi_user', JSON.stringify(user));
+        console.log('🔐 handleLogin chamado com email:', user.email);
+        // Achatar o objeto user para compatibilidade com o frontend
+        const flattenedUser = {
+          ...user,
+          colaboradorId: user.colaborador?.id,
+          nome: user.colaborador?.nome,
+          cargo: user.colaborador?.cargo,
+          nivelHierarquia: user.colaborador?.nivel,
+          nivelDescricao: user.colaborador?.nivelDescricao,
+          color: user.colaborador?.color,
+          avatarUrl: user.colaborador?.avatarUrl,
+          gestor: user.colaborador?.gestor,
+          tpContrato: user.colaborador?.tpContrato
+        };
+        
+        console.log('💾 Salvando no sessionStorage');
+        sessionStorage.setItem('gbi_user', JSON.stringify(flattenedUser));
         sessionStorage.setItem('gbi_token', token);
-        setCurrentUser(user);
+        console.log('📝 Atualizando estado (currentUser, authToken)');
+        setCurrentUser(flattenedUser);
         setAuthToken(token);
       };
       const handleLogout = () => {
@@ -1461,16 +1792,23 @@
       }, []);
 
       useEffect(() => {
+        console.log('🚀 useEffect de carregamento acionado | currentUser:', currentUser?.email || 'null', 'authToken:', authToken ? 'SIM' : 'NÃO');
         const token = authToken;
         if (!token && !currentUser) {
+          console.log('⚠️ Sem token e sem currentUser - retornando');
           setLoading(false);
           return;
         }
+        console.log('📡 Iniciando carregamento de dados...');
         setLoading(true);
 
         const pEmployees = fetch(`${API_BASE}/api/employees`)
-          .then(res => res.json())
+          .then(res => {
+            console.log('📦 /api/employees retornou status:', res.status);
+            return res.json();
+          })
           .then(data => {
+            console.log('✅ Employees carregados:', data?.length || 0, 'itens');
             const validData = (data || []).filter(e => e && e.id);
             if (validData.length) {
               employees.length = 0;
@@ -1479,19 +1817,25 @@
               const initialEmpId = currentUser && !currentUser.isAdmin ? currentUser.colaboradorId : (validData[0] ? validData[0].id : '');
               setForm(f => ({ ...f, employeeId: String(initialEmpId) }));
             }
-          });
+          })
+          .catch(err => console.error('❌ Erro ao carregar employees:', err.message));
 
         const pTasks = fetch(`${API_BASE}/api/tasks`)
           .then(res => res.json())
           .then(data => {
-            if (data && data.length) setTasks(data.map(t => ({
-              ...t, id: t.Id || t.id, ownerId: t.OwnerId || t.ownerId,
-              status: t.Status || t.status, priority: t.Priority || t.priority,
-              title: t.Title || t.title,
-              startDate: (t.StartDate || t.startDate) ? (t.StartDate || t.startDate).slice(0, 10) : '',
-              endDate: (t.EndDate || t.endDate) ? (t.EndDate || t.endDate).slice(0, 10) : '',
-              demandaId: t.DemandaId || t.demandaId || null
-            })));
+            if (data && Array.isArray(data)) {
+               setTasks(data.map(t => ({
+                ...t, id: t.Id || t.id, ownerId: t.OwnerId || t.ownerId,
+                status: t.Status || t.status, priority: t.Priority || t.priority,
+                title: t.Title || t.title,
+                startDate: (t.StartDate || t.startDate) ? (t.StartDate || t.startDate).slice(0, 10) : '',
+                endDate: (t.EndDate || t.endDate) ? (t.EndDate || t.endDate).slice(0, 10) : '',
+                demandaId: t.DemandaId || t.demandaId || null
+              })));
+            } else {
+               setTasks([]);
+               console.warn('Tasks API did not return an array');
+            }
           });
 
         const pRequests = fetch(`${API_BASE}/api/requests`)
@@ -1520,9 +1864,18 @@
 
         const pDemandas = fetch(`${API_BASE}/api/demandas`)
           .then(res => res.json())
-          .then(data => setDemandas(data || []));
+          .then(data => {
+             if (Array.isArray(data)) setDemandas(data);
+             else {
+               setDemandas([]);
+               console.warn('Demandas API did not return an array', data);
+             }
+          });
 
-        Promise.all([pEmployees, pTasks, pRequests, pAreas, pCargos, pDemandas]).finally(() => setLoading(false));
+        Promise.all([pEmployees, pTasks, pRequests, pAreas, pCargos, pDemandas]).finally(() => {
+          console.log('✅ Promise.all finalizado - setando loading = false');
+          setLoading(false);
+        });
       }, [authToken, currentUser]);
 
       // Enforce owner identity for non-admins
@@ -1557,9 +1910,33 @@
         [requests, dbEmployees, globalFilters.gestorId]
       );
 
-      const pendingRequests = detailedRequests.filter((request) => request.status === 'Pendente');
-      const approvedRequests = detailedRequests.filter((request) => request.status === 'Aprovado');
-      const rejectedRequests = detailedRequests.filter((request) => request.status === 'Rejeitado');
+      const pendingRequests = useMemo(() => {
+        const list = detailedRequests.filter(r => r.status === 'Pendente');
+        if (currentUser && !currentUser.isAdmin) {
+          const subordinates = [currentUser.colaboradorId, ...getSubordinateIds(dbEmployees, currentUser.colaboradorId)];
+          return list.filter(r => subordinates.includes(Number(r.employeeId)));
+        }
+        return list;
+      }, [detailedRequests, currentUser, dbEmployees, getSubordinateIds]);
+
+      const approvedRequests = useMemo(() => {
+        const list = detailedRequests.filter(r => r.status === 'Aprovado');
+        if (currentUser && !currentUser.isAdmin) {
+          const subordinates = [currentUser.colaboradorId, ...getSubordinateIds(dbEmployees, currentUser.colaboradorId)];
+          return list.filter(r => subordinates.includes(Number(r.employeeId)));
+        }
+        return list;
+      }, [detailedRequests, currentUser, dbEmployees, getSubordinateIds]);
+
+      const rejectedRequests = useMemo(() => {
+        const list = detailedRequests.filter(r => r.status === 'Rejeitado');
+        if (currentUser && !currentUser.isAdmin) {
+          const subordinates = [currentUser.colaboradorId, ...getSubordinateIds(dbEmployees, currentUser.colaboradorId)];
+          return list.filter(r => subordinates.includes(Number(r.employeeId)));
+        }
+        return list;
+      }, [detailedRequests, currentUser, dbEmployees, getSubordinateIds]);
+
 
       const formEmployee = getEmployeeById(form.employeeId);
       const selectedDuration = form.startDate && form.endDate && toDate(form.endDate) >= toDate(form.startDate)
@@ -1685,12 +2062,15 @@
       };
 
       const handleApproval = (requestId, decision) => {
-        if (!currentUser.isAdmin && currentUser.nivelHierarquia >= 4) {
+        // Regra: apenas isAdmin OU colaborador com nível hierárquico MENOR (mais alto na hierarquia) pode aprovar
+        if (!currentUser.isAdmin) {
           const req = detailedRequests.find(r => r.id === requestId);
           if (req && req.employee) {
-            const solNivel = req.employee.nivelHierarquia || 6;
-            if (currentUser.nivelHierarquia >= solNivel) {
-              setToast({ title: 'Sem permissão', message: 'Seu nível hierárquico não permite aprovar solicitações deste colaborador.' });
+            const solicitanteNivel = req.employee.nivelHierarquia || 6;
+            const aprovadorNivel = currentUser.nivelHierarquia;
+            // Aprovador precisa ter número de nível MENOR que o solicitante
+            if (!aprovadorNivel || aprovadorNivel >= solicitanteNivel) {
+              setToast({ title: 'Sem permissão', message: `Seu nível hierárquico (N${aprovadorNivel || '?'}) não permite aprovar solicitações de colaboradores do mesmo nível ou superior (N${solicitanteNivel}).` });
               return;
             }
           }
@@ -1798,6 +2178,54 @@
                   </button>
                 ))}
               </nav>
+
+              {/* Botão de alternancia de tema */}
+              <button
+                onClick={() => setIsDark(d => !d)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  padding: '10px 16px',
+                  margin: '12px 0 4px',
+                  background: isDark ? 'rgba(51,204,204,0.08)' : 'rgba(0,0,0,0.04)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '12px',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                  fontSize: '.84rem',
+                  fontWeight: 600,
+                  transition: 'all .2s',
+                  flexShrink: 0,
+                }}
+                title={isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: isDark ? '#f59e0b' : 'var(--muted)' }}>
+                  {isDark ? 'light_mode' : 'dark_mode'}
+                </span>
+                <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+                <span style={{
+                  marginLeft: 'auto',
+                  width: '36px', height: '20px',
+                  background: isDark ? 'var(--primary)' : 'var(--line)',
+                  borderRadius: '10px',
+                  position: 'relative',
+                  transition: 'background .25s',
+                  flexShrink: 0
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    top: '2px',
+                    left: isDark ? '18px' : '2px',
+                    width: '16px', height: '16px',
+                    background: '#fff',
+                    borderRadius: '50%',
+                    transition: 'left .25s cubic-bezier(.4,0,.2,1)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)'
+                  }} />
+                </span>
+              </button>
 
               <div className="user-badge">
                 <div className="user-badge-content" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer' }}>
@@ -1951,6 +2379,21 @@
       const [statusComment, setStatusComment] = useState('');
       const [demandaModal, setDemandaModal] = useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado }
 
+      // Novos filtros locais
+      const [taskStatusFilter, setTaskStatusFilter] = useState('');
+      const [taskResponsibleFilter, setTaskResponsibleFilter] = useState('');
+      const [localDemandaStatusFilter, setLocalDemandaStatusFilter] = useState('');
+      const [demandaResponsibleFilter, setDemandaResponsibleFilter] = useState('');
+
+      // Largura das colunas (não persistente conforme solicitado)
+      // Largura das colunas (otimizadas para 100% da tela sem scroll)
+      const [taskColWidths, setTaskColWidths] = useState({ title: 180, demanda: 140, owner: 140, priority: 90, status: 100, dates: 160, actions: 50 });
+      const [demandColWidths, setDemandColWidths] = useState({ title: 220, owner: 140, status: 100, priority: 90, progress: 120, dates: 160, actions: 80 });
+      
+      // Tamanho do modal dinâmico
+      const [modalSize, setModalSize] = useState({ width: 800, height: 600 });
+
+
       useEffect(() => {
         fetch(`${API_BASE}/api/employees`, { headers: apiHeaders(authToken) })
           .then(res => res.json())
@@ -1969,9 +2412,16 @@
 
       const filteredTasks = useMemo(() => {
         if (!tasks) return [];
-        if (!globalFilters) return tasks;
+        
+        let list = tasks;
 
-        return tasks.filter(task => {
+        // Filtros locais (Avançados)
+        if (taskStatusFilter) list = list.filter(t => t.status === taskStatusFilter);
+        if (taskResponsibleFilter) list = list.filter(t => String(t.ownerId) === String(taskResponsibleFilter));
+
+        if (!globalFilters) return list;
+
+        return list.filter(task => {
           const emp = dbEmployees?.find(e => String(e.id) === String(task.ownerId));
           if (!emp) return true;
 
@@ -1991,11 +2441,12 @@
 
           return true;
         });
-      }, [tasks, dbEmployees, globalFilters, getSubordinateIds]);
+      }, [tasks, dbEmployees, globalFilters, getSubordinateIds, taskStatusFilter, taskResponsibleFilter]);
 
-      const statuses = ['Não Iniciado', 'Trabalhando', 'Pausada', 'Bloqueio', 'Feito', 'Cancelada'];
+
+      const statuses = ['Não Iniciado', 'Em Andamento', 'Concluído', 'Pausado', 'Bloqueio', 'Cancelado'];
       const priorities = ['Baixa', 'Média', 'Alta', 'Crítica'];
-      const demandStatuses = ['Não Iniciado', 'Trabalhando', 'Pausada', 'Bloqueio', 'Feito', 'Cancelada'];
+      const demandStatuses = ['Não Iniciado', 'Em Andamento', 'Concluído', 'Pausado', 'Bloqueio', 'Cancelado'];
 
       const cycleValue = (current, array) => {
         const idx = array.indexOf(current);
@@ -2003,11 +2454,28 @@
       };
 
       const syncTask = (task) => {
-        if (!task.id || task.id > 100000) return;
-        const payload = { title: task.title, ownerId: task.ownerId, status: task.status, priority: task.priority, startDate: task.startDate, endDate: task.endDate, demandaId: task.demandaId || null };
-        fetch(`${API_BASE}/api/tasks/${task.id}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-        }).catch(err => console.log('Sync error', err));
+        // Se a tarefa tem ID real (positivo), faz o UPDATE (PUT)
+        if (task.id && task.id > 0) {
+          const payload = { title: task.title, ownerId: task.ownerId, status: task.status, priority: task.priority, startDate: task.startDate, endDate: task.endDate, demandaId: task.demandaId || null };
+          fetch(`${API_BASE}/api/tasks/${task.id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) }, body: JSON.stringify(payload)
+          }).catch(err => console.log('Sync error (PUT)', err));
+        } 
+        // Se a tarefa tem ID temporário (negativo) e agora tem DEMANDA, faz o CREATE (POST)
+        else if (task.id && task.id < 0 && task.demandaId) {
+          const payload = { title: task.title, ownerId: task.ownerId, status: task.status, priority: task.priority, startDate: task.startDate, endDate: task.endDate, demandaId: task.demandaId };
+          fetch(`${API_BASE}/api/tasks`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) }, body: JSON.stringify(payload)
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data?.id) {
+               // Promove o ID temporário para o ID real retornado pelo servidor
+               setTasks(prev => prev.map(t => t.id === task.id ? { ...t, id: data.id } : t));
+            }
+          })
+          .catch(err => console.log('Sync error (POST)', err));
+        }
       };
 
       const updateTask = (id, field, value) => {
@@ -2037,6 +2505,11 @@
 
       const deleteTask = (id) => {
         if (!confirm('Deseja realmente excluir esta tarefa?')) return;
+        // IDs negativos são temporários — remover só do estado local, sem chamar API
+        if (!id || id < 0) {
+          setTasks(current => current.filter(t => t.id !== id));
+          return;
+        }
         fetch(`${API_BASE}/api/tasks/${id}`, {
           method: 'DELETE',
           headers: apiHeaders(authToken)
@@ -2044,15 +2517,19 @@
           .then(() => {
             setTasks(current => current.filter(t => t.id !== id));
           })
-          .catch(err => console.error('Failed to delete task', err));
+          .catch(err => {
+            console.error('Failed to delete task', err);
+            // Remove localmente mesmo assim para não deixar tarefa órfã na UI
+            setTasks(current => current.filter(t => t.id !== id));
+          });
       };
 
       const getStatusClass = (status) => {
-        if (status === 'Feito') return 'done';
-        if (status === 'Trabalhando') return 'working';
+        if (status === 'Concluído') return 'done';
+        if (status === 'Em Andamento') return 'working';
         if (status === 'Bloqueio') return 'stuck';
-        if (status === 'Pausada') return 'stuck';
-        if (status === 'Cancelada') return 'rejected';
+        if (status === 'Pausado') return 'stuck';
+        if (status === 'Cancelado') return 'rejected';
         return 'not-started';
       };
 
@@ -2098,12 +2575,15 @@
 
       const filteredDemandas = useMemo(() => {
         if (!demandas) return [];
-        return demandas.filter(d => {
-          // Local status filter
-          if (demandaStatusFilter && (d.Status || d.status) !== demandaStatusFilter) return false;
+        
+        // Filtros locais (Avançados)
+        let list = demandas;
+        if (localDemandaStatusFilter) list = list.filter(d => (d.Status || d.status) === localDemandaStatusFilter);
+        if (demandaResponsibleFilter) list = list.filter(d => String(d.responsavelId || d.ResponsavelId) === String(demandaResponsibleFilter));
 
+        return list.filter(d => {
           if (!globalFilters) return true;
-
+          
           // Filter by gestorId (full hierarchy: manager + all recursive subordinates)
           if (globalFilters.gestorId) {
             const subIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
@@ -2119,21 +2599,38 @@
               if (globalFilters.cargo && resp.teamStr !== globalFilters.cargo && resp.team !== globalFilters.cargo && resp.cargoNome !== globalFilters.cargo) return false;
             }
           }
-
           return true;
         });
-      }, [demandas, demandaStatusFilter, globalFilters, dbEmployees, getSubordinateIds]);
+      }, [demandas, dbEmployees, globalFilters, getSubordinateIds, localDemandaStatusFilter, demandaResponsibleFilter]);
+
 
       const handleAdd = () => {
-        const payload = { title: '', ownerId: dbEmployees?.length > 0 ? dbEmployees[0].id : '', status: 'Não Iniciado', priority: 'Baixa', startDate: null, endDate: null, demandaId: selectedDemandaId || null };
-        fetch(`${API_BASE}/api/tasks`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-        }).then(res => res.json()).then(data => {
-          setTasks([...tasks, { id: data.id, ...payload }]);
-        }).catch(err => {
-          const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-          setTasks([...tasks, { id: newId, ...payload }]);
-        });
+        const payload = {
+          title: '',
+          ownerId: dbEmployees?.length > 0 ? (currentUser?.colaboradorId || dbEmployees[0].id) : '',
+          status: 'Não Iniciado',
+          priority: 'Baixa',
+          startDate: null,
+          endDate: null,
+          demandaId: selectedDemandaId || null
+        };
+
+        // Gera ID clientside temporário negativo
+        const tempId = -(Date.now());
+
+        // Adiciona apenas à UI. O syncTask cuidará de persistir via POST assim que houver demandaID.
+        setTasks(prev => [...prev, { id: tempId, ...payload }]);
+        
+        // Se já houver uma demanda selecionada no filtro global, tenta sincronizar imediatamente
+        if (payload.demandaId) {
+          setTimeout(() => {
+            setTasks(current => {
+               const t = current.find(x => x.id === tempId);
+               if (t) syncTask(t);
+               return current;
+            });
+          }, 200);
+        }
       };
 
       const handleStatusChange = (task, newStatus) => {
@@ -2160,11 +2657,11 @@
               }).catch(() => { });
 
               // Business rule: Auto-start demand when a task becomes active
-              const activeStatuses = ['Trabalhando', 'Pausada', 'Bloqueio'];
+              const activeStatuses = ['Em Andamento', 'Pausado', 'Bloqueio'];
               if (activeStatuses.includes(newStatus) && t.demandaId) {
                 const linkedDemanda = demandas.find(d => (d.Id || d.id) === t.demandaId);
                 if (linkedDemanda && (linkedDemanda.Status || linkedDemanda.status) === 'Não Iniciado') {
-                  handleDemandaStatusChange(linkedDemanda, 'Trabalhando', true);
+                  handleDemandaStatusChange(linkedDemanda, 'Em Andamento', true);
                 }
               }
             }
@@ -2179,13 +2676,13 @@
         const oldStatus = demanda.Status || demanda.status;
         if (newStatus === oldStatus && !forceUpdate) return;
 
-        // Business rule: Demand can only be marked as 'Feito' if ALL linked tasks are 'Feito' or 'Cancelada'
-        if (newStatus === 'Feito') {
+        // Business rule: Demand can only be marked as 'Concluído' if ALL linked tasks are 'Concluído' or 'Cancelado'
+        if (newStatus === 'Concluído') {
           const linkedTasks = tasks.filter(t => t.demandaId === demandaId);
           if (linkedTasks.length > 0) {
-            const allDone = linkedTasks.every(t => t.status === 'Feito' || t.status === 'Cancelada');
+            const allDone = linkedTasks.every(t => t.status === 'Concluído' || t.status === 'Cancelado');
             if (!allDone) {
-              const pendingCount = linkedTasks.filter(t => t.status !== 'Feito' && t.status !== 'Cancelada').length;
+              const pendingCount = linkedTasks.filter(t => t.status !== 'Concluído' && t.status !== 'Cancelado').length;
               alert(`Não é possível concluir esta demanda.\n\n${pendingCount} tarefa(s) ainda não foram finalizadas ou canceladas.\n\nFinalize ou cancele todas as tarefas vinculadas antes de concluir a demanda.`);
               return;
             }
@@ -2210,28 +2707,52 @@
           headers: { 'Content-Type': 'application/json', 'Authorization': authToken ? 'Bearer ' + authToken : '' },
           body: JSON.stringify({
             titulo: form.titulo,
-            responsavelId: form.responsavelId,
+            responsavelId: form.responsavelId ? Number(form.responsavelId) : null,
             status: form.status || 'Não Iniciado',
             prioridade: form.prioridade || 'Média',
-            inicioPlanjado: form.inicioPlanjado,
-            fimPlanejado: form.fimPlanejado,
-            // Audit fields
+            inicioPlanjado: form.inicioPlanjado || null,
+            fimPlanejado: form.fimPlanejado || null,
             responsavelAnterior: form.responsavelAnterior,
             inicioAnterior: form.inicioAnterior,
             fimAnterior: form.fimAnterior,
             justificativa: form.justificativa
           })
         })
-          .then(r => r.json())
-          .then(d => {
-            if (form.id) {
-              setDemandas(prev => prev.map(it => (it.Id || it.id) == form.id ? { ...it, Titulo: form.titulo, ResponsavelId: parseInt(form.responsavelId), InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado } : it));
-            } else {
-              setDemandas(prev => [{ Id: d.id, Titulo: form.titulo, ResponsavelId: parseInt(form.responsavelId), Status: 'Não Iniciado', Prioridade: 'Média', InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado, TotalTarefas: 0, TarefasConcluidas: 0 }, ...prev]);
-            }
-            setDemandaModal(null);
-          })
-          .catch(() => alert('Erro ao salvar demanda'));
+        .then(async res => {
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            // Se não for JSON, mostra o começo do HTML retornado para diagnóstico.
+            throw new Error(`Resposta do servidor não é JSON (HTTP ${res.status}): ${text.substring(0, 100)}...`);
+          }
+          
+          if (!res.ok) throw new Error(data.error || 'Falha no servidor');
+          return data;
+        })
+        .then(data => {
+          if (method === 'POST') {
+            const newDemanda = { 
+              Id: data.id, id: data.id, 
+              Titulo: form.titulo, titulo: form.titulo, 
+              ResponsavelId: form.responsavelId ? Number(form.responsavelId) : null, 
+              Status: form.status || 'Não Iniciado', status: form.status || 'Não Iniciado', 
+              Prioridade: form.prioridade || 'Média', prioridade: form.prioridade || 'Média', 
+              InicioPlanjado: form.inicioPlanjado || null, inicioPlanjado: form.inicioPlanjado || null, 
+              FimPlanejado: form.fimPlanejado || null, fimPlanejado: form.fimPlanejado || null, 
+              TotalTarefas: 0, TarefasConcluidas: 0 
+            };
+            setDemandas(prev => [newDemanda, ...prev]);
+          } else {
+            setDemandas(prev => prev.map(d => (d.Id || d.id) === form.id ? { ...d, ...form, Titulo: form.titulo, ResponsavelId: Number(form.responsavelId), Status: form.status, Prioridade: form.prioridade, InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado } : d));
+          }
+          setDemandaModal(null);
+        })
+        .catch(err => {
+          console.error('Save Demand Error:', err);
+          alert('Erro ao salvar demanda: ' + err.message);
+        });
       };
 
       const handleNewDemanda = () => {
@@ -2364,7 +2885,7 @@
 
       // Status/Priority select background color helpers
       const statusSelectStyle = (s) => {
-        const map = { 'Feito': '#00b461', 'Trabalhando': '#fdab3d', 'Bloqueio': '#e2445c', 'Pausada': '#e2445c', 'Cancelada': '#999', 'Não Iniciado': '#c4c4c4' };
+        const map = { 'Concluído': '#00b461', 'Em Andamento': '#fdab3d', 'Bloqueio': '#e2445c', 'Pausado': '#579bfc', 'Cancelado': '#94a3b8', 'Não Iniciado': '#c4c4c4' };
         return { background: map[s] || '#c4c4c4', color: s === 'Não Iniciado' ? '#333' : '#fff' };
       };
       const prioritySelectStyle = (p) => {
@@ -2373,82 +2894,98 @@
       };
 
       return (
-        <div className="task-view-container">
+        <div className="task-view-container" onMouseMove={(e) => {
+          if (window.isResizingModal) {
+            const newWidth = e.clientX - window.modalStartPos.left;
+            const newHeight = e.clientY - window.modalStartPos.top;
+            if (newWidth > 400 && newHeight > 300) setModalSize({ width: newWidth, height: newHeight });
+          }
+        }} onMouseUp={() => { window.isResizingModal = false; }}>
+          
           {demandaModal && (
             <div className="demand-modal-overlay">
-              <div className="demand-modal">
-                <h3 style={{ marginBottom: '20px' }}>{demandaModal.id ? 'Editar Demanda' : 'Nova Demanda'}</h3>
+              <div className="demand-modal resizable-modal" style={{ width: `${modalSize.width}px`, height: `${modalSize.height}px`, maxHeight: '90vh' }}>
+                <div className="modal-resizer" onMouseDown={(e) => {
+                   window.isResizingModal = true;
+                   const rect = e.target.parentElement.getBoundingClientRect();
+                   window.modalStartPos = { left: rect.left, top: rect.top };
+                }} />
+                
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '10px' }}>
+                  <h3 style={{ marginBottom: '20px' }}>{demandaModal.id ? 'Editar Demanda' : 'Nova Demanda'}</h3>
 
-                <div className="field">
-                  <label>Título da Demanda</label>
-                  <input value={demandaModal.titulo} onChange={e => setDemandaModal({ ...demandaModal, titulo: e.target.value })} placeholder="Ex: Projeto Expansão Norte" />
-                </div>
-
-                <div className="field">
-                  <label>Responsável</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                    <select value={demandaModal.responsavelId || ''} onChange={e => setDemandaModal({ ...demandaModal, responsavelId: e.target.value })}>
-                      <option value="">Selecione um responsável...</option>
-                      {dbEmployees?.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                    </select>
-                    {demandaModal.responsavelId && (
-                      <img
-                        src={dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.name}&background=random`}
-                        className="avatar-preview-circle"
-                        style={{ width: '40px', height: '40px' }}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
                   <div className="field">
-                    <label>Início Planejado</label>
-                    <input type="date" value={demandaModal.inicioPlanjado} onChange={e => setDemandaModal({ ...demandaModal, inicioPlanjado: e.target.value })} />
+                    <label>Título da Demanda</label>
+                    <input value={demandaModal.titulo} onChange={e => setDemandaModal({ ...demandaModal, titulo: e.target.value })} placeholder="Ex: Projeto Expansão Norte" />
                   </div>
-                  <div className="field">
-                    <label>Término Planejado</label>
-                    <input type="date" value={demandaModal.fimPlanejado} onChange={e => setDemandaModal({ ...demandaModal, fimPlanejado: e.target.value })} />
-                  </div>
-                </div>
 
-                {demandaModal.id && (
-                  (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
-                  (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
-                  (demandaModal.fimPlanjado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''))
-                ) && (
-                    <div className="field" style={{ marginTop: '16px', animation: 'fadeIn 0.3s ease' }}>
-                      <label style={{ color: 'var(--primary)', fontWeight: 700 }}>Justificativa da Alteração (Obrigatório)</label>
-                      <textarea
-                        style={{ minHeight: '60px', borderColor: 'var(--primary)' }}
-                        placeholder="Descreva o motivo da mudança de responsável ou prazos..."
-                        value={demandaModal.justificativa}
-                        onChange={e => setDemandaModal({ ...demandaModal, justificativa: e.target.value })}
-                      />
+                  <div className="field">
+                    <label>Responsável</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                      <select value={demandaModal.responsavelId || ''} onChange={e => setDemandaModal({ ...demandaModal, responsavelId: e.target.value })}>
+                        <option value="">Selecione um responsável...</option>
+                        {dbEmployees?.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                      </select>
+                      {demandaModal.responsavelId && (
+                        <img
+                          src={dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.name}&background=random`}
+                          className="avatar-preview-circle"
+                          style={{ width: '40px', height: '40px' }}
+                        />
+                      )}
                     </div>
-                  )}
+                  </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '32px', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={() => setDemandaModal(null)}>Cancelar</button>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      const hasChanges = (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
-                        (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
-                        (demandaModal.fimPlanjado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''));
-                      if (demandaModal.id && hasChanges && !demandaModal.justificativa?.trim()) {
-                        alert('Por favor, preencha a justificativa para as alterações de responsável ou prazos.');
-                        return;
-                      }
-                      saveDemanda(demandaModal);
-                    }}
-                  >
-                    Salvar Demanda
-                  </button>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                    <div className="field">
+                      <label>Início Planejado</label>
+                      <input type="date" value={demandaModal.inicioPlanjado} onChange={e => setDemandaModal({ ...demandaModal, inicioPlanjado: e.target.value })} />
+                    </div>
+                    <div className="field">
+                      <label>Término Planejado</label>
+                      <input type="date" value={demandaModal.fimPlanejado} onChange={e => setDemandaModal({ ...demandaModal, fimPlanejado: e.target.value })} />
+                    </div>
+                  </div>
+
+                  {demandaModal.id && (
+                    (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
+                    (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
+                    (demandaModal.fimPlanjado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''))
+                  ) && (
+                      <div className="field" style={{ marginTop: '16px', animation: 'fadeIn 0.3s ease' }}>
+                        <label style={{ color: 'var(--primary)', fontWeight: 700 }}>Justificativa da Alteração (Obrigatório)</label>
+                        <textarea
+                          style={{ minHeight: '60px', borderColor: 'var(--primary)' }}
+                          placeholder="Descreva o motivo da mudança de responsável ou prazos..."
+                          value={demandaModal.justificativa}
+                          onChange={e => setDemandaModal({ ...demandaModal, justificativa: e.target.value })}
+                        />
+                      </div>
+                    )}
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '20px', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-secondary" onClick={() => setDemandaModal(null)}>Cancelar</button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        const hasChanges = (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
+                          (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
+                          (demandaModal.fimPlanjado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''));
+                        if (demandaModal.id && hasChanges && !demandaModal.justificativa?.trim()) {
+                          alert('Por favor, preencha a justificativa para as alterações de responsável ou prazos.');
+                          return;
+                        }
+                        saveDemanda(demandaModal);
+                      }}
+                    >
+                      Salvar Demanda
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
+
           {statusModal && (
             <div className="status-modal-overlay">
               <div className="status-modal">
@@ -2466,58 +3003,90 @@
               </div>
             </div>
           )}
-          <header className="topbar" style={{ marginBottom: '16px' }}>
-            <div>
-              <h2>Gestão de Demandas e Tarefas</h2>
-              <p>Organize demandas e gerencie tarefas com disponibilidade real da equipe.</p>
+
+          <header className="topbar" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface)', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--line)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--title)', margin: 0 }}>Gestão de Demandas e Tarefas</h2>
+              <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: 0 }}>Organize e acompanhe a produtividade em tempo real.</p>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              {selectedDemandaId && (
-                <button className="btn btn-secondary" onClick={() => setSelectedDemandaId(null)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '.8rem' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>filter_alt_off</span> Limpar
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div className="segmented-control" style={{ display: 'flex', background: 'var(--bg)', padding: '4px', borderRadius: '10px', border: '1px solid var(--line)', marginRight: '10px' }}>
+                <button 
+                   className={`btn ${!showGantt ? 'active' : ''}`} 
+                   onClick={() => setShowGantt(false)}
+                   style={{ background: !showGantt ? 'var(--surface)' : 'transparent', border: 'none', boxShadow: !showGantt ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', padding: '6px 14px', fontSize: '.8rem', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', color: !showGantt ? 'var(--primary)' : 'var(--muted)', transition: 'all 0.2s' }}
+                >
+                  Tabela
                 </button>
-              )}
-              <button className={`btn ${showGantt ? 'btn-secondary' : 'btn-primary'}`} onClick={() => setShowGantt(false)}>Tabela</button>
-              <button className={`btn ${showGantt ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setShowGantt(true)}>Gantt</button>
-              <button className="btn btn-secondary" onClick={handleNewDemanda} style={{ display: 'flex', alignItems: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '6px' }}>folder_open</span>
+                <button 
+                   className={`btn ${showGantt ? 'active' : ''}`} 
+                   onClick={() => setShowGantt(true)}
+                   style={{ background: showGantt ? 'var(--surface)' : 'transparent', border: 'none', boxShadow: showGantt ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', padding: '6px 14px', fontSize: '.8rem', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', color: showGantt ? 'var(--primary)' : 'var(--muted)', transition: 'all 0.2s' }}
+                >
+                  Gantt
+                </button>
+              </div>
+              
+              <button className="btn btn-secondary" onClick={handleNewDemanda} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', fontSize: '.85rem', fontWeight: 700, transition: 'all 0.2s' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>folder_add</span>
                 Nova Demanda
               </button>
-              <button className="btn btn-primary" onClick={handleAdd} style={{ display: 'flex', alignItems: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '6px' }}>add</span>
+              <button className="btn btn-primary" onClick={handleAdd} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', fontSize: '.85rem', fontWeight: 700, boxShadow: '0 4px 10px rgba(51,204,204,0.2)', transition: 'all 0.2s' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add_task</span>
                 Nova Tarefa
               </button>
             </div>
           </header>
 
           {/* Barra de filtros locais do módulo de demandas */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px', padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>filter_list</span>
-            <span style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Filtrar demandas:</span>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px', padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Status:</label>
+               <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>filter_list</span>
+               <span style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--title)' }}>Filtros de Demandas:</span>
+            </div>
+
+            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
+              <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Status:</label>
               <select
-                value={demandaStatusFilter}
-                onChange={e => setDemandaStatusFilter(e.target.value)}
-                style={{ border: '1px solid var(--line)', padding: '5px 8px', borderRadius: '6px', background: 'var(--bg)', color: 'var(--title)', fontSize: '.82rem', fontWeight: 500, outline: 'none' }}
+                value={localDemandaStatusFilter}
+                onChange={e => setLocalDemandaStatusFilter(e.target.value)}
+                style={{ border: '1px solid var(--line)', padding: '6px 10px', borderRadius: '8px', background: 'var(--bg)', color: 'var(--title)', fontSize: '.85rem', fontWeight: 500, outline: 'none', flex: 1 }}
               >
                 <option value=''>Todos os status</option>
                 {statuses.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            {demandaStatusFilter && (
+
+            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '280px' }}>
+              <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Responsável:</label>
+              <div style={{ flex: 1 }}>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'Todos os responsáveis' },
+                    ...(dbEmployees || []).map(e => ({ value: e.id, label: e.name }))
+                  ]}
+                  value={demandaResponsibleFilter}
+                  onChange={(val) => setDemandaResponsibleFilter(val)}
+                  placeholder="Pesquisar responsável..."
+                />
+              </div>
+            </div>
+
+            {(localDemandaStatusFilter || demandaResponsibleFilter) && (
               <button
-                onClick={() => setDemandaStatusFilter('')}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(51,204,204,.1)', border: '1px solid rgba(51,204,204,.3)', borderRadius: '20px', padding: '3px 10px', cursor: 'pointer', fontSize: '.78rem', color: 'var(--primary)', fontWeight: 600 }}
+                onClick={() => { setLocalDemandaStatusFilter(''); setDemandaResponsibleFilter(''); }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontSize: '.8rem', color: '#ef4444', fontWeight: 600, transition: 'all 0.2s' }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                Limpar filtro de status
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>filter_alt_off</span>
+                Limpar Filtros
               </button>
             )}
-            <div style={{ marginLeft: 'auto', fontSize: '.78rem', color: 'var(--muted)' }}>
-              {filteredDemandas.length} demanda(s) exibida(s)
+
+            <div style={{ marginLeft: 'auto', fontSize: '.8rem', color: 'var(--muted)', fontWeight: 500 }}>
+              Showing {filteredDemandas.length} results
             </div>
           </div>
+
 
           {/* Demandas Section — Flat Grid Style */}
           {filteredDemandas && filteredDemandas.length > 0 && (
@@ -2540,7 +3109,7 @@
                 {filteredDemandas.map(d => {
                   const demandaId = d.Id || d.id;
                   const dTasks = tasks.filter(t => t.demandaId === demandaId);
-                  const doneCount = dTasks.filter(t => t.status === 'Feito').length;
+                  const doneCount = dTasks.filter(t => t.status === 'Concluído').length;
                   const totalCount = dTasks.length;
                   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
                   const isSelected = selectedDemandaId === demandaId;
@@ -2551,7 +3120,7 @@
                   const taskEnds = dTasks.filter(t => t.endDate).map(t => t.endDate).sort();
 
                   const realStart = taskStarts.length > 0 ? taskStarts[0] : null;
-                  const realEnd = (dStatus === 'Feito' || dStatus === 'Cancelada') && taskEnds.length > 0 ? taskEnds[taskEnds.length - 1] : null;
+                  const realEnd = (dStatus === 'Concluído' || dStatus === 'Cancelado') && taskEnds.length > 0 ? taskEnds[taskEnds.length - 1] : null;
 
                   const pStart = d.inicioPlanjado || d.InicioPlanjado;
                   const pEnd = d.fimPlanejado || d.FimPlanejado;
@@ -2634,112 +3203,165 @@
             </div>
           )}
 
-          {showGantt ? renderGantt() : (
-            <div className="monday-board">
-              <div className="monday-header">
-                <div className="monday-cell text-left" style={{ paddingLeft: '16px' }}>Tarefa</div>
-                <div className="monday-cell">Demanda</div>
-                <div className="monday-cell">Responsável</div>
-                <div className="monday-cell text-center">Prioridade</div>
-                <div className="monday-cell text-center">Status</div>
-                <div className="monday-cell text-center">Cronograma</div>
-                <div className="monday-cell text-center tooltip-target">
-                  Dias Úteis
-                  <span className="tooltip">Dias disponíveis descontando finais de semana, feriados nacionais e ausências programadas do responsável.</span>
-                </div>
-                <div className="monday-cell text-center">Ações</div>
-              </div>
-              {filteredTasks.length === 0 && <div className="empty-state" style={{ margin: '20px' }}>Nenhuma tarefa encontrada para os filtros atuais.</div>}
-              {filteredTasks
-                .filter(task => !selectedDemandaId || task.demandaId === selectedDemandaId)
-                .map(task => {
-                  const availableDays = calculateAvailableDays(task.ownerId, task.startDate, task.endDate);
-                  const isOverloaded = task.startDate && task.endDate && availableDays === 0;
+          {/* Barra de filtros locais do módulo de TAREFAS */}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px', padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>task_alt</span>
+               <span style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--title)' }}>Filtros de Tarefas:</span>
+            </div>
 
-                  return (
-                    <div className="monday-row" key={task.id}>
-                      <div className="monday-cell text-left" style={{ borderLeft: `6px solid var(--primary)`, paddingLeft: '10px' }}>
-                        <input
-                          type="text"
-                          value={task.title}
-                          onChange={(e) => updateTask(task.id, 'title', e.target.value)}
-                          className="monday-input"
-                          placeholder="Adicione um título..."
-                        />
-                      </div>
-                      <div className="monday-cell">
-                        <select
-                          value={task.demandaId || ''}
-                          onChange={e => updateTask(task.id, 'demandaId', e.target.value ? Number(e.target.value) : null)}
-                          className="monday-select"
-                          style={{ fontSize: '.8rem' }}
-                        >
-                          <option value="">Sem demanda</option>
-                          {(demandas || []).map(d => <option key={d.Id || d.id} value={d.Id || d.id}>{d.Titulo || d.titulo}</option>)}
-                        </select>
-                      </div>
-                      <div className="monday-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {(() => {
-                          const emp = dbEmployees?.find(e => e.id === task.ownerId) || dbEmployees?.[0] || {};
-                          return emp?.AvatarUrl || emp?.avatarUrl ?
-                            <img src={emp?.AvatarUrl || emp?.avatarUrl} loading="lazy" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} /> :
-                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: emp?.color || 'var(--primary)', flexShrink: 0 }}></div>;
-                        })()}
-                        <select
-                          value={task.ownerId}
-                          onChange={(e) => updateTask(task.id, 'ownerId', Number(e.target.value))}
-                          className="monday-select"
-                          style={{ flex: 1, fontSize: '.75rem' }}
-                        >
-                          {dbEmployees?.map(e => (
-                            <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="monday-cell" style={{ padding: '4px 6px' }}>
-                        <select
-                          className="status-pill-select"
-                          value={task.priority}
-                          onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                          style={prioritySelectStyle(task.priority)}
-                        >
-                          {priorities.map(p => <option key={p} value={p} style={{ background: '#fff', color: '#333' }}>{p}</option>)}
-                        </select>
-                      </div>
-                      <div className="monday-cell" style={{ padding: '4px 6px' }}>
-                        <select
-                          className="status-pill-select"
-                          value={task.status}
-                          onChange={e => handleStatusChange(task, e.target.value)}
-                          style={statusSelectStyle(task.status)}
-                        >
-                          {statuses.map(s => <option key={s} value={s} style={{ background: '#fff', color: '#333' }}>{s}</option>)}
-                        </select>
-                      </div>
-                      <div className="monday-cell monday-dates">
-                        <input type="date" value={task.startDate} onChange={(e) => updateTask(task.id, 'startDate', e.target.value)} className="monday-date-input" />
-                        <span style={{ color: 'var(--muted)', padding: '0 4px' }}>-</span>
-                        <input type="date" value={task.endDate} onChange={(e) => updateTask(task.id, 'endDate', e.target.value)} className="monday-date-input" />
-                      </div>
-                      <div className="monday-cell text-center">
-                        {task.startDate && task.endDate ? (
-                          <span className={`badge ${isOverloaded ? 'badge-danger' : 'badge-primary'}`} style={{ fontWeight: 700 }}>
-                            {availableDays} dias
-                          </span>
-                        ) : (
-                          <span className="helper">Sem datas</span>
-                        )}
-                      </div>
-                      <div className="monday-cell text-center">
-                        <button className="delete-btn" onClick={() => deleteTask(task.id)} title="Excluir Tarefa">
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '200px' }}>
+              <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Status:</label>
+              <select
+                value={taskStatusFilter}
+                onChange={e => setTaskStatusFilter(e.target.value)}
+                style={{ border: '1px solid var(--line)', padding: '6px 10px', borderRadius: '8px', background: 'var(--bg)', color: 'var(--title)', fontSize: '.85rem', fontWeight: 500, outline: 'none', flex: 1 }}
+              >
+                <option value=''>Todos os status</option>
+                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '280px' }}>
+              <label style={{ fontSize: '.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Responsável:</label>
+              <div style={{ flex: 1 }}>
+                <SearchableSelect
+                  options={[
+                    { value: '', label: 'Todos os responsáveis' },
+                    ...(dbEmployees || []).map(e => ({ value: e.id, label: e.name }))
+                  ]}
+                  value={taskResponsibleFilter}
+                  onChange={(val) => setTaskResponsibleFilter(val)}
+                  placeholder="Pesquisar responsável..."
+                />
+              </div>
+            </div>
+
+            {(taskStatusFilter || taskResponsibleFilter) && (
+              <button
+                onClick={() => { setTaskStatusFilter(''); setTaskResponsibleFilter(''); }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', fontSize: '.8rem', color: '#ef4444', fontWeight: 600, transition: 'all 0.2s' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>filter_alt_off</span>
+                Limpar Filtros
+              </button>
+            )}
+
+            <div style={{ marginLeft: 'auto', fontSize: '.8rem', color: 'var(--muted)', fontWeight: 500 }}>
+              {filteredTasks.filter(task => !selectedDemandaId || task.demandaId === selectedDemandaId).length} tarefa(s)
+            </div>
+          </div>
+
+          {showGantt ? renderGantt() : (
+            <div className="table-card" style={{ overflowX: 'auto', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '12px' }}>
+              <table className="modern-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr>
+                    <ResizableHeader label="Tarefa" width={taskColWidths.title} onResize={w => setTaskColWidths(c => ({ ...c, title: w }))} />
+                    <ResizableHeader label="Demanda" width={taskColWidths.demanda} onResize={w => setTaskColWidths(c => ({ ...c, demanda: w }))} />
+                    <ResizableHeader label="Responsável" width={taskColWidths.owner} onResize={w => setTaskColWidths(c => ({ ...c, owner: w }))} />
+                    <ResizableHeader label="Prioridade" width={taskColWidths.priority} onResize={w => setTaskColWidths(c => ({ ...c, priority: w }))} className="text-center" />
+                    <ResizableHeader label="Status" width={taskColWidths.status} onResize={w => setTaskColWidths(c => ({ ...c, status: w }))} className="text-center" />
+                    <ResizableHeader label="Cronograma" width={taskColWidths.dates} onResize={w => setTaskColWidths(c => ({ ...c, dates: w }))} className="text-center" />
+                    <th style={{ width: '100px', fontSize: '.7rem', textAlign: 'center', color: 'var(--muted)' }}>Dias Úteis</th>
+                    <ResizableHeader label="Ações" width={taskColWidths.actions} onResize={w => setTaskColWidths(c => ({ ...c, actions: w }))} className="text-center" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTasks
+                    .filter(task => !selectedDemandaId || task.demandaId === selectedDemandaId)
+                    .map(task => {
+                      const availableDays = calculateAvailableDays(task.ownerId, task.startDate, task.endDate);
+                      const isOverloaded = task.startDate && task.endDate && availableDays === 0;
+                      const emp = dbEmployees?.find(e => e.id === task.ownerId) || dbEmployees?.[0] || {};
+
+                      return (
+                        <tr key={task.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                          <td style={{ padding: '8px 12px' }}>
+                            <input
+                              type="text"
+                              value={task.title}
+                              onChange={(e) => updateTask(task.id, 'title', e.target.value)}
+                              className="monday-input"
+                              placeholder="Título..."
+                              style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontWeight: 500 }}
+                            />
+                          </td>
+                          <td style={{ padding: '8px 12px' }}>
+                            <select
+                              value={task.demandaId || ''}
+                              onChange={e => updateTask(task.id, 'demandaId', e.target.value ? Number(e.target.value) : null)}
+                              className="monday-select"
+                              style={{ width: '100%', border: '1px solid var(--line)', borderRadius: '6px', fontSize: '.75rem', padding: '4px' }}
+                            >
+                              <option value="">Sem demanda</option>
+                              {(demandas || []).map(d => <option key={d.Id || d.id} value={d.Id || d.id}>{d.Titulo || d.titulo}</option>)}
+                            </select>
+                          </td>
+                          <td style={{ padding: '8px 12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {emp?.AvatarUrl || emp?.avatarUrl ?
+                                <img src={emp?.AvatarUrl || emp?.avatarUrl} loading="lazy" style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} /> :
+                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: emp?.color || 'var(--primary)' }}></div>}
+                              <select
+                                value={task.ownerId}
+                                onChange={(e) => updateTask(task.id, 'ownerId', Number(e.target.value))}
+                                className="monday-select"
+                                style={{ flex: 1, border: '1px solid var(--line)', borderRadius: '6px', fontSize: '.75rem', padding: '4px' }}
+                              >
+                                {dbEmployees?.map(e => (
+                                  <option key={e.id} value={e.id}>{e.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <select
+                              className="status-pill-select"
+                              value={task.priority}
+                              onChange={e => updateTask(task.id, 'priority', e.target.value)}
+                              style={{ ...prioritySelectStyle(task.priority), padding: '4px 8px', fontSize: '.7rem' }}
+                            >
+                              {priorities.map(p => <option key={p} value={p} style={{ background: '#fff', color: '#333' }}>{p}</option>)}
+                            </select>
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <select
+                              className="status-pill-select"
+                              value={task.status}
+                              onChange={e => handleStatusChange(task, e.target.value)}
+                              style={{ ...statusSelectStyle(task.status), padding: '4px 8px', fontSize: '.7rem' }}
+                            >
+                              {statuses.map(s => <option key={s} value={s} style={{ background: '#fff', color: '#333' }}>{s}</option>)}
+                            </select>
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                              <input type="date" value={task.startDate} onChange={(e) => updateTask(task.id, 'startDate', e.target.value)} style={{ border: '1px solid var(--line)', borderRadius: '4px', padding: '2px', fontSize: '.75rem' }} />
+                              <span style={{ color: 'var(--muted)' }}>-</span>
+                              <input type="date" value={task.endDate} onChange={(e) => updateTask(task.id, 'endDate', e.target.value)} style={{ border: '1px solid var(--line)', borderRadius: '4px', padding: '2px', fontSize: '.75rem' }} />
+                            </div>
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            {task.startDate && task.endDate ? (
+                              <span className={`badge ${isOverloaded ? 'badge-danger' : 'badge-primary'}`} style={{ fontWeight: 700, fontSize: '.7rem' }}>
+                                {availableDays} dias
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                            <button className="delete-btn" onClick={() => deleteTask(task.id)} style={{ padding: '4px', borderRadius: '4px' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
             </div>
           )}
+
         </div>
       );
     }
@@ -2815,7 +3437,7 @@
 
       const kpis = React.useMemo(() => {
         const total = scopedTasks.length;
-        const done = scopedTasks.filter(t => t.status === 'Feito').length;
+        const done = scopedTasks.filter(t => t.status === 'Concluído').length;
         const deliveryRate = total > 0 ? Math.round((done / total) * 100) : 0;
         return { total, done, deliveryRate };
       }, [scopedTasks]);
@@ -2823,9 +3445,9 @@
       // Tabela 360 Groups
       const grupos360 = React.useMemo(() => {
         const baseTasks = (scopedTasks || []);
-        const criticas = baseTasks.filter(t => t.status === 'Bloqueio' || t.status === 'Cancelada');
-        const emAndamento = baseTasks.filter(t => t.status === 'Trabalhando');
-        const pausadas = baseTasks.filter(t => t.status === 'Pausada');
+        const criticas = baseTasks.filter(t => t.status === 'Bloqueio' || t.status === 'Cancelado');
+        const emAndamento = baseTasks.filter(t => t.status === 'Em Andamento');
+        const pausadas = baseTasks.filter(t => t.status === 'Pausado');
         const backlog = baseTasks.filter(t => t.status === 'Não Iniciado');
 
         const attachDetails = (list) => (list || []).map(t => {
@@ -2888,11 +3510,34 @@
         return { type: 'pendente', icon: 'help_outline', color: 'var(--line)', title: 'Não informado' };
       };
 
+      const STATUS_COLORS = {
+        'Não Iniciado': { bg: '#c4c4c4', color: '#555' },
+        'Em Andamento': { bg: '#fdab3d', color: '#fff' },
+        'Concluído':    { bg: '#00b461', color: '#fff' },
+        'Pausado':      { bg: '#579bfc', color: '#fff' },
+        'Bloqueio':     { bg: '#e2445c', color: '#fff' },
+        'Cancelado':    { bg: '#94a3b8', color: '#fff' },
+        'Pendente':     { bg: '#a78bfa', color: '#fff' },
+        'Backlog':      { bg: '#64748b', color: '#fff' },
+        'Crítico':      { bg: '#e2445c', color: '#fff' },
+      };
+
       const workloadMap = React.useMemo(() => {
         return filteredEmployees.map(e => {
-          const ativos = scopedTasks.filter(t => t.ownerId === e.id && t.status !== 'Feito' && t.status !== 'Cancelada');
-          const uniqueDemands = new Set(ativos.map(t => t.demandaId).filter(id => id !== null));
-          return { emp: e, taskCount: ativos.length, demandaCount: uniqueDemands.size };
+          const tarefasAtivas = scopedTasks.filter(t => t.ownerId === e.id && t.status !== 'Cancelado');
+          const tarefasPendentes = tarefasAtivas.filter(t => t.status !== 'Concluído');
+          const uniqueDemands = new Set(tarefasPendentes.map(t => t.demandaId).filter(id => id !== null));
+          // Contagem dinâmica por status (todos os status presentes)
+          const statusCount = {};
+          tarefasAtivas.forEach(t => {
+            if (t.status) statusCount[t.status] = (statusCount[t.status] || 0) + 1;
+          });
+          return {
+            emp: e,
+            taskCount: tarefasPendentes.length,
+            demandaCount: uniqueDemands.size,
+            statusCount,
+          };
         }).sort((a, b) => b.taskCount - a.taskCount).slice(0, 50);
       }, [filteredEmployees, scopedTasks]);
 
@@ -3086,21 +3731,72 @@
                 <h3><span className="material-symbols-outlined icon-purple">group_work</span> Carga de Trabalho Alocada</h3>
               </div>
 
-              <div className="workload-list">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {(workloadMap || []).map(w => {
                   if (!w || !w.emp) return null;
+                  const hasTasks = w.taskCount > 0 || w.demandaCount > 0;
                   return (
-                    <div className="workload-item" key={w.emp.id || Math.random()}>
-                      {w.emp.avatarUrl ? <img src={w.emp.avatarUrl} className="workload-avatar" /> : <div className="workload-avatar">{(w.emp.name || 'A').charAt(0).toUpperCase()}</div>}
-                      <div className="workload-name" style={{ flex: 1 }}>{w.emp.name || 'Sem nome'}</div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <div className="workload-item-count" title={`${w.demandaCount} demandas ativas`} style={{ background: 'rgba(51,204,204,0.1)', color: 'var(--primary)' }}>
-                          📂 {w.demandaCount}
-                        </div>
-                        <div className="workload-item-count" title={`${w.taskCount} tarefas ativas`}>
-                          📝 {w.taskCount}
-                        </div>
+                    <div key={w.emp.id || Math.random()} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '12px 16px',
+                      border: '1px solid var(--line)',
+                      borderRadius: '10px',
+                      background: 'var(--bg)',
+                      flexWrap: 'wrap',
+                    }}>
+                      {/* Avatar */}
+                      {w.emp.avatarUrl
+                        ? <img src={w.emp.avatarUrl} className="workload-avatar" style={{ flexShrink: 0 }} />
+                        : <div className="workload-avatar" style={{ flexShrink: 0 }}>{(w.emp.name || 'A').charAt(0).toUpperCase()}</div>
+                      }
+
+                      {/* Nome */}
+                      <div style={{ fontWeight: 600, fontSize: '.88rem', color: 'var(--title)', minWidth: '120px', flex: '1 1 100px' }}>
+                        {w.emp.name || 'Sem nome'}
                       </div>
+
+                      {/* Contadores de demandas e tarefas */}
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <span title={`${w.demandaCount} demandas ativas`} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          background: 'rgba(51,204,204,0.1)', color: 'var(--primary)',
+                          borderRadius: '20px', padding: '3px 10px', fontSize: '.78rem', fontWeight: 700
+                        }}>📂 {w.demandaCount}</span>
+                        <span title={`${w.taskCount} tarefas pendentes`} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          background: hasTasks ? 'rgba(253,171,61,0.12)' : 'var(--panel-strong)',
+                          color: hasTasks ? '#d97706' : 'var(--muted)',
+                          borderRadius: '20px', padding: '3px 10px', fontSize: '.78rem', fontWeight: 700
+                        }}>📝 {w.taskCount}</span>
+                      </div>
+
+                      {/* Status breakdown — dinâmico por qualquer status */}
+                      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', flexShrink: 0 }}>
+                        {Object.entries(w.statusCount).map(([status, count]) => {
+                          if (count === 0) return null;
+                          const pill = STATUS_COLORS[status] || { bg: '#64748b', color: '#fff' };
+                          return (
+                            <span key={status} title={`${count} tarefa(s) com status "${status}"`} style={{
+                              background: pill.bg,
+                              color: pill.color,
+                              borderRadius: '6px',
+                              padding: '2px 8px',
+                              fontSize: '.72rem',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              letterSpacing: '.01em',
+                            }}>
+                              {status}: {count}
+                            </span>
+                          );
+                        })}
+                        {w.taskCount === 0 && w.demandaCount === 0 && (
+                          <span style={{ fontSize: '.75rem', color: 'var(--muted)', fontStyle: 'italic' }}>Sem alocações</span>
+                        )}
+                      </div>
+
                     </div>
                   );
                 })}
@@ -4038,6 +4734,7 @@
 
       const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('🔑 Tentando login com email:', email);
         setLoading(true);
         setError('');
         try {
@@ -4047,9 +4744,17 @@
             body: JSON.stringify({ email: email.trim(), senha })
           });
           const data = await res.json();
-          if (!res.ok) { setError(data.error || 'Credenciais inválidas'); setLoading(false); return; }
+          console.log('📡 Resposta do login - status:', res.status, 'sucesso:', res.ok);
+          if (!res.ok) { 
+            console.error('❌ Login falhou:', data.error);
+            setError(data.error || 'Credenciais inválidas'); 
+            setLoading(false); 
+            return; 
+          }
+          console.log('✅ Login bem-sucedido, chamando onLogin');
           onLogin(data.user, data.token);
-        } catch {
+        } catch (err) {
+          console.error('❌ Erro na requisição:', err.message);
           setError('Servidor indisponível. Verifique se o backend está rodando.');
         }
         setLoading(false);
@@ -4093,7 +4798,7 @@
               <div className="login-error">{error}</div>
             </form>
             <div style={{ textAlign: 'center', marginTop: '20px', color: 'rgba(255,255,255,.3)', fontSize: '.75rem' }}>
-              Admin: admin@sistema.local / admin
+              ℹ️ Para acesso, use seu e-mail corporativo cadastrado no sistema.
             </div>
           </div>
         </div>
@@ -4124,7 +4829,7 @@
 
       // Form state
       const [formColab, setFormColab] = useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
-      const [formArea, setFormArea] = useState({ id: null, nome: '' });
+      const [formArea, setFormArea] = useState({ id: null, nome: '', cor: '#33CCCC' });
       const [formCargo, setFormCargo] = useState({ id: null, nome: '' });
       const [formNivel, setFormNivel] = useState({ id: null, descricao: '' });
       const [formStatus, setFormStatus] = useState({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 });
@@ -4134,6 +4839,7 @@
         { id: 'perfil', label: 'Meu Perfil', icon: 'person', admin: false },
         { id: 'senha', label: 'Senha', icon: 'lock', admin: false },
         { id: 'colaboradores', label: 'Colaboradores', icon: 'group', admin: true },
+        { id: 'areas', label: 'Áreas', icon: 'category', admin: true },
         { id: 'cargos', label: 'Cargos', icon: 'badge', admin: true },
         { id: 'hierarquia', label: 'Hierarquia', icon: 'account_tree', admin: true },
         { id: 'status', label: 'Status', icon: 'label', admin: true },
@@ -4428,7 +5134,7 @@
                       </div>
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: '380px', overflowX: 'auto' }}>
+                  <div style={{ flex: 1, minWidth: '280px', overflowX: 'auto' }}>
                     <table className="admin-table">
                       <thead><tr><th>Nome</th><th>Nível</th><th>Área</th><th>Gestor</th><th>Ativo</th><th>Ações</th></tr></thead>
                       <tbody>
@@ -4448,6 +5154,69 @@
                             </tr>
                           );
                         })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== ÁREAS ===== */}
+              {tab === 'areas' && (
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: '260px', flex: '0 0 260px' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '.9rem' }}>{formArea.id ? 'Editar' : 'Nova'} Área</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div>
+                        <label style={labelStyle}>Nome da Área*</label>
+                        <input style={inputStyle} value={formArea.nome} onChange={e => setFormArea(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: Controladoria" />
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={labelStyle}>Cor de Identificação</label>
+                          <input type="color" value={formArea.cor || '#33CCCC'} onChange={e => setFormArea(p => ({ ...p, cor: e.target.value }))} style={{ width: '100%', height: '36px', borderRadius: '6px', cursor: 'pointer', border: '1px solid var(--line)' }} />
+                        </div>
+                        <div style={{ padding: '8px 14px', borderRadius: '8px', background: formArea.cor || '#33CCCC', color: '#fff', fontSize: '.75rem', fontWeight: 700, marginBottom: '1px', opacity: 0.9 }}>
+                          {formArea.nome || 'Prévia'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveArea}>Salvar</button>
+                        {formArea.id && <button className="btn btn-secondary" onClick={() => setFormArea({ id: null, nome: '', cor: '#33CCCC' })}>Cancelar</button>}
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '16px', padding: '10px', background: 'rgba(51,204,204,.06)', borderRadius: '8px', fontSize: '.8rem', color: 'var(--muted)', border: '1px solid rgba(51,204,204,.2)' }}>
+                      <strong>Dica:</strong> Áreas com colaboradores ativos não podem ser excluídas. Inative-as para preservar os registros históricos.
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: '280px', overflowX: 'auto' }}>
+                    <table className="admin-table">
+                      <thead><tr><th>Cor</th><th>Área</th><th>Colaboradores</th><th>Ativo</th><th>Ações</th></tr></thead>
+                      <tbody>
+                        {areas.map(a => {
+                          const count = colaboradores.filter(c => (c.AreaId || c.areaId) === a.id && c.ativo !== false).length;
+                          return (
+                            <tr key={a.id} style={{ opacity: a.ativo === false ? 0.45 : 1 }}>
+                              <td><span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', background: a.cor || '#33CCCC', verticalAlign: 'middle' }} /></td>
+                              <td style={{ fontWeight: 600 }}>{a.nome}</td>
+                              <td style={{ fontSize: '.8rem', color: 'var(--muted)' }}>{count} colaborador(es)</td>
+                              <td><span style={{ fontSize: '.75rem', fontWeight: 600, color: a.ativo !== false ? '#10b981' : '#ef4444' }}>{a.ativo !== false ? 'Ativa' : 'Inativa'}</span></td>
+                              <td style={{ display: 'flex', gap: '4px' }}>
+                                <button className="admin-action-btn" onClick={() => setFormArea({ id: a.id, nome: a.nome, cor: a.cor || '#33CCCC' })}>Editar</button>
+                                <button className="admin-action-btn" onClick={() => toggleAreaAtivo(a)} style={{ color: a.ativo !== false ? '#f59e0b' : '#10b981', borderColor: a.ativo !== false ? '#f59e0b' : '#10b981' }}>{a.ativo !== false ? 'Inativar' : 'Reativar'}</button>
+                                <button className="admin-action-btn danger" onClick={async () => {
+                                  if (!confirm(`Excluir área "${a.nome}"? Isso não pode ser desfeito.`)) return;
+                                  try {
+                                    const res = await fetch(`${API_BASE}/api/areas/${a.id}`, { method: 'DELETE', headers: headers() });
+                                    const d = await res.json();
+                                    if (!res.ok) { alert(d.error); return; }
+                                    fetchAll(); setMsg('Área excluída!');
+                                  } catch (e) { alert(e.message); }
+                                }}>Excluir</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {areas.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px', fontSize: '.85rem' }}>Nenhuma área cadastrada.</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -4548,7 +5317,7 @@
                       </div>
                     </div>
                     <div style={{ marginTop: '16px', padding: '10px', background: 'rgba(245,158,11,.06)', borderRadius: '8px', fontSize: '.8rem', color: 'var(--muted)', border: '1px solid rgba(245,158,11,.2)' }}>
-                      <strong>Nota:</strong> Os status padrão do sistema (Não Iniciado, Trabalhando, etc.) continuam ativos. Os status criados aqui complementam o sistema.
+                      <strong>Nota:</strong> Os status padrão do sistema (Não Iniciado, Em Andamento, etc.) continuam ativos. Os status criados aqui complementam o sistema.
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: '300px' }}>

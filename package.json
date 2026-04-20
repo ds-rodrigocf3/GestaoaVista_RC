@@ -7,7 +7,7 @@
     "start": "node server.js",
     "build": "echo 'No build needed'",
     "setup-db": "node database/setup.js",
-    "test": "echo \"No tests for now\"" 
+    "test": "echo \"No tests for now\""
   },
   "keywords": [],
   "author": "",
@@ -20,8 +20,10 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "msnodesqlv8": "^5.1.9",
     "mssql": "^12.2.1",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

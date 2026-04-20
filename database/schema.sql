@@ -4,13 +4,13 @@
 -- Instruções: Execute este script no SQL Server.
 -- ============================================================
 
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'GestaoBI')
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'gestaointernabi-database')
 BEGIN
-    CREATE DATABASE GestaoBI;
+    CREATE DATABASE [gestaointernabi-database];
 END
 GO
 
-USE GestaoBI;
+USE [gestaointernabi-database];
 GO
 
 -- 1. NÍVEIS DE HIERARQUIA
@@ -28,7 +28,7 @@ BEGIN
     (4, 'Gerência'),
     (5, 'Coordenação / Especialista'),
     (6, 'Analista / Assistente'),
-    (7, 'Estagiário / Aprendiz');
+    (7, 'Estagiário');
 END
 GO
 
@@ -43,6 +43,11 @@ BEGIN
         DataInativacao DATETIME NULL,
         DataCriacao DATETIME DEFAULT GETDATE()
     );
+    
+    INSERT INTO BI_Areas (Nome, Cor) VALUES
+    ('BI e Analytics', '#33CCCC'),
+    ('Controladoria', '#FF9900'),
+    ('Tesouraria', '#4CAF50');
 END
 GO
 
@@ -68,6 +73,7 @@ BEGIN
         Nome NVARCHAR(100) NOT NULL,
         Cargo NVARCHAR(100),
         Gestor NVARCHAR(100),
+        GestorId INT NULL,  -- FK auto-referência (adicionada após criação)
         Tp_contrato NVARCHAR(20),
         Color NVARCHAR(20),
         AvatarUrl NVARCHAR(500),
@@ -85,7 +91,16 @@ BEGIN
     ('Pedro Cavalcanti Magliari', 'Analista de BI', 'Fernando da Costa Bronzeri Pereira','INT', '#6d7cff', 'https://i.pravatar.cc/150?u=2', 'pmagliari@elopar.com.br', 6),
     ('Péricles Damasceno', 'Engenheiro de Performance e Dados', 'Fernando da Costa Bronzeri Pereira','EXT', '#22c55e', 'https://i.pravatar.cc/150?u=3', 'pdamasceno.stefanini@elopar.com.br', 6),
     ('Rodrigo de Camargo Freitas', 'Analista de BI', 'Fernando da Costa Bronzeri Pereira','INT', '#f59e0b', 'https://i.pravatar.cc/150?u=4', 'rcamargo@elopar.com.br', 6);
+
+    -- Definir gestor hierárquico após inserção dos dados iniciais
+    UPDATE BI_Colaboradores SET GestorId = (SELECT Id FROM BI_Colaboradores WHERE Nome LIKE '%Bronzeri%')
+    WHERE Nome LIKE '%Magliari%' OR Nome LIKE '%Damasceno%' OR Nome LIKE '%Camargo%';
 END
+GO
+
+-- FK auto-referência de GestorId (separada para evitar erro de forward-reference)
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Colaboradores_Gestor')
+    ALTER TABLE BI_Colaboradores ADD CONSTRAINT FK_Colaboradores_Gestor FOREIGN KEY (GestorId) REFERENCES BI_Colaboradores(Id);
 GO
 
 -- 5. USUÁRIOS
@@ -139,14 +154,15 @@ BEGIN
         Final DATE,
         ComentarioStatus NVARCHAR(1000) NULL,
         InicioRealizado DATE NULL,
-        FimRealizado DATE NULL
+        FimRealizado DATE NULL,
+        Ativo BIT DEFAULT 1  -- soft-delete
     );
 
     -- Tarefas iniciais
-    INSERT INTO Tarefas (Titulo, ResponsavelId, Status, Prioridade, Inicio, Final) VALUES
-    ('Criação do Modulo de Gestão a Vista de BI', 4, 'Trabalhando', 'Alta', '2026-04-05', '2026-04-12'),
-    ('Sistema EAG de Liberações de Relatórios', 2, 'Feito', 'Média', '2026-04-01', '2026-04-04'),
-    ('RFP - Projeto MAPR Alelo e Veloe', 1, 'Trabalhando', 'Crítica', '2026-04-15', '2026-04-25');
+    INSERT INTO Tarefas (Titulo, ResponsavelId, Status, Prioridade, Inicio, Final, Ativo) VALUES
+    ('Criação do Modulo de Gestão a Vista de BI', 4, 'Em Andamento', 'Alta', '2026-04-05', '2026-04-12', 1),
+    ('Sistema EAG de Liberações de Relatórios', 2, 'Concluído', 'Média', '2026-04-01', '2026-04-04', 1),
+    ('RFP - Projeto MAPR Alelo e Veloe', 1, 'Em Andamento', 'Crítica', '2026-04-15', '2026-04-25', 1);
 END
 GO
 
@@ -206,4 +222,33 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Requests_Employee' AND object_id = OBJECT_ID('Requests'))
     CREATE INDEX IX_Requests_Employee ON Requests(EmployeeId);
+GO
+
+-- 11. STATUS TIPOS E EVENTOS (APOIO)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BI_Status_Tipos' AND xtype='U')
+BEGIN
+    CREATE TABLE BI_Status_Tipos (
+        Id INT PRIMARY KEY IDENTITY(1,1),
+        Nome NVARCHAR(100) NOT NULL,
+        Cor NVARCHAR(20) DEFAULT '#c4c4c4',
+        Aplicacao NVARCHAR(50) DEFAULT 'Ambos',
+        Ordem INT DEFAULT 99,
+        Ativo BIT DEFAULT 1,
+        DataCriacao DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BI_Eventos' AND xtype='U')
+BEGIN
+    CREATE TABLE BI_Eventos (
+        Id INT PRIMARY KEY IDENTITY(1,1),
+        Titulo NVARCHAR(200) NOT NULL,
+        Descricao NVARCHAR(2000) NULL,
+        DataInicio DATETIME NOT NULL,
+        DataFim DATETIME NULL,
+        Tipo NVARCHAR(100) DEFAULT 'Reunião',
+        DataCriacao DATETIME DEFAULT GETDATE()
+    );
+END
 GO
