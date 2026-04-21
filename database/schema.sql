@@ -245,8 +245,8 @@ BEGIN
         Id INT PRIMARY KEY IDENTITY(1,1),
         Titulo NVARCHAR(200) NOT NULL,
         Descricao NVARCHAR(2000) NULL,
-        DataInicio DATETIME NOT NULL,
-        DataFim DATETIME NULL,
+        DataInicio NVARCHAR(20) NOT NULL,
+        DataFim NVARCHAR(20) NULL,
         Tipo NVARCHAR(100) DEFAULT 'Reunião',
         DataCriacao DATETIME DEFAULT GETDATE()
     );

@@ -284,33 +284,43 @@
     .admin-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: .85rem
+      font-size: .85rem;
+      background: var(--surface);
     }
 
     .admin-table th {
       text-align: left;
-      padding: 8px 10px;
+      padding: 10px 12px;
       color: var(--muted);
       font-size: .75rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .04em;
       border-bottom: 1px solid var(--line);
-      background: var(--bg)
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .admin-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, .04);
-      vertical-align: middle
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      color: var(--text);
+    }
+
+    .admin-table td:last-child {
+      white-space: nowrap;
+      text-align: right;
     }
 
     .admin-table tr:hover td {
-      background: rgba(51, 204, 204, .04)
+      background: rgba(51, 204, 204, .04);
     }
 
     .admin-action-btn {
-      padding: 3px 10px;
+      padding: 4px 10px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: transparent;
@@ -319,13 +329,22 @@
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
-      transition: all .15s
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .admin-action-btn:hover {
-      background: var(--surface);
+      background: var(--line);
       border-color: var(--primary);
-      color: var(--primary)
+      color: var(--primary);
+    }
+
+    .admin-action-btn.danger:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.05);
     }
 
     .admin-action-btn.danger {
@@ -930,46 +949,6 @@
     .settings-tab-content.active {
       display: block;
       animation: fadeIn 0.3s ease;
-    }
-
-    .table-responsive {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    .admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.85rem;
-    }
-
-    .admin-table th {
-      padding: 10px;
-      border-bottom: 2px solid var(--line);
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    table.resizing {
-      width: max-content !important;
-      table-layout: auto !important;
-    }
-
-    .admin-table td {
-      padding: 10px;
-      border-bottom: 1px solid var(--line);
-      color: var(--text);
-    }
-
-    .admin-action-btn {
-      background: transparent;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      color: var(--title);
     }
 
     .admin-action-btn:hover {
@@ -1605,11 +1584,8 @@
       return toDate(startA) <= toDate(endB) && toDate(endA) >= toDate(startB);
     }
 
-    function getEmployeeById(id) {
-      return employees.find((employee) => employee.id === Number(id));
-    }
-
     function getConflictLevel(conflicts) {
+      if (!conflicts) return 'Nenhum';
       if (conflicts.length >= 2) return 'Alto';
       if (conflicts.length === 1) return 'Médio';
       return 'Nenhum';
@@ -1633,27 +1609,9 @@
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
       const days = [];
-
-      for (let i = 0; i < firstDay.getDay(); i += 1) {
-        days.push(null);
-      }
-
-      for (let day = 1; day <= lastDay.getDate(); day += 1) {
-        days.push(new Date(year, month, day));
-      }
-
+      for (let i = 0; i < firstDay.getDay(); i += 1) days.push(null);
+      for (let day = 1; day <= lastDay.getDate(); day += 1) days.push(new Date(year, month, day));
       return days;
-    }
-
-    function buildRequestDetails(request) {
-      if (!request) return { id: 0, employee: { name: 'Inválido', team: '-', id: 0 }, startDate: '', endDate: '', status: 'Erro' };
-      const employee = getEmployeeById(request.employeeId);
-      const safeEmp = employee || { name: 'Colaborador não identificado', team: 'Sem Área', id: Number(request.employeeId || 0), avatarUrl: null };
-      return {
-        ...request,
-        employee: safeEmp,
-        totalDays: (request.startDate && request.endDate) ? diffDays(request.startDate, request.endDate) : 0
-      };
     }
 
     function App() {
@@ -1669,13 +1627,33 @@
         return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       });
       const [demandas, setDemandas] = useState([]);
+      const [eventos, setEventos] = useState([]);
       const [activeView, setActiveView] = useState('dashboard');
       const [requests, setRequests] = useState(initialRequests);
       const [tasks, setTasks] = useState(initialTasks);
       const [dbEmployees, setDbEmployees] = useState(employees);
       const [areas, setAreas] = useState([]);
+      const [colaboradores, setColaboradores] = useState([]); // Master collab list
       const [cargos, setCargos] = useState([]);
+      const [hierarquia, setHierarquia] = useState([]);
+      const [statusTipos, setStatusTipos] = useState([]);
       const [globalFilters, setGlobalFilters] = useState({ gestor: '', colaboradorId: '', gestorId: '' });
+
+      // Moved inside App to use dbEmployees state
+      const getEmployeeById = useCallback((id) => {
+        return (dbEmployees || []).find((employee) => employee.id === Number(id));
+      }, [dbEmployees]);
+
+      const buildRequestDetails = useCallback((request) => {
+        if (!request) return { id: 0, employee: { name: 'Inválido', team: '-', id: 0 }, startDate: '', endDate: '', status: 'Erro' };
+        const employee = getEmployeeById(request.employeeId);
+        const safeEmp = employee || { name: 'Colaborador não identificado', team: 'Sem Área', id: Number(request.employeeId || 0), avatarUrl: null };
+        return {
+          ...request,
+          employee: safeEmp,
+          totalDays: (request.startDate && request.endDate) ? diffDays(request.startDate, request.endDate) : 0
+        };
+      }, [getEmployeeById]);
 
       // Aplicar tema claro/escuro ao elemento html
       useEffect(() => {
@@ -1748,25 +1726,12 @@
 
       const handleLogin = (user, token) => {
         console.log('🔐 handleLogin chamado com email:', user.email);
-        // Achatar o objeto user para compatibilidade com o frontend
-        const flattenedUser = {
-          ...user,
-          colaboradorId: user.colaborador?.id,
-          nome: user.colaborador?.nome,
-          cargo: user.colaborador?.cargo,
-          nivelHierarquia: user.colaborador?.nivel,
-          nivelDescricao: user.colaborador?.nivelDescricao,
-          color: user.colaborador?.color,
-          avatarUrl: user.colaborador?.avatarUrl,
-          gestor: user.colaborador?.gestor,
-          tpContrato: user.colaborador?.tpContrato
-        };
         
         console.log('💾 Salvando no sessionStorage');
-        sessionStorage.setItem('gbi_user', JSON.stringify(flattenedUser));
+        sessionStorage.setItem('gbi_user', JSON.stringify(user));
         sessionStorage.setItem('gbi_token', token);
         console.log('📝 Atualizando estado (currentUser, authToken)');
-        setCurrentUser(flattenedUser);
+        setCurrentUser(user);
         setAuthToken(token);
       };
       const handleLogout = () => {
@@ -1791,92 +1756,92 @@
         } catch (e) { console.error(e); }
       }, []);
 
-      useEffect(() => {
-        console.log('🚀 useEffect de carregamento acionado | currentUser:', currentUser?.email || 'null', 'authToken:', authToken ? 'SIM' : 'NÃO');
-        const token = authToken;
-        if (!token && !currentUser) {
-          console.log('⚠️ Sem token e sem currentUser - retornando');
-          setLoading(false);
-          return;
-        }
-        console.log('📡 Iniciando carregamento de dados...');
-        setLoading(true);
+      const fetchAll = useCallback(async (options = {}) => {
+        if (!currentUser) return;
+        const silent = options.silent === true;
+        if (!silent) setLoading(true);
+        console.log(`🔄 Iniciando fetchAll unificado (${silent ? 'SILENT' : 'FULL'})...`);
+        try {
+          const endpoints = [
+            fetch(`${API_BASE}/api/employees`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/colaboradores`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/areas`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/requests`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/tasks`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/eventos`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/cargos`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/hierarquia`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/status-tipos`, { headers: apiHeaders(authToken) }).then(r => r.json()),
+            fetch(`${API_BASE}/api/demandas`, { headers: apiHeaders(authToken) }).then(r => r.json())
+          ];
 
-        const pEmployees = fetch(`${API_BASE}/api/employees`)
-          .then(res => {
-            console.log('📦 /api/employees retornou status:', res.status);
-            return res.json();
-          })
-          .then(data => {
-            console.log('✅ Employees carregados:', data?.length || 0, 'itens');
-            const validData = (data || []).filter(e => e && e.id);
-            if (validData.length) {
-              employees.length = 0;
-              employees.push(...validData);
-              setDbEmployees([...validData]);
-              const initialEmpId = currentUser && !currentUser.isAdmin ? currentUser.colaboradorId : (validData[0] ? validData[0].id : '');
-              setForm(f => ({ ...f, employeeId: String(initialEmpId) }));
-            }
-          })
-          .catch(err => console.error('❌ Erro ao carregar employees:', err.message));
+          const responses = await Promise.allSettled(endpoints);
+          
+          const getResult = (idx, name) => {
+            if (responses[idx].status === 'fulfilled') return responses[idx].value;
+            console.error(`❌ Falha ao carregar [${name}]:`, responses[idx].reason);
+            return null;
+          };
 
-        const pTasks = fetch(`${API_BASE}/api/tasks`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && Array.isArray(data)) {
-               setTasks(data.map(t => ({
+          const rEmployees = getResult(0, 'employees');
+          const rColabs = getResult(1, 'colaboradores');
+          const rAreas = getResult(2, 'areas');
+          const rRequests = getResult(3, 'requests');
+          const rTasks = getResult(4, 'tasks');
+          const rEventos = getResult(5, 'eventos');
+          const rCargos = getResult(6, 'cargos');
+          const rHier = getResult(7, 'hierarquia');
+          const rStatus = getResult(8, 'status-tipos');
+          const rDemandas = getResult(9, 'demandas');
+
+          if (rEmployees) setDbEmployees(rEmployees);
+          if (rColabs) setColaboradores(rColabs);
+          if (rAreas) setAreas(rAreas);
+          
+          if (rRequests) {
+             setRequests(rRequests.map(r => ({
+                ...r,
+                startDate: r.startDate ? r.startDate.slice(0, 10) : '',
+                endDate: r.endDate ? r.endDate.slice(0, 10) : ''
+             })));
+             const initialWorkDays = {};
+             rRequests.forEach(r => {
+                if (r.type === 'Escala de Trabalho' && r.localTrabalho) {
+                   if (!initialWorkDays[r.employeeId]) initialWorkDays[r.employeeId] = {};
+                   initialWorkDays[r.employeeId][r.startDate] = r.localTrabalho;
+                }
+             });
+             setWorkDays(initialWorkDays);
+          }
+
+          if (rTasks) {
+             setTasks(rTasks.map(t => ({
                 ...t, id: t.Id || t.id, ownerId: t.OwnerId || t.ownerId,
                 status: t.Status || t.status, priority: t.Priority || t.priority,
                 title: t.Title || t.title,
                 startDate: (t.StartDate || t.startDate) ? (t.StartDate || t.startDate).slice(0, 10) : '',
                 endDate: (t.EndDate || t.endDate) ? (t.EndDate || t.endDate).slice(0, 10) : '',
                 demandaId: t.DemandaId || t.demandaId || null
-              })));
-            } else {
-               setTasks([]);
-               console.warn('Tasks API did not return an array');
-            }
-          });
+             })));
+          }
 
-        const pRequests = fetch(`${API_BASE}/api/requests`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && data.length) {
-              setRequests(data);
-              const initialWorkDays = {};
-              data.forEach(r => {
-                if (r.type === 'Escala de Trabalho' && r.localTrabalho) {
-                  if (!initialWorkDays[r.employeeId]) initialWorkDays[r.employeeId] = {};
-                  initialWorkDays[r.employeeId][r.startDate] = r.localTrabalho;
-                }
-              });
-              setWorkDays(initialWorkDays);
-            }
-          });
+          if (rEventos) setEventos(rEventos);
+          if (rCargos) setCargos(rCargos);
+          if (rHier) setHierarquia(rHier);
+          if (rStatus) setStatusTipos(rStatus);
+          if (rDemandas) setDemandas(rDemandas);
 
-        const pAreas = fetch(`${API_BASE}/api/areas`)
-          .then(res => res.json())
-          .then(data => setAreas(data || []));
-
-        const pCargos = fetch(`${API_BASE}/api/cargos`, { headers: apiHeaders(authToken) })
-          .then(res => res.json())
-          .then(data => setCargos(data || []));
-
-        const pDemandas = fetch(`${API_BASE}/api/demandas`)
-          .then(res => res.json())
-          .then(data => {
-             if (Array.isArray(data)) setDemandas(data);
-             else {
-               setDemandas([]);
-               console.warn('Demandas API did not return an array', data);
-             }
-          });
-
-        Promise.all([pEmployees, pTasks, pRequests, pAreas, pCargos, pDemandas]).finally(() => {
-          console.log('✅ Promise.all finalizado - setando loading = false');
-          setLoading(false);
-        });
+          console.log('✨ Data sync completo.');
+        } catch (e) {
+          console.error('❌ Erro crítico no sync de dados:', e.message);
+        } finally {
+          if (!silent) setLoading(false);
+        }
       }, [authToken, currentUser]);
+
+      useEffect(() => {
+        fetchAll();
+      }, [fetchAll]);
 
       // Enforce owner identity for non-admins
       useEffect(() => {
@@ -2015,6 +1980,7 @@
       const monthDays = useMemo(() => getMonthMatrix(currentMonth), [currentMonth]);
 
       const submitRequest = () => {
+        console.log('🚀 Iniciando submitRequest | form:', form);
         if (!form.employeeId || !form.startDate || !form.endDate || !form.type) {
           setToast({ title: 'Campos obrigatórios', message: 'Preencha colaborador, tipo e período antes de enviar.' });
           return;
@@ -2026,39 +1992,50 @@
         }
 
         const empId = Number(form.employeeId);
-        if (!currentUser.isAdmin && currentUser.colaboradorId !== empId) {
+        const isAdmin = !!currentUser?.isAdmin;
+        
+        if (!isAdmin && currentUser?.colaboradorId !== empId) {
           setToast({ title: 'Acesso negado', message: 'Você só pode criar agendamentos para si mesmo.' });
           return;
         }
 
         const newRequest = {
-          employeeId: Number(form.employeeId),
+          employeeId: empId,
           startDate: form.startDate,
           endDate: form.endDate,
           type: form.type,
           status: 'Pendente',
           note: form.note || 'Sem observações adicionais.',
           coverage: form.coverage || 'A definir',
-          priority: formConflicts.length >= 2 ? 'Alta' : formConflicts.length === 1 ? 'Média' : 'Baixa'
+          priority: (formConflicts || []).length >= 2 ? 'Alta' : (formConflicts || []).length === 1 ? 'Média' : 'Baixa'
         };
 
+        console.log('📡 Enviando POST /api/requests:', newRequest);
         fetch(`${API_BASE}/api/requests`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) },
           body: JSON.stringify(newRequest)
         })
-          .then(res => res.json())
+          .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao criar solicitação');
+            return data;
+          })
           .then(data => {
+            console.log('✅ Solicitação criada com sucesso:', data);
             setRequests((current) => [...current, data]);
             setToast({
               title: 'Solicitação enviada',
-              message: formConflicts.length
-                ? `Pedido criado com ${formConflicts.length} conflito(s) na mesma equipe para análise do gestor.`
-                : 'Pedido criado sem conflitos diretos na equipe.'
+              message: (formConflicts || []).length
+                ? `Pedido criado com ${(formConflicts || []).length} conflitos detectados para análise.`
+                : 'Pedido criado sem conflitos diretos.'
             });
             setActiveView('approvals');
           })
-          .catch(err => console.error('Failed to create Request', err));
+          .catch(err => {
+            console.error('❌ Erro no submitRequest:', err);
+            setToast({ title: 'Erro no servidor', message: err.message || 'Não foi possível salvar a solicitação.' });
+          });
       };
 
       const handleApproval = (requestId, decision) => {
@@ -2146,7 +2123,14 @@
                 setShowSettings(false);
                 setActiveView('dashboard');
               }}
-              refreshEmployees={refreshEmployees}
+              refreshEmployees={fetchAll}
+              colaboradores={colaboradores}
+              areas={areas}
+              cargos={cargos}
+              hierarquia={hierarquia}
+              statusTipos={statusTipos}
+              eventos={eventos}
+              fetchAll={fetchAll}
             />
           )}
 
@@ -2309,7 +2293,9 @@
                   employees={dbEmployees}
                   demandas={demandas}
                   setDemandas={setDemandas}
+                  eventos={eventos}
                   globalFilters={globalFilters}
+                  currentUser={currentUser}
                 />
               )}
 
@@ -2361,6 +2347,9 @@
                   setWorkDays={setWorkDays}
                   requests={requests}
                   setRequests={setRequests}
+                  eventos={eventos}
+                  employees={dbEmployees}
+                  areas={areas}
                   currentUser={currentUser}
                   authToken={authToken}
                   globalFilters={globalFilters}
@@ -3366,7 +3355,7 @@
       );
     }
 
-    function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, globalFilters }) {
+    function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, globalFilters, currentUser }) {
 
       if (!employees || employees.length === 0) {
         return (
@@ -3543,15 +3532,89 @@
 
       const timelineAusencias = React.useMemo(() => {
         const todayStr = new Date().toISOString().split('T')[0];
-        return (scopedRequests || [])
+        
+        const parseDateSafe = (d) => {
+          if (!d) return null;
+          let dateObj = new Date(d);
+          // Se falhou e for string, talvez seja formato "Apr 23 2026..."
+          if (isNaN(dateObj.getTime()) && typeof d === 'string') {
+            // Tenta remover AM/PM e nomes de meses para parsear manualmente se necessário, 
+            // mas geralmente New Date('Apr 23...') funciona em navegadores modernos se não houver fuso confuso.
+            dateObj = new Date(d.replace(/-/g, '/')); 
+          }
+          return isNaN(dateObj.getTime()) ? null : dateObj;
+        };
+
+        const formatTime24h = (dateObj) => {
+          if (!dateObj) return null;
+          return dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+        };
+
+        const formatDateBR = (dateObj) => {
+          if (!dateObj) return '';
+          return dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        // 1. Ausências (Férias, etc)
+        const absences = (scopedRequests || [])
           .filter(r => r && r.status === 'Aprovado' && r.type !== 'Escala de Trabalho' && r.type !== 'Banco de horas' && r.endDate >= todayStr)
           .map(r => ({
             ...r,
-            emp: (employees || []).find(e => e && e.id === r.employeeId)
-          }))
-          .sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
-          .slice(0, 10);
-      }, [scopedRequests, employees]);
+            emp: (employees || []).find(e => e && e.id === r.employeeId),
+            isEvent: false,
+            formattedDate: formatDateBR(new Date(r.startDate + 'T12:00:00'))
+          }));
+
+        // 2. Eventos (Reuniões, Workshops, etc)
+        const events = (eventos || [])
+          .filter(ev => {
+             const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
+             if (!d || d.toISOString().split('T')[0] < todayStr) return false;
+
+             // Regras de Visibilidade (Atribuição)
+             const evAreaId = ev.areaId || ev.AreaId;
+             const evRespId = ev.responsavelId || ev.ResponsavelId;
+
+             // Global (sem área e sem responsável específico) - Visível para todos
+             if (!evAreaId && !evRespId) return true;
+             
+             // Por Área (Usuário pertence à área do evento)
+             if (evAreaId && currentUser?.areaId && String(evAreaId) === String(currentUser.areaId)) return true;
+             
+             // Por Responsável (Usuário é o responsável direto)
+             if (evRespId && currentUser?.colaboradorId && String(evRespId) === String(currentUser.colaboradorId)) return true;
+             
+             // Admin visualiza todos
+             if (currentUser?.isAdmin) return true;
+
+             return false;
+          })
+          .map(ev => {
+            const startObj = parseDateSafe(ev.dataInicio || ev.DataInicio);
+            const endObj = parseDateSafe(ev.dataFim || ev.DataFim);
+            
+            return {
+              id: ev.id,
+              type: ev.tipo || 'Reunião',
+              startDate: formatDateBR(startObj),
+              startTime: formatTime24h(startObj),
+              endTime: formatTime24h(endObj),
+              title: ev.titulo || 'Sem título',
+              note: ev.descricao || '',
+              isEvent: true,
+              areaNome: ev.areaNome,
+              responsavelNome: ev.responsavelNome
+            };
+          });
+
+        return [...absences, ...events]
+          .sort((a, b) => {
+            const da = a.isEvent ? parseDateSafe(a.startDate) : new Date(a.startDate + 'T00:00:00');
+            const db = b.isEvent ? parseDateSafe(b.startDate) : new Date(b.startDate + 'T00:00:00');
+            return (da || 0) - (db || 0);
+          })
+          .slice(0, 20);
+      }, [scopedRequests, employees, eventos]);
 
       const formatDia = (d) => d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.,', '').toUpperCase();
 
@@ -3811,18 +3874,47 @@
 
               <div className="workload-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
                 {timelineAusencias.map(a => (
-                  <div className="workload-item" key={a.id} style={{ padding: '12px', border: '1px solid var(--line)', background: 'var(--card)' }}>
-                    {a.emp?.avatarUrl ? <img src={a.emp.avatarUrl} className="workload-avatar" /> : <div className="workload-avatar">{(a.emp?.name || 'A').charAt(0).toUpperCase()}</div>}
+                  <div className="workload-item" key={a.id || Math.random()} style={{ padding: '12px', border: '1px solid var(--line)', background: 'var(--card)', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {a.isEvent ? (
+                      <div className="workload-avatar" style={{ background: 'var(--primary)', color: '#fff' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>event</span>
+                      </div>
+                    ) : (
+                      a.emp?.avatarUrl 
+                        ? <img src={a.emp.avatarUrl} className="workload-avatar" /> 
+                        : <div className="workload-avatar">{(a.emp?.name || 'A').charAt(0).toUpperCase()}</div>
+                    )}
+                    
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '.85rem' }}>{a.emp?.name}</div>
-                      <div style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{a.type}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '.8rem' }}>{a.startDate ? String(a.startDate).split('-').reverse().slice(0, 2).join('/') : '-'}</div>
+                      <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--title)' }}>
+                        {a.isEvent ? a.title : a.emp?.name}
+                      </div>
+                      <div style={{ fontSize: '.72rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        {a.isEvent ? (
+                          <>
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>groups</span>
+                            {a.areaNome || 'Global'} • {a.type}
+                          </>
+                        ) : (
+                          a.type
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '.72rem', fontWeight: 700, color: a.isEvent ? 'var(--primary)' : '#f59e0b', background: 'rgba(51,204,204,0.06)', padding: '2px 6px', borderRadius: '4px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>calendar_today</span>
+                          {a.isEvent ? a.startDate : a.formattedDate}
+                        </div>
+                        {a.isEvent && (a.startTime || a.endTime) && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '.72rem', color: 'var(--muted)', fontWeight: 600, borderLeft: '1px solid var(--line)', paddingLeft: '8px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>schedule</span>
+                            {a.startTime || ''}{a.endTime && a.endTime !== a.startTime ? ` - ${a.endTime}` : ''}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
-                {timelineAusencias.length === 0 && <div className="empty-state">Sem ausências agendadas para o período.</div>}
+                {timelineAusencias.length === 0 && <div className="empty-state" style={{ gridColumn: 'span 12', textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>Sem eventos ou ausências agendadas para o período.</div>}
               </div>
             </div>
           </div>
@@ -3895,7 +3987,6 @@
                     <select
                       value={form.employeeId}
                       onChange={(e) => updateField('employeeId', e.target.value)}
-                      disabled={!currentUser.isAdmin}
                     >
                       {employees.map((employee) => (
                         <option key={employee.id} value={employee.id}>
@@ -4195,7 +4286,7 @@
       );
     }
 
-    function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, currentUser, authToken, globalFilters }) {
+    function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters }) {
       const [selectedMonthOffset, setSelectedMonthOffset] = useState(0);
 
       const getSubIdsScale = useCallback((managerId) => {
@@ -4223,7 +4314,7 @@
 
       const filteredEmployees = useMemo(() => employees.filter(isMatch), [employees, globalFilters, getSubIdsScale]);
 
-      const [selectedEmployeeId, setSelectedEmployeeId] = useState(currentUser.isAdmin ? (filteredEmployees.length > 0 ? filteredEmployees[0].id : '') : currentUser.colaboradorId);
+      const [selectedEmployeeId, setSelectedEmployeeId] = useState(currentUser?.colaboradorId || (filteredEmployees.length > 0 ? filteredEmployees[0].id : ''));
       const isReadOnly = !currentUser.isAdmin && selectedEmployeeId !== currentUser.colaboradorId;
       const [compareEntity, setCompareEntity] = useState('none');
       const [adjustModal, setAdjustModal] = useState(null); // { dateKey, currentStatus }
@@ -4523,11 +4614,10 @@
             <div className="card" style={{ gridColumn: '1 / -1', marginBottom: '-4px' }}>
               <div className="field-grid" style={{ alignItems: 'flex-end' }}>
                 <div className="field">
-                  <label>Visualizar escala do colaborador:</label>
+                  <label>Colaborador:</label>
                   <select
                     value={selectedEmployeeId}
                     onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                    disabled={!currentUser.isAdmin}
                   >
                     {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
                     {filteredEmployees.map((employee) => (
@@ -4610,6 +4700,12 @@
                     else absenceLabel = 'Saúde';
                   }
 
+                  const dayEvents = (eventos || []).filter(ev => {
+                    const start = (ev.dataInicio || ev.DataInicio || '').split('T')[0];
+                    const end = (ev.dataFim || ev.DataFim || ev.dataInicio || ev.DataInicio || '').split('T')[0];
+                    return isWithinRange(dateKey, start, end);
+                  });
+
                   return (
                     <div
                       key={dateKey}
@@ -4620,6 +4716,15 @@
                     >
                       {day.getDate()}
                       {isPast && !isNonWorkingDay && !status && !absenceRequest && <div className="day-label" style={{ fontSize: '.55rem', color: '#f59e0b', opacity: 0.6 }}>🔒</div>}
+                      
+                      {dayEvents.length > 0 && (
+                        <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '2px' }}>
+                          {dayEvents.slice(0, 3).map((ev, i) => (
+                             <div key={i} title={ev.Titulo || ev.titulo} style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }}></div>
+                          ))}
+                        </div>
+                      )}
+
                       {status && !absenceRequest && (
                         <div className="day-label" style={{ fontWeight: isPast ? 800 : 500, color: isPast ? 'var(--title)' : '' }}>
                           {status === 'Presencial' ? 'Pres' : 'Home'}
@@ -4805,7 +4910,10 @@
       );
     }
 
-    function SettingsModal({ currentUser, authToken, onClose, onProfileUpdate, refreshEmployees }) {
+    function SettingsModal({ 
+      currentUser, authToken, onClose, onProfileUpdate, 
+      colaboradores, areas, cargos, hierarquia, statusTipos, eventos, fetchAll, refreshEmployees 
+    }) {
       const { Fragment } = React;
       const [tab, setTab] = useState('senha');
       const [msg, setMsg] = useState('');
@@ -4819,21 +4927,13 @@
       const [avatarFile, setAvatarFile] = useState(null);
       const [previewUrl, setPreviewUrl] = useState(currentUser.avatarUrl || '');
 
-      // CRUD state
-      const [colaboradores, setColaboradores] = useState([]);
-      const [areas, setAreas] = useState([]);
-      const [cargos, setCargos] = useState([]);
-      const [hierarquia, setHierarquia] = useState([]);
-      const [statusTipos, setStatusTipos] = useState([]);
-      const [eventos, setEventos] = useState([]);
-
       // Form state
       const [formColab, setFormColab] = useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
       const [formArea, setFormArea] = useState({ id: null, nome: '', cor: '#33CCCC' });
       const [formCargo, setFormCargo] = useState({ id: null, nome: '' });
       const [formNivel, setFormNivel] = useState({ id: null, descricao: '' });
       const [formStatus, setFormStatus] = useState({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 });
-      const [formEvento, setFormEvento] = useState({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião' });
+      const [formEvento, setFormEvento] = useState({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' });
 
       const TABS = [
         { id: 'perfil', label: 'Meu Perfil', icon: 'person', admin: false },
@@ -4847,29 +4947,6 @@
       ];
 
       const headers = useCallback(() => apiHeaders(authToken), [authToken]);
-
-      // Fetch helpers
-      const fetchAll = useCallback(async () => {
-        if (!currentUser.isAdmin) return;
-        try {
-          const [rAreas, rColabs, rHier, rCargos, rStatus, rEventos] = await Promise.all([
-            fetch(API_BASE + '/api/areas', { headers: headers() }).then(r => r.json()),
-            fetch(API_BASE + '/api/employees', { headers: headers() }).then(r => r.json()),
-            fetch(API_BASE + '/api/hierarquia', { headers: headers() }).then(r => r.json()),
-            fetch(API_BASE + '/api/cargos', { headers: headers() }).then(r => r.json()),
-            fetch(API_BASE + '/api/status-tipos', { headers: headers() }).then(r => r.json()),
-            fetch(API_BASE + '/api/eventos', { headers: headers() }).then(r => r.json()),
-          ]);
-          setAreas(Array.isArray(rAreas) ? rAreas : []);
-          setColaboradores(Array.isArray(rColabs) ? rColabs : []);
-          setHierarquia(Array.isArray(rHier) ? rHier : []);
-          setCargos(Array.isArray(rCargos) ? rCargos : []);
-          setStatusTipos(Array.isArray(rStatus) ? rStatus : []);
-          setEventos(Array.isArray(rEventos) ? rEventos : []);
-        } catch (e) { console.error('SettingsModal fetch error:', e); }
-      }, [currentUser.isAdmin, headers]);
-
-      useEffect(() => { fetchAll(); }, [fetchAll]);
 
       // File handling
       const handleFileChange = (e) => {
@@ -4912,7 +4989,7 @@
         try {
           const url = formColab.id ? `${API_BASE}/api/colaboradores/${formColab.id}` : `${API_BASE}/api/colaboradores`;
           await apiCall(url, formColab.id ? 'PUT' : 'POST', formColab);
-          fetchAll(); if (refreshEmployees) refreshEmployees();
+          fetchAll({ silent: true }); if (refreshEmployees) refreshEmployees({ silent: true });
           setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
           setMsg('Colaborador salvo!');
         } catch (e) { alert(e.message); }
@@ -4920,7 +4997,7 @@
 
       const toggleColabAtivo = async (c) => {
         if (!confirm(`${c.ativo !== false ? 'Inativar' : 'Reativar'} ${c.name}?`)) return;
-        try { await apiCall(`${API_BASE}/api/colaboradores/${c.id}`, 'PUT', { ativo: !(c.ativo !== false) }); fetchAll(); if (refreshEmployees) refreshEmployees(); }
+        try { await apiCall(`${API_BASE}/api/colaboradores/${c.id}`, 'PUT', { ativo: !(c.ativo !== false) }); fetchAll({ silent: true }); if (refreshEmployees) refreshEmployees({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
@@ -4929,13 +5006,13 @@
         try {
           const url = formArea.id ? `${API_BASE}/api/areas/${formArea.id}` : `${API_BASE}/api/areas`;
           await apiCall(url, formArea.id ? 'PUT' : 'POST', { nome: formArea.nome, ativo: true });
-          fetchAll(); setFormArea({ id: null, nome: '' }); setMsg('Área salva!');
+          fetchAll({ silent: true }); setFormArea({ id: null, nome: '' }); setMsg('Área salva!');
         } catch (e) { alert(e.message); }
       };
 
       const toggleAreaAtivo = async (a) => {
         if (!confirm(`${a.ativo ? 'Inativar' : 'Reativar'} ${a.nome}?`)) return;
-        try { await apiCall(`${API_BASE}/api/areas/${a.id}`, 'PUT', { ativo: !a.ativo }); fetchAll(); }
+        try { await apiCall(`${API_BASE}/api/areas/${a.id}`, 'PUT', { ativo: !a.ativo }); fetchAll({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
@@ -4944,13 +5021,13 @@
         try {
           const url = formCargo.id ? `${API_BASE}/api/cargos/${formCargo.id}` : `${API_BASE}/api/cargos`;
           await apiCall(url, formCargo.id ? 'PUT' : 'POST', { nome: formCargo.nome });
-          fetchAll(); setFormCargo({ id: null, nome: '' }); setMsg('Cargo salvo!');
+          fetchAll({ silent: true }); setFormCargo({ id: null, nome: '' }); setMsg('Cargo salvo!');
         } catch (e) { alert(e.message); }
       };
 
       const deleteCargo = async (c) => {
         if (!confirm(`Excluir cargo "${c.Nome || c.nome}"? Colaboradores vinculados serão desvinculados.`)) return;
-        try { await apiCall(`${API_BASE}/api/cargos/${c.Id || c.id}`, 'DELETE'); fetchAll(); }
+        try { await apiCall(`${API_BASE}/api/cargos/${c.Id || c.id}`, 'DELETE'); fetchAll({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
@@ -4960,13 +5037,13 @@
           const url = formNivel.id ? `${API_BASE}/api/hierarquia/${formNivel.id}` : `${API_BASE}/api/hierarquia`;
           const body = formNivel.id ? { descricao: formNivel.descricao } : { descricao: formNivel.descricao };
           await apiCall(url, formNivel.id ? 'PUT' : 'POST', body);
-          fetchAll(); setFormNivel({ id: null, descricao: '' }); setMsg('Nível salvo!');
+          fetchAll({ silent: true }); setFormNivel({ id: null, descricao: '' }); setMsg('Nível salvo!');
         } catch (e) { alert(e.message); }
       };
 
       const deleteNivel = async (n) => {
         if (!confirm(`Excluir nível "${n.Descricao || n.descricao}"?`)) return;
-        try { await apiCall(`${API_BASE}/api/hierarquia/${n.Id || n.id}`, 'DELETE'); fetchAll(); }
+        try { await apiCall(`${API_BASE}/api/hierarquia/${n.Id || n.id}`, 'DELETE'); fetchAll({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
@@ -4975,18 +5052,18 @@
         try {
           const url = formStatus.id ? `${API_BASE}/api/status-tipos/${formStatus.id}` : `${API_BASE}/api/status-tipos`;
           await apiCall(url, formStatus.id ? 'PUT' : 'POST', formStatus);
-          fetchAll(); setFormStatus({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 }); setMsg('Status salvo!');
+          fetchAll({ silent: true }); setFormStatus({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 }); setMsg('Status salvo!');
         } catch (e) { alert(e.message); }
       };
 
       const toggleStatusAtivo = async (s) => {
-        try { await apiCall(`${API_BASE}/api/status-tipos/${s.Id || s.id}`, 'PUT', { ativo: !(s.Ativo !== false) }); fetchAll(); }
+        try { await apiCall(`${API_BASE}/api/status-tipos/${s.Id || s.id}`, 'PUT', { ativo: !(s.Ativo !== false) }); fetchAll({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
       const deleteStatus = async (s) => {
         if (!confirm(`Excluir status "${s.Nome || s.nome}"?`)) return;
-        try { await apiCall(`${API_BASE}/api/status-tipos/${s.Id || s.id}`, 'DELETE'); fetchAll(); }
+        try { await apiCall(`${API_BASE}/api/status-tipos/${s.Id || s.id}`, 'DELETE'); fetchAll({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
@@ -4995,13 +5072,15 @@
         try {
           const url = formEvento.id ? `${API_BASE}/api/eventos/${formEvento.id}` : `${API_BASE}/api/eventos`;
           await apiCall(url, formEvento.id ? 'PUT' : 'POST', formEvento);
-          fetchAll(); setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião' }); setMsg('Evento salvo!');
+          fetchAll({ silent: true }); 
+          setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' }); 
+          setMsg('Evento salvo!');
         } catch (e) { alert(e.message); }
       };
 
       const deleteEvento = async (ev) => {
-        if (!confirm(`Excluir evento "${ev.Titulo || ev.titulo}"?`)) return;
-        try { await apiCall(`${API_BASE}/api/eventos/${ev.Id || ev.id}`, 'DELETE'); fetchAll(); }
+        if (!confirm(`Excluir evento "${ev.titulo || ev.Titulo}"?`)) return;
+        try { await apiCall(`${API_BASE}/api/eventos/${ev.id || ev.Id}`, 'DELETE'); fetchAll({ silent: true }); }
         catch (e) { alert(e.message); }
       };
 
@@ -5147,9 +5226,11 @@
                               <td style={{ fontSize: '.8rem', color: 'var(--muted)' }}>{c.areaNome || '—'}</td>
                               <td style={{ fontSize: '.8rem' }}>{gestor ? gestor.name : <span style={{ color: 'var(--muted)' }}>— Topo</span>}</td>
                               <td><span style={{ fontSize: '.75rem', fontWeight: 600, color: c.ativo !== false ? '#10b981' : '#ef4444' }}>{c.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
-                              <td style={{ display: 'flex', gap: '4px' }}>
-                                <button className="admin-action-btn" onClick={() => setFormColab({ id: c.id, nome: c.name, email: c.email || '', nivelHierarquia: c.nivelHierarquia || '', areaId: c.AreaId || c.areaId || '', cargoId: c.CargoId || c.cargoId || '', gestorId: c.gestorId || c.GestorId || '' })}>Editar</button>
-                                <button className="admin-action-btn" onClick={() => toggleColabAtivo(c)} style={{ color: c.ativo !== false ? '#f59e0b' : '#10b981', borderColor: c.ativo !== false ? '#f59e0b' : '#10b981' }}>{c.ativo !== false ? 'Inativar' : 'Reativar'}</button>
+                              <td>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button className="admin-action-btn" onClick={() => setFormColab({ id: c.id, nome: c.name, email: c.email || '', nivelHierarquia: c.nivelHierarquia || '', areaId: c.AreaId || c.areaId || '', cargoId: c.CargoId || c.cargoId || '', gestorId: c.gestorId || c.GestorId || '' })}>Editar</button>
+                                  <button className="admin-action-btn" onClick={() => toggleColabAtivo(c)} style={{ color: c.ativo !== false ? '#f59e0b' : '#10b981', borderColor: c.ativo !== false ? '#f59e0b' : '#10b981' }}>{c.ativo !== false ? 'Inativar' : 'Reativar'}</button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -5200,18 +5281,20 @@
                               <td style={{ fontWeight: 600 }}>{a.nome}</td>
                               <td style={{ fontSize: '.8rem', color: 'var(--muted)' }}>{count} colaborador(es)</td>
                               <td><span style={{ fontSize: '.75rem', fontWeight: 600, color: a.ativo !== false ? '#10b981' : '#ef4444' }}>{a.ativo !== false ? 'Ativa' : 'Inativa'}</span></td>
-                              <td style={{ display: 'flex', gap: '4px' }}>
-                                <button className="admin-action-btn" onClick={() => setFormArea({ id: a.id, nome: a.nome, cor: a.cor || '#33CCCC' })}>Editar</button>
-                                <button className="admin-action-btn" onClick={() => toggleAreaAtivo(a)} style={{ color: a.ativo !== false ? '#f59e0b' : '#10b981', borderColor: a.ativo !== false ? '#f59e0b' : '#10b981' }}>{a.ativo !== false ? 'Inativar' : 'Reativar'}</button>
-                                <button className="admin-action-btn danger" onClick={async () => {
-                                  if (!confirm(`Excluir área "${a.nome}"? Isso não pode ser desfeito.`)) return;
-                                  try {
-                                    const res = await fetch(`${API_BASE}/api/areas/${a.id}`, { method: 'DELETE', headers: headers() });
-                                    const d = await res.json();
-                                    if (!res.ok) { alert(d.error); return; }
-                                    fetchAll(); setMsg('Área excluída!');
-                                  } catch (e) { alert(e.message); }
-                                }}>Excluir</button>
+                              <td>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button className="admin-action-btn" onClick={() => setFormArea({ id: a.id, nome: a.nome, cor: a.cor || '#33CCCC' })}>Editar</button>
+                                  <button className="admin-action-btn" onClick={() => toggleAreaAtivo(a)} style={{ color: a.ativo !== false ? '#f59e0b' : '#10b981', borderColor: a.ativo !== false ? '#f59e0b' : '#10b981' }}>{a.ativo !== false ? 'Inativar' : 'Reativar'}</button>
+                                  <button className="admin-action-btn danger" onClick={async () => {
+                                    if (!confirm(`Excluir área "${a.nome}"? Isso não pode ser desfeito.`)) return;
+                                    try {
+                                      const res = await fetch(`${API_BASE}/api/areas/${a.id}`, { method: 'DELETE', headers: headers() });
+                                      const d = await res.json();
+                                      if (!res.ok) { alert(d.error); return; }
+                                      fetchAll(); setMsg('Área excluída!');
+                                    } catch (e) { alert(e.message); }
+                                  }}>Excluir</button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -5241,9 +5324,11 @@
                         {cargos.map(c => (
                           <tr key={c.Id || c.id}>
                             <td style={{ fontWeight: 500 }}>{c.Nome || c.nome}</td>
-                            <td style={{ display: 'flex', gap: '4px' }}>
-                              <button className="admin-action-btn" onClick={() => setFormCargo({ id: c.Id || c.id, nome: c.Nome || c.nome })}>Editar</button>
-                              <button className="admin-action-btn danger" onClick={() => deleteCargo(c)}>Excluir</button>
+                            <td>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button className="admin-action-btn" onClick={() => setFormCargo({ id: c.Id || c.id, nome: c.Nome || c.nome })}>Editar</button>
+                                <button className="admin-action-btn danger" onClick={() => deleteCargo(c)}>Excluir</button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -5278,9 +5363,11 @@
                               <td><span style={{ background: 'rgba(51,204,204,.12)', color: 'var(--primary)', borderRadius: '10px', padding: '2px 8px', fontWeight: 700, fontSize: '.8rem' }}>N{h.Id || h.id}</span></td>
                               <td style={{ fontWeight: 500 }}>{h.Descricao || h.descricao}</td>
                               <td style={{ fontSize: '.8rem', color: 'var(--muted)' }}>{count} pessoa(s)</td>
-                              <td style={{ display: 'flex', gap: '4px' }}>
-                                <button className="admin-action-btn" onClick={() => setFormNivel({ id: h.Id || h.id, descricao: h.Descricao || h.descricao })}>Editar</button>
-                                <button className="admin-action-btn danger" onClick={() => deleteNivel(h)}>Excluir</button>
+                              <td>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button className="admin-action-btn" onClick={() => setFormNivel({ id: h.Id || h.id, descricao: h.Descricao || h.descricao })}>Editar</button>
+                                  <button className="admin-action-btn danger" onClick={() => deleteNivel(h)}>Excluir</button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -5334,10 +5421,12 @@
                             <td style={{ fontSize: '.8rem' }}>{s.Aplicacao}</td>
                             <td style={{ fontSize: '.8rem', textAlign: 'center' }}>{s.Ordem}</td>
                             <td><span style={{ fontSize: '.75rem', fontWeight: 600, color: s.Ativo !== false && s.Ativo !== 0 ? '#10b981' : '#ef4444' }}>{s.Ativo !== false && s.Ativo !== 0 ? 'Ativo' : 'Inativo'}</span></td>
-                            <td style={{ display: 'flex', gap: '4px' }}>
-                              <button className="admin-action-btn" onClick={() => setFormStatus({ id: s.Id || s.id, nome: s.Nome || s.nome, cor: s.Cor || '#c4c4c4', aplicacao: s.Aplicacao || 'Ambos', ordem: s.Ordem || 99 })}>Editar</button>
-                              <button className="admin-action-btn" onClick={() => toggleStatusAtivo(s)} style={{ color: s.Ativo !== false ? '#f59e0b' : '#10b981', borderColor: s.Ativo !== false ? '#f59e0b' : '#10b981' }}>{s.Ativo !== false ? 'Inativar' : 'Ativar'}</button>
-                              <button className="admin-action-btn danger" onClick={() => deleteStatus(s)}>Excluir</button>
+                            <td>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button className="admin-action-btn" onClick={() => setFormStatus({ id: s.Id || s.id, nome: s.Nome || s.nome, cor: s.Cor || '#c4c4c4', aplicacao: s.Aplicacao || 'Ambos', ordem: s.Ordem || 99 })}>Editar</button>
+                                <button className="admin-action-btn" onClick={() => toggleStatusAtivo(s)} style={{ color: s.Ativo !== false ? '#f59e0b' : '#10b981', borderColor: s.Ativo !== false ? '#f59e0b' : '#10b981' }}>{s.Ativo !== false ? 'Inativar' : 'Ativar'}</button>
+                                <button className="admin-action-btn danger" onClick={() => deleteStatus(s)}>Excluir</button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -5363,33 +5452,108 @@
                       </div>
                       <div><label style={labelStyle}>Data/Hora de Início*</label><input type="datetime-local" style={inputStyle} value={formEvento.dataInicio} onChange={e => setFormEvento(p => ({ ...p, dataInicio: e.target.value }))} /></div>
                       <div><label style={labelStyle}>Data/Hora de Término</label><input type="datetime-local" style={inputStyle} value={formEvento.dataFim} onChange={e => setFormEvento(p => ({ ...p, dataFim: e.target.value }))} /></div>
-                      <div><label style={labelStyle}>Descrição / Pauta</label><textarea style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }} value={formEvento.descricao} onChange={e => setFormEvento(p => ({ ...p, descricao: e.target.value }))} placeholder="Pauta, participantes, observações..." /></div>
+                      <div><label style={labelStyle}>Descrição / Pauta</label><textarea style={{ ...inputStyle, minHeight: '60px', resize: 'vertical' }} value={formEvento.descricao} onChange={e => setFormEvento(p => ({ ...p, descricao: e.target.value }))} placeholder="Pauta, participantes, observações..." /></div>
+                      
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={labelStyle}>Atribuir à Área</label>
+                          <select style={inputStyle} value={formEvento.areaId} onChange={e => setFormEvento(p => ({ ...p, areaId: e.target.value }))}>
+                            <option value="">Todas (Global)</option>
+                            {areas.filter(a => a.ativo !== false).map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                          </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={labelStyle}>Responsável</label>
+                          <select style={inputStyle} value={formEvento.responsavelId} onChange={e => setFormEvento(p => ({ ...p, responsavelId: e.target.value }))}>
+                            <option value="">Nenhum</option>
+                            {colaboradores.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
                       <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                         <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveEvento}>Salvar Evento</button>
-                        {formEvento.id && <button className="btn btn-secondary" onClick={() => setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião' })}>Cancelar</button>}
+                        {formEvento.id && <button className="btn btn-secondary" onClick={() => setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' })}>Cancelar</button>}
                       </div>
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: '320px' }}>
                     <table className="admin-table">
-                      <thead><tr><th>Evento</th><th>Tipo</th><th>Início</th><th>Término</th><th>Ações</th></tr></thead>
+                      <thead><tr><th>Evento</th><th>Tipo</th><th>Responsável</th><th>Início</th><th>Término</th><th>Ações</th></tr></thead>
                       <tbody>
-                        {eventos.map(ev => (
-                          <tr key={ev.Id || ev.id}>
-                            <td style={{ fontWeight: 600 }}>
-                              {ev.Titulo || ev.titulo}
-                              {(ev.Descricao || ev.descricao) && <div style={{ fontSize: '.75rem', color: 'var(--muted)', fontWeight: 400 }}>{(ev.Descricao || ev.descricao).substring(0, 60)}{(ev.Descricao || ev.descricao).length > 60 ? '...' : ''}</div>}
-                            </td>
-                            <td style={{ fontSize: '.8rem' }}>{ev.Tipo || ev.tipo}</td>
-                            <td style={{ fontSize: '.8rem' }}>{ev.dataInicio ? new Date(ev.dataInicio).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                            <td style={{ fontSize: '.8rem' }}>{ev.dataFim ? new Date(ev.dataFim).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                            <td style={{ display: 'flex', gap: '4px' }}>
-                              <button className="admin-action-btn" onClick={() => setFormEvento({ id: ev.Id || ev.id, titulo: ev.Titulo || ev.titulo, descricao: ev.Descricao || ev.descricao || '', dataInicio: ev.dataInicio || '', dataFim: ev.dataFim || '', tipo: ev.Tipo || ev.tipo || 'Reunião' })}>Editar</button>
-                              <button className="admin-action-btn danger" onClick={() => deleteEvento(ev)}>Excluir</button>
-                            </td>
-                          </tr>
-                        ))}
-                        {eventos.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px', fontSize: '.85rem' }}>Nenhum evento cadastrado.</td></tr>}
+                        {eventos.map(ev => {
+                          const parseDateSafe = (d) => {
+                            if (!d) return null;
+                            if (d instanceof Date) return isNaN(d.getTime()) ? null : d;
+                            let dateObj = new Date(d);
+                            if (isNaN(dateObj.getTime()) && typeof d === 'string') {
+                              dateObj = new Date(d.replace(/-/g, '/').replace('T', ' ')); 
+                            }
+                            return isNaN(dateObj.getTime()) ? null : dateObj;
+                          };
+
+                          const formatEventDate = (d) => {
+                            const dateObj = parseDateSafe(d);
+                            if (!dateObj) return '—';
+                            return dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
+                                   ' ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                          };
+
+                          const getTypeBadgeColor = (type) => {
+                            switch(type) {
+                              case 'Reunião': return { bg: 'rgba(51,204,204,0.12)', color: 'var(--primary)' };
+                              case 'Workshop': return { bg: 'rgba(139,92,246,0.12)', color: '#8b5cf6' };
+                              case 'Treinamento': return { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' };
+                              default: return { bg: 'rgba(100,116,139,0.12)', color: 'var(--muted)' };
+                            }
+                          };
+                          const badge = getTypeBadgeColor(ev.tipo);
+
+                          return (
+                            <tr key={ev.id} style={{ borderBottom: '1px solid var(--panel-strong)' }}>
+                              <td style={{ padding: '12px 6px' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--title)', fontSize: '.88rem' }}>{ev.titulo}</div>
+                                {ev.descricao && <div style={{ fontSize: '.72rem', color: 'var(--muted)', fontWeight: 400, marginTop: '2px' }}>{ev.descricao.substring(0, 80)}{ev.descricao.length > 80 ? '...' : ''}</div>}
+                              </td>
+                              <td style={{ padding: '12px 6px' }}>
+                                <span style={{ background: badge.bg, color: badge.color, padding: '2px 8px', borderRadius: '4px', fontSize: '.7rem', fontWeight: 700 }}>{ev.tipo}</span>
+                              </td>
+                              <td style={{ padding: '12px 6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--panel-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--muted)', fontWeight: 700 }}>{(ev.responsavelNome || 'A').charAt(0)}</div>
+                                  <span style={{ fontSize: '.78rem', color: 'var(--text)' }}>{ev.responsavelNome || '—'}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px 6px', fontSize: '.78rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>{formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio)}</td>
+                              <td style={{ padding: '12px 6px', fontSize: '.78rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>{formatEventDate(ev.dataFim || ev.DataFim || ev.fim)}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button className="admin-action-btn" onClick={() => {
+                                    const formatForInput = (d) => {
+                                      if (!d) return '';
+                                      const dateObj = new Date(d);
+                                      if (isNaN(dateObj.getTime())) return '';
+                                      const offset = dateObj.getTimezoneOffset() * 60000;
+                                      return new Date(dateObj.getTime() - offset).toISOString().slice(0, 16);
+                                    };
+                                    setFormEvento({ 
+                                      id: ev.id, 
+                                      titulo: ev.titulo, 
+                                      descricao: ev.descricao || '', 
+                                      dataInicio: formatForInput(ev.dataInicio), 
+                                      dataFim: formatForInput(ev.dataFim), 
+                                      tipo: ev.tipo || 'Reunião',
+                                      areaId: ev.areaId || '',
+                                      responsavelId: ev.responsavelId || ''
+                                    });
+                                  }}>Editar</button>
+                                  <button className="admin-action-btn danger" onClick={() => deleteEvento(ev)}>Excluir</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {eventos.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px', fontSize: '.85rem' }}>Nenhum evento cadastrado.</td></tr>}
                       </tbody>
                     </table>
                   </div>

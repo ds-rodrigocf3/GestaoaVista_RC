@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const serverAddressRaw = process.env.DB_SERVER || process.env.LOCAL_DB_SERVER || '127.0.0.1';
-const serverAddress = serverAddressRaw.split('\\')[0]; 
+const serverAddress = serverAddressRaw.split('\\')[0];
 
 const databaseName = process.env.DB_DATABASE || process.env.LOCAL_DB_NAME || process.env.DB_NAME;
 
@@ -14,9 +14,10 @@ const sqlConfig = {
   database: databaseName,
   server: serverAddress,
   port: parseInt(process.env.DB_PORT || 1433),
-  options: { 
-    encrypt: true, 
-    trustServerCertificate: true 
+  options: {
+    encrypt: true,
+    trustServerCertificate: true,
+    useUTC: false
   }
 };
 
@@ -100,6 +101,13 @@ async function runSetup() {
             Id INT PRIMARY KEY IDENTITY(1,1), TipoEntidade NVARCHAR(20) NOT NULL, EntidadeId INT NOT NULL,
             StatusAnterior NVARCHAR(50) NULL, StatusNovo NVARCHAR(50) NOT NULL, Comentario NVARCHAR(1000) NULL,
             UsuarioId INT NULL FOREIGN KEY REFERENCES BI_Usuarios(Id), DataInicio DATETIME DEFAULT GETDATE(), DataFim DATETIME NULL
+        );
+
+        CREATE TABLE BI_Eventos (
+            Id INT PRIMARY KEY IDENTITY(1,1), Titulo NVARCHAR(200) NOT NULL, Descricao NVARCHAR(2000) NULL,
+            DataInicio DATETIME NOT NULL, DataFim DATETIME NULL, Tipo NVARCHAR(100) DEFAULT 'Reunião',
+            AreaId INT NULL, ResponsavelId INT NULL, CriadoPor INT,
+            DataCriacao DATETIME DEFAULT GETDATE(), DataModificacao DATETIME DEFAULT GETDATE()
         );
     `);
 
