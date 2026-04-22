@@ -1,0 +1,154 @@
+# 📋 Resumo Executivo: Correção de Persistência de Agendamentos e Escala
+
+## ✅ Problema Resolvido
+
+Os agendamentos e marcações de escala não estavam sendo salvos no banco de dados. Após recarregar a página, todas as marcações desapareciam.
+
+## 🔍 Causas Raiz Identificadas
+
+| # | Problema | Localização | Solução |
+|---|----------|------------|--------|
+| 1 | POST /api/requests retornava dados incompletos (faltava `localTrabalho`) | server.js linha ~895 | Incluir todos os campos na resposta |
+| 2 | Sem sincronismo automático entre `workDays` e `requests` | index.html ScaleView | Adicionar useEffect de sincronização |
+| 3 | Sem rollback em caso de erro de requisição | index.html toggleDay | Implementar rollback com try/catch |
+| 4 | Mensagens de erro inadequadas (alert ao invés de toast) | index.html toggleDay | Usar setToast para feedback |
+
+## 🛠️ Mudanças Realizadas
+
+### Backend (server.js)
+
+**Endpoint POST /api/requests** (linha ~895)
+```javascript
+// ANTES: Retornava apenas { id, employeeId, type, status, startDate, endDate }
+// DEPOIS: Agora retorna também:
+//   - localTrabalho (necessário para escala)
+//   - note, coverage, priority
+//   - dataCriacao, dataModificacao
+//   - aprovadorId, dataAprovacao
+```
+
+**Endpoint PUT /api/requests/:id** (linha ~925)
+- Também atualizado para retornar dados completos
+
+### Frontend (index.html)
+
+**ScaleView Component**
+1. ✅ Adicionado `useEffect` que sincroniza automaticamente `workDays` com `requests`
+2. ✅ Adicionado parâmetro `setToast` ao componente
+3. ✅ Melhorada função `toggleDay()` com:
+   - Rollback automático em caso de erro
+   - Mensagens de erro via toast ao invés de alert
+   - Validação correta de dados retornados do servidor
+
+## 🧪 Como Testar
+
+### Teste Rápido (5 minutos)
+1. Logar no sistema
+2. Ir para **"Escala Mensal"** na barra de navegação
+3. Clicar em um dia futuro para marcar como "Presencial" ou "Home Office"
+4. **Recarregar a página** (F5 ou Ctrl+R)
+5. ✅ Se a marcação permaneceu → Funciona!
+6. ❌ Se desapareceu → Ainda há problemas
+
+### Teste Avançado (15 minutos)
+
+#### Opção A: Teste Automatizado
+```bash
+cd c:\Users\rodri\OneDrive\Área de Trabalho\GestaoaVista_RC
+node scratch/test-scale-persistence.js
+```
+
+Este script verifica:
+- Escalas salvas no banco
+- Agendamentos persistidos
+- Consistência dos dados
+- Registros recentes
+
+#### Opção B: Teste SQL Direto
+```sql
+-- Executar em SQL Server Management Studio
+-- Arquivo: database/validate_persistence.sql
+```
+
+### Teste de Erro Simulado
+1. Abrir DevTools do navegador (F12)
+2. Ir para aba "Network"
+3. Marcar um dia na escala
+4. Verificar se a requisição POST foi enviada
+5. Verificar se a resposta contém `localTrabalho`
+6. Verificar se não há erros 4xx ou 5xx
+
+## 📊 Fluxo de Funcionamento Corrigido
+
+```mermaid
+graph TD
+    A["User clica dia"] -->|toggleDay| B["Salva estado anterior"]
+    B --> C["Atualiza workDays localmente"]
+    C -->|POST/PUT| D["Servidor salva no banco"]
+    D --> E["Retorna dados COMPLETOS<br/>+ localTrabalho"]
+    E --> F["Frontend atualiza requests"]
+    F --> G["useEffect sincroniza workDays"]
+    G --> H["User recarrega página"]
+    H --> I["fetchAll reconstrói workDays<br/>a partir de requests"]
+    I --> J["✅ Dados persistem!"]
+    
+    D -->|ERRO| K["Catch bloco ativa"]
+    K --> L["Rollback para estado anterior"]
+    L --> M["Mostra toast de erro"]
+    M --> N["User pode tentar novamente"]
+```
+
+## 📁 Novos Arquivos Criados
+
+| Arquivo | Descrição |
+|---------|-----------|
+| PERSISTENCIA_FIX.md | Documentação completa da correção |
+| scratch/test-scale-persistence.js | Script de teste automatizado |
+| database/validate_persistence.sql | Script SQL de validação |
+
+## 🔐 Validações Adicionadas
+
+O código agora garante:
+- ✅ `localTrabalho` está presente para escalas
+- ✅ Datas em formato YYYY-MM-DD
+- ✅ Status 'Aprovado' para escalas futuras
+- ✅ Rollback automático em caso de falha
+- ✅ Mensagens de erro ao usuário
+
+## 🚀 Como Ativar
+
+As mudanças estão prontas para uso:
+
+1. **Reiniciar o servidor** (se estava rodando)
+   ```bash
+   node server.js
+   ```
+
+2. **Limpar cache do navegador** (opcional mas recomendado)
+   - Ctrl+Shift+Delete
+   - Limpar cookies e cache de site
+
+3. **Testar a funcionalidade**
+   - Seguir as instruções da seção "Como Testar"
+
+## 📞 Se Ainda Tiver Problemas
+
+1. **Verificar console do navegador** (F12)
+   - Procurar por erros em vermelho
+
+2. **Verificar logs do servidor**
+   - Procurar por erros em [ERRO]
+
+3. **Validar banco de dados**
+   - Executar `test-scale-persistence.js`
+   - Executar `validate_persistence.sql`
+
+4. **Contato para debug**
+   - Incluir logs do console
+   - Incluir dados do teste de persistência
+   - Descrever o passo-a-passo do problema
+
+---
+**Status**: ✅ Implementado  
+**Data**: 21 de Abril de 2026  
+**Pronto para Produção**: Sim, após testes iniciais

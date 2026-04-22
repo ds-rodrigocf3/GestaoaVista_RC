@@ -74,6 +74,67 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
+// HELPERS DE DATA
+// HELPERS DE DATA (Senior Implementation: Timezone-agnostic)
+function formatDateDDMMYYYY(date) {
+  if (!date) return null;
+  const d = (typeof date === 'string' && !date.includes('T')) ? new Date(date + 'T12:00:00') : new Date(date);
+  if (isNaN(d.getTime())) return null;
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+}
+function formatDateYYYYMMDD(date) {
+  if (!date) return null;
+  const d = (typeof date === 'string' && !date.includes('T')) ? new Date(date + 'T12:00:00') : new Date(date);
+  if (isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Verifica se um usuário pode GERENCIAR (aprovar/rejeitar) solicitações de outro colaborador.
+ * Regra: Admin, Gestor Direto ou Superior hierárquico (Nível menor).
+ */
+async function canApproveFor(pool, user, targetEmpId) {
+  if (user.isAdmin) return true;
+  const approverId = Number(user.colaboradorId);
+  const targetId = Number(targetEmpId);
+  if (approverId === targetId) return false; // Ninguém aprova o próprio pedido
+
+  const approverRes = await pool.request().input('Id', sql.INT, approverId).query('SELECT NivelHierarquia FROM BI_Colaboradores WHERE Id = @Id');
+  const targetRes = await pool.request().input('Id', sql.INT, targetId).query('SELECT GestorId, NivelHierarquia FROM BI_Colaboradores WHERE Id = @Id');
+
+  if (!approverRes.recordset.length || !targetRes.recordset.length) return false;
+
+  const approver = approverRes.recordset[0];
+  const target = targetRes.recordset[0];
+
+  // 1. Gestor Direto
+  if (target.GestorId === approverId) return true;
+
+  // 2. Superior na Hierarquia (Nível Menor = Mais alto)
+  if (approver.NivelHierarquia < target.NivelHierarquia) return true;
+
+  return false;
+}
+
+/**
+ * Função utilitária para aplicar uma alteração de escala ao banco
+ */
+async function syncScaleRequest(pool, empId, dateStr, localTrabalho) {
+  if (!dateStr || !localTrabalho) return;
+  await pool.request()
+    .input('Emp', sql.INT, empId)
+    .input('Date', sql.DATE, dateStr)
+    .input('Loc', sql.NVARCHAR(50), localTrabalho)
+    .query(`
+      IF EXISTS (SELECT 1 FROM Requests WHERE EmployeeId=@Emp AND Type='Escala de Trabalho' AND StartDate=@Date)
+        UPDATE Requests SET LocalTrabalho=@Loc, Status='Aprovado', DataModificacao=GETDATE() 
+        WHERE EmployeeId=@Emp AND Type='Escala de Trabalho' AND StartDate=@Date
+      ELSE 
+        INSERT INTO Requests (EmployeeId, Type, Status, StartDate, EndDate, LocalTrabalho, DataCriacao, DataModificacao)
+        VALUES (@Emp, 'Escala de Trabalho', 'Aprovado', @Date, @Date, @Loc, GETDATE(), GETDATE())
+    `);
+}
+
 // ============================================================
 // AUTH ENDPOINTS
 // ============================================================
@@ -744,12 +805,28 @@ app.get('/api/requests', authMiddleware, async (req, res) => {
   try {
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
-    const result = await pool.request().query('SELECT * FROM Requests ORDER BY DataModificacao DESC');
-    res.json(result.recordset.map(r => ({
-      ...r,
-      startDate: r.StartDate ? new Date(r.StartDate).toISOString().slice(0, 10) : null,
-      endDate: r.EndDate ? new Date(r.EndDate).toISOString().slice(0, 10) : null
-    })));
+    const result = await pool.request().query('SELECT * FROM Requests ORDER BY StartDate DESC, DataModificacao DESC');
+    
+    const formatted = result.recordset.map(r => ({
+      id: Number(r.Id), 
+      employeeId: Number(r.EmployeeId), 
+      type: r.Type,
+      status: r.Status,
+      startDate: formatDateYYYYMMDD(r.StartDate),
+      endDate: formatDateYYYYMMDD(r.EndDate),
+      displayStartDate: formatDateDDMMYYYY(r.StartDate),
+      displayEndDate: formatDateDDMMYYYY(r.EndDate),
+      note: r.Note,
+      coverage: r.Coverage,
+      priority: r.Priority,
+      localTrabalho: r.LocalTrabalho,
+      dataCriacao: r.DataCriacao,
+      dataModificacao: r.DataModificacao,
+      aprovadorId: r.AprovadorId ? Number(r.AprovadorId) : null,
+      dataAprovacao: r.DataAprovacao
+    }));
+    
+    res.json(formatted);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -780,60 +857,190 @@ app.get('/api/status-historico/:tipo/:id', authMiddleware, async (req, res) => {
 // ============================================================
 // REQUESTS (SOLICITAÇÕES/ESCALA) ENDPOINTS
 // ============================================================
-app.get('/api/requests', authMiddleware, async (req, res) => {
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request().query('SELECT * FROM Requests ORDER BY StartDate');
-    res.json(result.recordset.map(r => ({
-      ...r,
-      startDate: r.StartDate ? new Date(r.StartDate).toISOString().slice(0, 10) : null,
-      endDate: r.EndDate ? new Date(r.EndDate).toISOString().slice(0, 10) : null
-    })));
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
+// Removido endpoint duplicado de requests que estava aqui
 
 app.post('/api/requests', authMiddleware, async (req, res) => {
   try {
     const { employeeId, type, startDate, endDate, note, coverage, priority, status, localTrabalho } = req.body;
     const empId = Number(employeeId);
-    if (!req.user.isAdmin && req.user.colaboradorId !== empId) return res.status(403).json({ error: 'Acesso negado' });
+    if (!empId) return res.status(400).json({ error: 'Colaborador inválido' });
+
     const pool = await poolPromise;
-    const result = await pool.request()
-      .input('EmpId', sql.INT, empId).input('Type', sql.NVARCHAR(100), type).input('Status', sql.NVARCHAR(50), status || 'Pendente')
-      .input('Start', sql.DATE, startDate || null).input('End', sql.DATE, endDate || null).input('Note', sql.NVARCHAR(500), note || '')
-      .input('Cov', sql.NVARCHAR(100), coverage || '').input('Pri', sql.NVARCHAR(50), priority || 'Baixa').input('Loc', sql.NVARCHAR(50), localTrabalho || null)
-      .query(`INSERT INTO Requests (EmployeeId, Type, Status, StartDate, EndDate, Note, Coverage, Priority, LocalTrabalho, DataCriacao, DataModificacao)
-              OUTPUT Inserted.Id VALUES (@EmpId, @Type, @Status, @Start, @End, @Note, @Cov, @Pri, @Loc, GETDATE(), GETDATE())`);
-    res.json({ id: result.recordset[0].Id, ...req.body });
+    const isAutoApprove = await canApproveFor(pool, req.user, empId);
+    
+    // Qualquer um cria para si (Pendente), superiores criam para subordinados (Aprovado)
+    // EXCEÇÃO: Escala de Trabalho própria em dias úteis (Hoje/Futuro) é auto-aprovada
+    let finalStatus = (status === 'Aprovado' || isAutoApprove) ? 'Aprovado' : 'Pendente';
+    
+    if (type === 'Escala de Trabalho' && empId === req.user.colaboradorId && finalStatus === 'Pendente' && status === 'Aprovado') {
+      const d = new Date(startDate + 'T12:00:00');
+      d.setHours(0, 0, 0, 0);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isPast = d < now;
+
+      // Se for dia útil (não fim de semana) e não for passado, permite auto-aprovação
+      // O Frontend enviará 'Pendente' se detectar que é feriado (pois o servidor não tem a lista de feriados)
+      if (!isWeekend && !isPast) {
+          finalStatus = 'Aprovado';
+      }
+    }
+    
+    // Trava: se não for admin nem superior nem o próprio, nega
+    if (!isAutoApprove && req.user.colaboradorId !== empId) {
+      return res.status(403).json({ error: 'Você não tem permissão para esta ação.' });
+    }
+
+    // Verificação de duplicidade para Escala de Trabalho para evitar registros redundantes
+    let result;
+    if (type === 'Escala de Trabalho') {
+      const checkResult = await pool.request()
+        .input('EmpId', sql.INT, empId)
+        .input('Start', sql.DATE, startDate)
+        .query("SELECT Id FROM Requests WHERE EmployeeId=@EmpId AND Type='Escala de Trabalho' AND StartDate=@Start");
+
+      if (checkResult.recordset.length > 0) {
+        const existingId = checkResult.recordset[0].Id;
+        await pool.request()
+          .input('Id', sql.INT, existingId)
+          .input('Status', sql.NVARCHAR(50), finalStatus)
+          .input('Loc', sql.NVARCHAR(50), localTrabalho || null)
+          .input('AprId', sql.INT, finalStatus === 'Aprovado' ? req.user.colaboradorId : null)
+          .query(`UPDATE Requests SET Status = @Status, LocalTrabalho = @Loc, AprovadorId = @AprId, 
+                  DataAprovacao = ${finalStatus === 'Aprovado' ? 'GETDATE()' : 'NULL'}, DataModificacao = GETDATE() 
+                  WHERE Id = @Id`);
+        result = { recordset: [{ Id: existingId }] };
+      }
+    }
+
+    if (!result) {
+      result = await pool.request()
+        .input('EmpId', sql.INT, empId).input('Type', sql.NVARCHAR(100), type).input('Status', sql.NVARCHAR(50), finalStatus)
+        .input('Start', sql.DATE, startDate || null).input('End', sql.DATE, endDate || null).input('Note', sql.NVARCHAR(500), note || '')
+        .input('Cov', sql.NVARCHAR(100), coverage || '').input('Pri', sql.NVARCHAR(50), priority || 'Baixa').input('Loc', sql.NVARCHAR(50), localTrabalho || null)
+        .input('AprId', sql.INT, finalStatus === 'Aprovado' ? req.user.colaboradorId : null)
+        .query(`INSERT INTO Requests (EmployeeId, Type, Status, StartDate, EndDate, Note, Coverage, Priority, LocalTrabalho, AprovadorId, DataAprovacao, DataCriacao, DataModificacao)
+                OUTPUT Inserted.Id VALUES (@EmpId, @Type, @Status, @Start, @End, @Note, @Cov, @Pri, @Loc, @AprId, ${finalStatus === 'Aprovado' ? 'GETDATE()' : 'NULL'}, GETDATE(), GETDATE())`);
+    }
+    
+    const newId = result.recordset[0].Id;
+
+    if (finalStatus === 'Aprovado' && (type === 'Escala de Trabalho' || type === 'Ajuste de Escala')) {
+      const dateKey = startDate ? formatDateYYYYMMDD(startDate) : null;
+      const novoLocal = (type === 'Ajuste de Escala' && note) ? note.split('|')[0].trim() : localTrabalho;
+      if (dateKey && novoLocal) await syncScaleRequest(pool, empId, dateKey, novoLocal);
+    }
+
+    res.json({ 
+      id: Number(newId), 
+      employeeId: empId, 
+      type, 
+      status: finalStatus, 
+      startDate: formatDateYYYYMMDD(startDate), 
+      endDate: formatDateYYYYMMDD(endDate),
+      localTrabalho: localTrabalho || null,
+      note: note || '',
+      coverage: coverage || '',
+      priority: priority || 'Baixa',
+      dataCriacao: new Date().toISOString(),
+      dataModificacao: new Date().toISOString(),
+      aprovadorId: finalStatus === 'Aprovado' ? req.user.colaboradorId : null,
+      dataAprovacao: finalStatus === 'Aprovado' ? new Date().toISOString() : null
+    });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put('/api/requests/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, localTrabalho } = req.body;
+    const { startDate, endDate, type, note, coverage, priority, status, localTrabalho } = req.body;
     const pool = await poolPromise;
-    const current = await pool.request().input('Id', sql.INT, id).query('SELECT EmployeeId, Type, StartDate, Note FROM Requests WHERE Id = @Id');
-    if (!current.recordset.length) return res.status(404).json({ error: 'Não encontrado' });
-    const original = current.recordset[0];
-    if (!req.user.isAdmin && req.user.colaboradorId !== original.EmployeeId) return res.status(403).json({ error: 'Sem permissão' });
 
-    // Business Logic: Auto-apply adjustment to scale if approved
-    if (status === 'Aprovado' && original.Type === 'Ajuste de Escala') {
-      const dateKey = original.StartDate ? new Date(original.StartDate).toISOString().slice(0, 10) : null;
-      const novoLocal = original.Note ? original.Note.split('|')[0].trim() : 'Presencial';
-      if (dateKey) {
-        await pool.request().input('Emp', sql.INT, original.EmployeeId).input('Date', sql.DATE, dateKey).input('Loc', sql.NVARCHAR(50), novoLocal)
-          .query(`IF EXISTS (SELECT 1 FROM Requests WHERE EmployeeId=@Emp AND Type='Escala de Trabalho' AND StartDate=@Date)
-                  UPDATE Requests SET LocalTrabalho=@Loc, DataModificacao=GETDATE() WHERE EmployeeId=@Emp AND Type='Escala de Trabalho' AND StartDate=@Date
-                  ELSE INSERT INTO Requests (EmployeeId, Type, Status, StartDate, EndDate, LocalTrabalho, DataCriacao, DataModificacao) 
-                  VALUES (@Emp, 'Escala de Trabalho', 'Aprovado', @Date, @Date, @Loc, GETDATE(), GETDATE())`);
-      }
+    const current = await pool.request().input('Id', sql.INT, id).query('SELECT EmployeeId, Type, StartDate, Note, LocalTrabalho, Status FROM Requests WHERE Id = @Id');
+    if (!current.recordset.length) return res.status(404).json({ error: 'Solicitação não encontrada' });
+    const original = current.recordset[0];
+
+    // Validação Hierárquica / Propriedade
+    const canApprove = await canApproveFor(pool, req.user, original.EmployeeId);
+    const isOwner = Number(req.user.colaboradorId) === Number(original.EmployeeId);
+
+    if (!canApprove && !isOwner) {
+      return res.status(403).json({ error: 'Você não tem permissão para esta ação.' });
     }
 
-    await pool.request().input('Id', sql.INT, id).input('Status', sql.NVARCHAR(50), status || null).input('Loc', sql.NVARCHAR(50), localTrabalho || null)
-      .query('UPDATE Requests SET Status = ISNULL(@Status, Status), LocalTrabalho = ISNULL(@Loc, LocalTrabalho), DataModificacao = GETDATE() WHERE Id = @Id');
-    res.json({ success: true });
+    // Se for o dono editando, ele não pode mudar o status para 'Aprovado' a menos que já estivesse ou fosse admin
+    let finalStatus = status || original.Status;
+    if (isOwner && !canApprove && status === 'Aprovado' && original.Status !== 'Aprovado') {
+        // Regra de auto-aprovação de escala se aplicável
+        if (original.Type === 'Escala de Trabalho') {
+           const d = new Date((startDate || original.StartDate) + 'T12:00:00');
+           const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+           if (!isWeekend) finalStatus = 'Aprovado';
+           else finalStatus = 'Pendente';
+        } else {
+           finalStatus = 'Pendente';
+        }
+    }
+
+    const start = startDate || original.StartDate;
+    const end = endDate || original.EndDate;
+    const loc = localTrabalho || original.LocalTrabalho;
+
+    // Sincronia de Escala se aprovado
+    if (finalStatus === 'Aprovado' && (original.Type === 'Ajuste de Escala' || original.Type === 'Escala de Trabalho')) {
+      const dateKey = start ? formatDateYYYYMMDD(start) : null;
+      const novoLocal = (original.Type === 'Ajuste de Escala' && (note || original.Note)) ? (note || original.Note).split('|')[0].trim() : loc;
+      if (dateKey && novoLocal) await syncScaleRequest(pool, original.EmployeeId, dateKey, novoLocal);
+    }
+
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .input('Status', sql.NVARCHAR(50), finalStatus)
+      .input('Start', sql.DATE, start)
+      .input('End', sql.DATE, end)
+      .input('Type', sql.NVARCHAR(100), type || original.Type)
+      .input('Note', sql.NVARCHAR(500), note || original.Note)
+      .input('Cov', sql.NVARCHAR(100), coverage || original.Coverage)
+      .input('Pri', sql.NVARCHAR(50), priority || original.Priority)
+      .input('Loc', sql.NVARCHAR(50), loc)
+      .input('AprId', sql.INT, canApprove ? req.user.colaboradorId : null)
+      .query(`UPDATE Requests 
+              SET Status = @Status, StartDate = @Start, EndDate = @End, Type = @Type, Note = @Note, 
+                  Coverage = @Cov, Priority = @Pri, LocalTrabalho = @Loc, 
+                  AprovadorId = ISNULL(@AprId, AprovadorId), 
+                  DataAprovacao = CASE WHEN @Status = 'Aprovado' AND Status <> 'Aprovado' THEN GETDATE() ELSE DataAprovacao END,
+                  DataModificacao = GETDATE() 
+              WHERE Id = @Id`);
+
+    const updated = await pool.request()
+      .input('Id', sql.Int, id)
+      .query(`SELECT r.*, e.Name as employeeName, a.Nome as areaNome 
+              FROM Requests r
+              JOIN Colaboradores e ON r.EmployeeId = e.Id
+              LEFT JOIN Areas a ON e.AreaId = a.Id
+              WHERE r.Id = @Id`);
+
+    const r = updated.recordset[0];
+    if (!r) throw new Error('Falha ao recuperar registro atualizado');
+
+    res.json({ 
+      success: true,
+      id: Number(r.Id),
+      employeeId: r.EmployeeId,
+      type: r.Type,
+      status: r.Status,
+      startDate: formatDateYYYYMMDD(r.StartDate),
+      endDate: formatDateYYYYMMDD(r.EndDate),
+      localTrabalho: r.LocalTrabalho || null,
+      note: r.Note || '',
+      coverage: r.Coverage || '',
+      priority: r.Priority || 'Baixa',
+      dataCriacao: r.DataCriacao,
+      dataModificacao: r.DataModificacao,
+      aprovadorId: r.AprovadorId,
+      dataAprovacao: r.DataAprovacao
+    });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

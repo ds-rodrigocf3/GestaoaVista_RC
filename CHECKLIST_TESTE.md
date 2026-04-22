@@ -1,0 +1,262 @@
+# ✅ Checklist de Verificação - Persistência de Agendamentos e Escala
+
+## Pré-Teste: Preparação do Ambiente
+
+- [ ] Servidor Node.js está rodando (`node server.js`)
+- [ ] Banco de dados SQL Server está acessível
+- [ ] Navegador atualizado e cache limpo
+- [ ] Terminal do servidor mostrando "✅ Conectado ao SQL Server"
+- [ ] Nenhum erro no console do Node.js
+
+## Teste 1: Escala Mensal - Marcação Básica
+
+### Setup
+- [ ] Logar no sistema com usuário válido
+- [ ] Navegar para aba **"Escala Mensal"**
+- [ ] Verificar se calendar é exibido corretamente
+- [ ] Selecionar um colaborador (deve ser o próprio ou admin)
+
+### Teste
+- [ ] Clicar em um dia futuro (próximos 7 dias)
+- [ ] Verificar mudança visual (cor/estilo deve mudar)
+- [ ] Verificar no console do navegador:
+  - [ ] Requisição POST foi enviada para `/api/requests`
+  - [ ] Response contém `localTrabalho`
+  - [ ] Status HTTP é 200 ou 201
+- [ ] Esperar a requisição completar (sem error)
+
+### Validação
+- [ ] Dia permanece marcado na tela
+- [ ] `workDays` foi atualizado (verificar React DevTools)
+- [ ] `requests` foi atualizado com novo item
+
+### Recarregar Página
+- [ ] Pressionar F5 para recarregar
+- [ ] [ ] **CRÍTICO**: Verificar se a marcação PERSISTE após recarrega
+- [ ] Navegador mostra mesmo dia marcado
+- [ ] Nenhum erro no console
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 2: Escala Mensal - Alteração de Status
+
+### Setup
+- [ ] Manter página recarregada com escala do Teste 1 visível
+
+### Teste
+- [ ] Clicar novamente no dia já marcado (deve alternar status)
+  - Presencial → Home Office → Desmarcado → Presencial
+- [ ] Verificar requisição PUT no Network tab
+- [ ] Response contém `localTrabalho` atualizado
+- [ ] Dia muda visualmente na tela
+
+### Validação
+- [ ] Novo status aparece imediatamente
+- [ ] Dados são consistentes com o que foi enviado
+
+### Recarregar Página
+- [ ] Pressionar F5
+- [ ] [ ] **CRÍTICO**: Novo status persiste após recarrega
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 3: Escala Mensal - Desmarcação
+
+### Setup
+- [ ] Ter dia marcado (Presencial ou Home Office)
+
+### Teste
+- [ ] Clicar 3 vezes para ciclizar até estado "desmarcado"
+- [ ] Verificar requisição DELETE no Network tab
+- [ ] Dia volta à cor padrão
+
+### Validação
+- [ ] Dia é removido visualmente
+- [ ] Request foi deletado do banco
+
+### Recarregar Página
+- [ ] Pressionar F5
+- [ ] [ ] **CRÍTICO**: Dia permanece desmarcado
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 4: Agendamentos - Criar Férias
+
+### Setup
+- [ ] Navegar para aba **"Agendamentos"**
+- [ ] Verificar formulário "Criar um agendamento"
+
+### Teste
+- [ ] Preencher:
+  - [ ] Colaborador: Selecionar a si mesmo ou outro
+  - [ ] Tipo: "Férias integrais"
+  - [ ] Data Inicial: Data futura (próx. semana)
+  - [ ] Data Final: 3 dias após a inicial
+  - [ ] Tipo de cobertura: Qualquer opção
+- [ ] Clicar "Enviar Solicitação"
+- [ ] Verificar no Network tab:
+  - [ ] POST para `/api/requests`
+  - [ ] Response contém todos os campos
+  - [ ] Status 200 ou 201
+
+### Validação
+- [ ] Toast de sucesso aparece
+- [ ] Solicitação aparece na lista de pendentes
+- [ ] Calendário mostra período com tons de férias
+
+### Recarregar Página
+- [ ] Pressionar F5
+- [ ] [ ] **CRÍTICO**: Agendamento permanece visível
+- [ ] Período de férias mantém destaque no calendário
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 5: Erro de Requisição - Rollback
+
+### Setup
+- [ ] Abrir DevTools do navegador (F12)
+- [ ] Ir para aba "Network"
+- [ ] Filtrar por XHR/Fetch
+
+### Teste (Simular Erro)
+- [ ] Marcar um dia na escala
+- [ ] Imediatamente após (antes de completar) ir para:
+  - Network → Direito-clique na requisição → Desabilitar
+  - Ou: Offline mode no DevTools
+- [ ] Tentar marcar novo dia
+- [ ] Verificar que erro é tratado
+
+### Validação
+- [ ] Toast de erro aparece
+- [ ] Dia volta à cor original (rollback)
+- [ ] Estado local foi revertido
+- [ ] Nenhum crash do app
+
+### Voltar Online
+- [ ] Ligar internet novamente
+- [ ] Tentar marcar dia normalmente
+- [ ] Deve funcionar
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 6: Sincronização de Estados
+
+### Setup
+- [ ] Abrir 2 abas diferentes do navegador
+- [ ] Logar em ambas
+- [ ] Ir para "Escala Mensal" em ambas
+
+### Teste
+- [ ] Na aba 1: Marcar dia como "Presencial"
+- [ ] Ir para aba 2
+- [ ] Esperar e recarregar página (F5)
+- [ ] [ ] **CRÍTICO**: Dia aparece marcado também na aba 2
+
+### Validação
+- [ ] Sincronismo entre abas funciona
+- [ ] Dados vêm do servidor (não cache local)
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 7: Banco de Dados - Validação SQL
+
+### Setup
+- [ ] Abrir SQL Server Management Studio
+- [ ] Conectar ao banco de dados
+
+### Teste
+- [ ] Executar:
+  ```sql
+  SELECT COUNT(*) FROM Requests WHERE Type = 'Escala de Trabalho';
+  ```
+- [ ] Verificar número de registros aumentou após Teste 1
+
+### Validação
+- [ ] [ ] **CRÍTICO**: Banco contém os registros criados
+- [ ] Executar:
+  ```sql
+  SELECT * FROM Requests WHERE Type = 'Escala de Trabalho' 
+  ORDER BY DataCriacao DESC LIMIT 5;
+  ```
+- [ ] [ ] Todos os registros têm `LocalTrabalho` preenchido
+- [ ] [ ] `DataModificacao` é recente
+- [ ] [ ] `Status` é 'Aprovado' para escalas
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Teste 8: Script de Persistência
+
+### Setup
+- [ ] Abrir terminal na pasta do projeto
+- [ ] Ter Node.js com dependências instaladas
+
+### Teste
+```bash
+cd scratch
+node test-scale-persistence.js
+```
+
+### Validação
+- [ ] Script executa sem erros
+- [ ] Mostra escalas registradas
+- [ ] Mostra agendamentos registrados
+- [ ] Sem inconsistências detectadas
+- [ ] Dados recentes aparecem na lista
+
+**Resultado**: ✅ PASSOU / ❌ FALHOU
+
+---
+
+## Resumo Final
+
+| # | Teste | Status |
+|---|-------|--------|
+| 1 | Escala Básica | [ ] ✅ / [ ] ❌ |
+| 2 | Alteração de Status | [ ] ✅ / [ ] ❌ |
+| 3 | Desmarcação | [ ] ✅ / [ ] ❌ |
+| 4 | Agendamentos (Férias) | [ ] ✅ / [ ] ❌ |
+| 5 | Tratamento de Erros | [ ] ✅ / [ ] ❌ |
+| 6 | Sincronização Multi-abas | [ ] ✅ / [ ] ❌ |
+| 7 | Validação Banco de Dados | [ ] ✅ / [ ] ❌ |
+| 8 | Script de Persistência | [ ] ✅ / [ ] ❌ |
+
+**Resultado Total**: 
+- [ ] 8/8 Testes Passaram ✅ PRONTO PARA PRODUÇÃO
+- [ ] Alguns Testes Falharam ❌ REVISAR ANTES DE PRODUÇÃO
+
+---
+
+## Próximos Passos
+
+Se todos os testes passaram:
+- [ ] Commitar mudanças no git
+- [ ] Fazer deploy para produção
+- [ ] Monitore os logs por 24h para erros
+
+Se alguns testes falharam:
+- [ ] Anotar quais testes falharam
+- [ ] Verificar console do navegador para erros
+- [ ] Verificar console do servidor
+- [ ] Executar `test-scale-persistence.js` para mais detalhes
+- [ ] Revisar as mudanças realizadas em:
+  - server.js (linhas 895 e 925)
+  - index.html (ScaleView component)
+
+---
+**Data de Teste**: _________________  
+**Responsável**: _________________  
+**Observações**: _________________________________________________

@@ -2,3 +2,13 @@ node_modules
 .env
 dist
 build
+.md
+.ps1
+test-login.js
+test-connection.js
+.bat
+.txt
+.env.local
+.env.example
+strach
+migrate.sql

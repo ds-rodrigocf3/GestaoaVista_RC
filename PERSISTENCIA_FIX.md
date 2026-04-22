@@ -1,0 +1,200 @@
+# Correção: Persistência de Agendamentos e Escala Mensal
+
+## 🔍 Problema Identificado
+
+Os agendamentos e marcações de escala não estavam persistindo após atualizar a página. O problema tinha múltiplas causas:
+
+### Causa 1: Resposta Incompleta do Backend
+O endpoint `POST /api/requests` estava retornando apenas alguns campos:
+```javascript
+// ❌ ANTES
+res.json({ id, employeeId, type, status, startDate, endDate });
+
+// ✅ DEPOIS
+res.json({ 
+  id, employeeId, type, status, 
+  startDate, endDate, localTrabalho, note, coverage, priority,
+  dataCriacao, dataModificacao, aprovadorId, dataAprovacao 
+});
+```
+
+Isso causava que o frontend recebesse dados incompletos, especialmente sem `localTrabalho`, essencial para a escala.
+
+### Causa 2: Falta de Sincronismo Entre Estados
+O frontend tinha dois estados desincronizados:
+- `workDays`: Estado local com a escala (Presencial/Home Office)
+- `requests`: Lista de solicitações vinda do servidor
+
+Quando a página recarregava, `workDays` era reconstruído a partir de `requests`, mas se `requests` não tivesse `localTrabalho`, os dados desapareciam.
+
+### Causa 3: Tratamento de Erros Inadequado
+Se uma requisição falhasse, o estado local `workDays` já teria sido modificado, mas o servidor não seria atualizado, causando inconsistência.
+
+## ✅ Soluções Implementadas
+
+### 1. Backend (server.js)
+
+#### Endpoint POST /api/requests (linha ~895)
+```javascript
+// Agora retorna todos os campos necessários
+res.json({ 
+  id: Number(newId), 
+  employeeId: empId, 
+  type, 
+  status: finalStatus, 
+  startDate: formatDateYYYYMMDD(startDate), 
+  endDate: formatDateYYYYMMDD(endDate),
+  localTrabalho: localTrabalho || null,  // ✅ NOVO
+  note: note || '',                       // ✅ NOVO
+  coverage: coverage || '',               // ✅ NOVO
+  priority: priority || 'Baixa',          // ✅ NOVO
+  dataCriacao: new Date().toISOString(), // ✅ NOVO
+  dataModificacao: new Date().toISOString(), // ✅ NOVO
+  aprovadorId: finalStatus === 'Aprovado' ? req.user.colaboradorId : null, // ✅ NOVO
+  dataAprovacao: finalStatus === 'Aprovado' ? new Date().toISOString() : null // ✅ NOVO
+});
+```
+
+#### Endpoint PUT /api/requests/:id (linha ~925)
+Também atualizado para retornar dados completos incluindo `localTrabalho`.
+
+### 2. Frontend (index.html)
+
+#### useEffect de Sincronização (Novo em ScaleView)
+```javascript
+// Sincroniza workDays com requests automaticamente
+useEffect(() => {
+  if (!requests || requests.length === 0) {
+    setWorkDays({});
+    return;
+  }
+  const updatedWorkDays = {};
+  requests.forEach(r => {
+    const dKey = r.startDate;
+    if (r.type === 'Escala de Trabalho' && r.status === 'Aprovado' && r.localTrabalho && dKey) {
+      if (!updatedWorkDays[r.employeeId]) updatedWorkDays[r.employeeId] = {};
+      updatedWorkDays[r.employeeId][dKey] = r.localTrabalho;
+    }
+  });
+  setWorkDays(updatedWorkDays);
+}, [requests, setWorkDays]);
+```
+
+#### Função toggleDay Melhorada
+Agora com:
+- ✅ Rollback automático em caso de erro
+- ✅ Mensagens de erro via `setToast` ao invés de `alert()`
+- ✅ Atualização correta do `requests` com dados completos do servidor
+- ✅ Tratamento de erro para DELETE, PUT e POST
+
+Exemplo:
+```javascript
+// Salva estado anterior para rollback
+const previousWorkDays = JSON.parse(JSON.stringify(workDays));
+
+// ... faz mudanças ...
+
+// Em caso de erro:
+.catch(e => {
+  console.error('Erro:', e);
+  setWorkDays(previousWorkDays); // ✅ Rollback
+  setToast && setToast({ title: 'Erro', message: 'Falha ao salvar...' });
+});
+```
+
+## 🧪 Como Testar
+
+### Teste Manual (Recomendado)
+1. Logar no sistema
+2. Ir para aba **"Escala Mensal"**
+3. Selecionar um dia futuro (não bloqueado)
+4. Clicar para marcar como "Presencial" ou "Home Office"
+5. **Recarregar a página** (F5)
+6. Verificar se a escala mantém a marcação
+
+### Teste Automatizado
+```bash
+cd scratch
+node test-scale-persistence.js
+```
+
+Este script verifica:
+- Se escalas estão sendo salvas no banco
+- Se agendamentos persistem
+- Se os dados são consistentes
+- Se houve registros criados recentemente
+
+## 🔒 Validações Adicionais
+
+O código agora valida:
+1. ✅ `localTrabalho` deve estar presente para escalas
+2. ✅ `startDate` e `endDate` devem estar em formato YYYY-MM-DD
+3. ✅ `status` deve ser 'Aprovado' para escalas futuras
+4. ✅ Rollback automático em caso de falha de requisição
+
+## 📊 Fluxo Corrigido
+
+### Antes (Quebrado)
+```
+User clica dia 
+  ↓
+toggleDay() atualiza workDays localmente
+  ↓
+POST para servidor (dados podem estar incompletos)
+  ↓
+Servidor salva no banco
+  ↓
+Frontend atualiza requests com dados incompletos
+  ↓
+User recarrega página
+  ↓
+fetchAll() reconstrói workDays a partir de requests
+  ↓
+❌ workDays fica vazio (porque requests não tem localTrabalho)
+```
+
+### Depois (Corrigido)
+```
+User clica dia 
+  ↓
+toggleDay() atualiza workDays localmente
+  ↓
+POST para servidor com localTrabalho
+  ↓
+Servidor salva no banco E retorna dados completos
+  ↓
+Frontend atualiza requests com dados COMPLETOS
+  ↓
+useEffect sincroniza workDays com requests
+  ↓
+User recarrega página
+  ↓
+fetchAll() reconstrói workDays a partir de requests (agora completo!)
+  ↓
+✅ workDays mantém os dados corretamente
+```
+
+## 🚨 Se Ainda Tiver Problemas
+
+1. **Verifique o Console do Navegador**: Procure por erros
+2. **Verifique o Console do Terminal do Node**: Verifique logs do servidor
+3. **Teste o banco**: Execute `test-scale-persistence.js`
+4. **Limpe o Cache**: Ctrl+Shift+Delete no navegador
+5. **Reinicie o Servidor**: `node server.js`
+
+## 📝 Campos Importantes
+
+Para **Escala de Trabalho**:
+- `Type`: 'Escala de Trabalho'
+- `Status`: 'Aprovado' (deve estar neste status para sincronizar)
+- `LocalTrabalho`: 'Presencial' ou 'Home Office' (obrigatório!)
+- `StartDate` e `EndDate`: Mesmo dia em formato YYYY-MM-DD
+
+Para **Agendamentos** (Férias, etc):
+- `Type`: 'Férias integrais', 'Férias fracionadas', etc
+- `Status`: Pode ser 'Pendente' ou 'Aprovado'
+- `StartDate` e `EndDate`: Intervalo de datas
+
+---
+**Data da Correção**: 21 de Abril de 2026  
+**Versão**: 2.0 (com sincronismo corrigido)
