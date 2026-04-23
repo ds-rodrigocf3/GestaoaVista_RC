@@ -1,4 +1,4 @@
-function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, globalFilters, currentUser, onAddTask }) {
+function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, areas, globalFilters, currentUser, onAddTask }) {
 
   if (!employees || employees.length === 0) {
     return (
@@ -243,7 +243,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     'Feedback': 'chat',
     'Aviso': 'priority_high',
     'Compromisso': 'event',
-    'Aniversário': 'cake',
+    'Aniversário': 'celebration',
     'Evento Corporativo': 'business'
   };
 
@@ -328,11 +328,12 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
          const evAreaId = ev.areaId || ev.AreaId;
          const evRespId = ev.responsavelId || ev.ResponsavelId;
 
-         // Global (sem área e sem responsável específico) - Visível para todos
-         if (!evAreaId && !evRespId) return true;
+          // Global (Se não houver áreas específicas selecionadas, o evento é Global)
+          if (!evAreaId) return true;
          
-         // Por Área (Usuário pertence à área do evento)
-         if (evAreaId && currentUser?.areaId && String(evAreaId) === String(currentUser.areaId)) return true;
+         // Por Área (Usuário pertence a uma das áreas do evento)
+         const areaIds = evAreaId ? String(evAreaId).split(',').filter(x => x !== '') : [];
+         if (areaIds.length > 0 && currentUser?.areaId && areaIds.includes(String(currentUser.areaId))) return true;
          
          // Por Responsável (Usuário é o responsável direto)
          if (evRespId && currentUser?.colaboradorId && String(evRespId) === String(currentUser.colaboradorId)) return true;
@@ -347,6 +348,22 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
         const endObj = parseDateSafe(ev.dataFim || ev.DataFim);
         const isMultiDay = startObj && endObj && startObj.toISOString().split('T')[0] !== endObj.toISOString().split('T')[0];
         
+        const aid = ev.areaId || ev.AreaId;
+        const areaInfo = (() => {
+          if (!aid) return { text: 'Global', full: 'Todas as áreas', count: 0, isGlobal: true };
+          const ids = String(aid).split(',').filter(x => x !== '');
+          if (ids.length === 0) return { text: 'Global', full: 'Todas as áreas', count: 0, isGlobal: true };
+          
+          const names = ids.map(id => {
+            const a = (areas || []).find(x => String(x.id) === String(id));
+            return a ? a.nome : null;
+          }).filter(Boolean);
+          
+          if (names.length === 0) return { text: 'Áreas', full: 'Áreas não identificadas', count: ids.length, isGlobal: false };
+          if (names.length === 1) return { text: names[0], full: names[0], count: 1, isGlobal: false };
+          return { text: `${names.length} Áreas`, full: names.join(', '), count: names.length, isGlobal: false };
+        })();
+
         return {
           id: ev.id || ev.Id,
           type: ev.tipo || ev.Tipo || 'Reunião',
@@ -357,7 +374,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           title: ev.titulo || ev.Titulo || 'Sem título',
           note: ev.descricao || ev.Descricao || '',
           isEvent: true,
-          areaNome: ev.areaNome || ev.AreaNome,
+          areaId: aid,
+          areaInfo,
           responsavelNome: ev.responsavelNome || ev.ResponsavelNome,
           isMultiDay,
           sortDate: startObj
@@ -390,7 +408,12 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             {timelineAusencias.map(a => (
               <div className="workload-item glass-card" key={a.id || Math.random()} style={{ padding: '16px', border: '1px solid var(--line)', background: 'var(--card)', display: 'flex', gap: '12px', alignItems: 'center', borderRadius: '16px', transition: 'transform 0.2s ease' }}>
                 {a.isEvent ? (
-                  <div className="workload-avatar" style={{ background: 'var(--primary)', color: '#fff' }}>
+                  <div className="workload-avatar" style={{ 
+                    background: a.type === 'Aniversário' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'var(--primary)', 
+                    color: '#fff',
+                    boxShadow: a.type === 'Aniversário' ? '0 0 12px rgba(255,51,153,0.4)' : 'none',
+                    border: 'none'
+                  }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{EVENT_ICONS[a.type] || EVENT_ICONS['Compromisso']}</span>
                   </div>
                 ) : (
@@ -419,8 +442,23 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   <div style={{ fontSize: '.72rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                     {a.isEvent ? (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>groups</span>
-                        {a.areaNome || 'Global'} • {a.type}
+                        <span className="material-symbols-outlined" style={{ fontSize: '12px', color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)' }}>
+                          {a.areaInfo.isGlobal ? 'public' : 'category'}
+                        </span>
+                        <span 
+                          title={a.areaInfo.full}
+                          style={{ 
+                            fontWeight: a.areaInfo.isGlobal ? 400 : 700,
+                            color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)',
+                            background: a.areaInfo.isGlobal ? 'transparent' : 'rgba(51,204,204,0.06)',
+                            padding: a.areaInfo.isGlobal ? '0' : '1px 6px',
+                            borderRadius: '4px',
+                            cursor: 'help'
+                          }}
+                        >
+                          {a.areaInfo.text}
+                        </span>
+                        • {a.type}
                       </>
                     ) : (
                       a.type
@@ -507,6 +545,73 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                 </table>
               </div>
           )}
+        </div>
+
+        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
+          <div className="section-title" style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ color: '#fff' }}>hub</span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 600 }}>Carga de Trabalho & Alocação</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Balanceamento de atividades por demanda e pessoa</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="workload-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+            {workloadMap.map(w => {
+              if (!w || !w.emp) return null;
+              return (
+                <div className="glass-card workload-card-premium" key={w.emp.id} style={{ 
+                  padding: '20px', borderRadius: '20px', 
+                  display: 'flex', flexDirection: 'column', gap: '16px',
+                  boxShadow: 'none', transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  border: '1px solid var(--line)', position: 'relative', overflow: 'hidden'
+                }}>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    {w.emp.avatarUrl ? <img src={w.emp.avatarUrl} style={{ width: '52px', height: '52px', borderRadius: '14px' }} /> : <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', color: 'var(--primary-txt)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '1.2rem' }}>{w.emp.name.charAt(0)}</div>}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--title)', marginBottom: '4px' }}>{w.emp.name}</div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <span className="dash-micro-badge glass" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>📂 {w.demandaCount} Demandas</span>
+                        <span className="dash-micro-badge glass" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>📝 {w.taskCount} Tarefas</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
+                    {Object.entries(w.statusCount || {}).map(([status, count]) => {
+                      if (count === 0) return null;
+                      const STATUS_COLOR_MAP = {
+                        'Concluído':    { color: '#10b981', label: 'Concluído' },
+                        'Em Andamento': { color: '#3b82f6', label: 'Em Andamento' },
+                        'Não Iniciado': { color: '#64748b', label: 'Não Iniciado' },
+                        'Pausado':      { color: '#f59e0b', label: 'Pausado' },
+                        'Bloqueio':     { color: '#ef4444', label: 'Bloqueio' },
+                        'Cancelado':    { color: '#94a3b8', label: 'Cancelado' },
+                      };
+                      const config = STATUS_COLOR_MAP[status] || { color: '#64748b', label: status };
+                      const color = config.color || config.bg || '#64748b';
+                      const label = config.label || status;
+                      return (
+                        <div key={status} className="status-mini-pill" style={{ 
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          padding: '4px 10px', borderRadius: '20px',
+                          background: `${color}20`, border: `1px solid ${color}40`,
+                          fontSize: '0.7rem', fontWeight: 700, color: color
+                        }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color }}></div>
+                          <span>{label}: {count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
@@ -694,87 +799,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           </div>
         </div>
 
-        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
-          <div className="section-title" style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined" style={{ color: '#fff' }}>hub</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 600 }}>Carga de Trabalho & Alocação</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Balanceamento de atividades por demanda e pessoa</p>
-              </div>
-            </div>
-          </div>
 
-          <div className="workload-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-            {workloadMap.map(w => {
-              if (!w || !w.emp) return null;
-              return (
-                <div 
-                  className="glass-card workload-card-premium" 
-                  key={w.emp.id} 
-                  style={{ 
-                    padding: '20px', 
-                    borderRadius: '20px', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '16px', 
-                    boxShadow: 'none',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    border: '1px solid var(--line)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    {w.emp.avatarUrl
-                      ? <img src={w.emp.avatarUrl} style={{ width: '52px', height: '52px', borderRadius: '14px', objectFit: 'cover', border: '2px solid var(--primary)' }} />
-                      : <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', color: 'var(--primary-txt)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '1.2rem' }}>{w.emp.name.charAt(0)}</div>
-                    }
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--title)', marginBottom: '4px' }}>{w.emp.name}</div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                         <span className="dash-micro-badge glass" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>📂 {w.demandaCount} Demandas</span>
-                         <span className="dash-micro-badge glass" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>📝 {w.taskCount} Tarefas</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    gap: '6px', 
-                    paddingTop: '12px', 
-                    borderTop: '1px solid var(--line)' 
-                  }}>
-                     {Object.entries(w.statusCount).map(([status, count]) => (
-                        <div 
-                          key={status} 
-                          className="status-mini-pill"
-                          style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '4px',
-                            padding: '4px 10px', 
-                            borderRadius: '20px', 
-                            background: (STATUS_COLORS[status] || {bg: '#ccc'}).bg + '20', 
-                            border: `1px solid ${(STATUS_COLORS[status] || {bg: '#ccc'}).bg}40`,
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            color: (STATUS_COLORS[status] || {bg: '#ccc'}).bg
-                          }}
-                        >
-                           <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: (STATUS_COLORS[status] || {bg: '#ccc'}).bg }}></div>
-                           <span>{status}: {count}</span>
-                        </div>
-                     ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
     </div>
   );

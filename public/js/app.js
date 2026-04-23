@@ -4,9 +4,14 @@ function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = sessionStorage.getItem('gbi_user');
     try {
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) {
+        sessionStorage.removeItem('gbi_token'); // Garante que não haja token sem usuário
+        return null;
+      }
+      return JSON.parse(saved);
     } catch (e) {
       sessionStorage.removeItem('gbi_user');
+      sessionStorage.removeItem('gbi_token');
       return null;
     }
   });
@@ -417,7 +422,9 @@ function App() {
         <aside className={`sidebar glass ${isSidebarOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="sidebar-header">
             <div className="brand">
-              <div className="brand-badge">📊</div>
+              <div className="brand-badge" style={{ padding: 0, overflow: 'hidden' }}>
+                <img src="favicon.png" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
+              </div>
               <div className="brand-text">
                 <h1 className="premium-title" style={{ fontSize: '1.05rem', margin: 0 }}>CONTROLLER</h1>
                 <p style={{ color: 'var(--muted)', fontSize: '0.7rem', margin: 0 }}>GESTÃO À VISTA</p>
@@ -479,11 +486,12 @@ function App() {
             </div>
           )}
 
-          {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} />}
+          {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} />}
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
           {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} />}
           {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} approvalNote={approvalNote} setApprovalNote={setApprovalNote} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
           {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={requests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} />}
+          {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
         </main>
       </div>
       {toast && (

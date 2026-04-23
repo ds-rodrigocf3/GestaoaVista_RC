@@ -381,12 +381,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
 
   return (
     <div className="dashboard-grid">
-      <header className="page-header">
-        <div>
-          <h2>Escala Mensal</h2>
-          <p>Gestão de presencialidade e trabalho remoto da equipe.</p>
-        </div>
-      </header>
+
       {adjustModal && (
         <div className="status-modal-overlay">
           <div className="status-modal">
@@ -425,7 +420,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
 
       <header className="topbar glass-card" style={{ padding: '24px', borderRadius: '20px', marginBottom: '32px', border: '1px solid var(--line)' }}>
         <div>
-          <h2 className="premium-title" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--title)' }}>Escala de Trabalho</h2>
+          <h2 className="premium-title" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--title)' }}>Escala Mensal</h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.9rem', fontWeight: 500 }}>Frequência inteligente: o objetivo é atingir 50% de presença física.</p>
         </div>
         <div className="badge-row" style={{ display: 'flex', gap: '12px' }}>

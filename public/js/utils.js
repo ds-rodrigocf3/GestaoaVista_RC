@@ -21,8 +21,10 @@ const views = [
   { id: 'tasks', title: 'Gestão de Demandas', caption: 'Tarefas e alocações', icon: 'view_kanban' },
   { id: 'requests', title: 'Agendamentos', caption: 'Férias e afastamentos', icon: 'add_circle' },
   { id: 'approvals', title: 'Aprovações', caption: 'Gestão de solicitações', icon: 'fact_check' },
-  { id: 'scale', title: 'Escala Mensal', caption: 'Dias presenciais e remotos', icon: 'calendar_month' }
+  { id: 'scale', title: 'Escala Mensal', caption: 'Dias presenciais e remotos', icon: 'calendar_month' },
+  { id: 'eventos', title: 'Eventos', caption: 'Agenda corporativa da equipe', icon: 'event' }
 ];
+
 
 function apiHeaders(token) {
   return { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) };
@@ -257,11 +259,12 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
         style={{ 
           width: '100%', minHeight: '42px', borderRadius: '10px', border: '1px solid var(--line)', 
           padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem',
-          display: 'flex', alignItems: 'center', cursor: 'pointer', justifyContent: 'space-between'
+          display: 'flex', alignItems: 'center', cursor: 'pointer', justifyContent: 'space-between',
+          overflow: 'hidden', boxSizing: 'border-box'
         }}
       >
-        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{displayText}</span>
-        <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.5 }}>{isOpen ? 'expand_less' : 'expand_more'}</span>
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }}>{displayText}</span>
+        <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.5, marginLeft: '8px', flexShrink: 0 }}>{isOpen ? 'expand_less' : 'expand_more'}</span>
       </div>
       
       {isOpen && (

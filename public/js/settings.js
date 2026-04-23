@@ -21,7 +21,7 @@ function SettingsModal({
   const [formCargo, setFormCargo] = useState({ id: null, nome: '' });
   const [formNivel, setFormNivel] = useState({ id: null, descricao: '' });
   const [formStatus, setFormStatus] = useState({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 });
-  const [formEvento, setFormEvento] = useState({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' });
+
 
   const TABS = [
     { id: 'perfil', label: 'Meu Perfil', icon: 'person', admin: false },
@@ -31,7 +31,6 @@ function SettingsModal({
     { id: 'cargos', label: 'Cargos', icon: 'badge', admin: true },
     { id: 'hierarquia', label: 'Hierarquia', icon: 'account_tree', admin: true },
     { id: 'status', label: 'Status', icon: 'label', admin: true },
-    { id: 'eventos', label: 'Eventos', icon: 'event', admin: true },
   ];
 
   const headers = useCallback(() => apiHeaders(authToken), [authToken]);
@@ -155,28 +154,12 @@ function SettingsModal({
     catch (e) { alert(e.message); }
   };
 
-  const saveEvento = async () => {
-    if (!formEvento.titulo || !formEvento.dataInicio) { alert('Título e data de início obrigatórios'); return; }
-    try {
-      const url = formEvento.id ? `${API_BASE}/api/eventos/${formEvento.id}` : `${API_BASE}/api/eventos`;
-      await apiCall(url, formEvento.id ? 'PUT' : 'POST', formEvento);
-      fetchAll({ silent: true }); 
-      setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' }); 
-      setMsg('Evento salvo!');
-    } catch (e) { alert(e.message); }
-  };
 
-  const deleteEvento = async (ev) => {
-    if (!confirm(`Excluir evento "${ev.titulo || ev.Titulo}"?`)) return;
-    try { await apiCall(`${API_BASE}/api/eventos/${ev.id || ev.Id}`, 'DELETE'); fetchAll({ silent: true }); }
-    catch (e) { alert(e.message); }
-  };
 
   // Reusable table row style
   const labelStyle = { fontSize: '.8rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' };
   const inputStyle = { width: '100%', border: '1px solid var(--line)', borderRadius: '6px', padding: '7px 10px', fontSize: '.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box' };
 
-  const TIPO_EVENTO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Outro'];
   const APLICACAO_OPTIONS = ['Demanda', 'Tarefa', 'Ambos'];
 
   return (
@@ -513,8 +496,8 @@ function SettingsModal({
             </div>
           )}
 
-          {/* ===== EVENTOS ===== */}
-          {tab === 'eventos' && (
+          {/* ===== EVENTOS (moved to sidebar page) ===== */}
+          {false && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div className="glass-card" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--line)', borderRadius: '16px' }}>
                 <h4 style={{ margin: '0 0 16px', fontSize: '.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
