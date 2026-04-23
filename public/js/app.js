@@ -1,8 +1,16 @@
 function App() {
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authToken, setAuthToken] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = sessionStorage.getItem('gbi_user');
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      sessionStorage.removeItem('gbi_user');
+      return null;
+    }
+  });
+  const [authToken, setAuthToken] = useState(() => sessionStorage.getItem('gbi_token'));
   const [showSettings, setShowSettings] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('gbi_theme');
@@ -21,6 +29,8 @@ function App() {
   const [hierarquia, setHierarquia] = useState([]);
   const [statusTipos, setStatusTipos] = useState([]);
   const [globalFilters, setGlobalFilters] = useState({ gestor: '', colaboradorId: '', gestorId: '' });
+  const [requestedModal, setRequestedModal] = useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const getEmployeeById = useCallback((id) => {
     return (dbEmployees || []).find((employee) => employee.id === Number(id));
@@ -42,20 +52,7 @@ function App() {
     localStorage.setItem('gbi_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
-  useEffect(() => {
-    const savedUser = sessionStorage.getItem('gbi_user');
-    const savedToken = sessionStorage.getItem('gbi_token');
-    if (savedUser && savedToken) {
-      try {
-        const user = JSON.parse(savedUser);
-        setCurrentUser(user);
-        setAuthToken(savedToken);
-      } catch (error) {
-        sessionStorage.removeItem('gbi_user');
-        sessionStorage.removeItem('gbi_token');
-      }
-    }
-  }, []);
+
 
   const getSubordinateIds = (employees, managerId) => {
     const directSubordinates = employees.filter(e => String(e.gestorId) === String(managerId));
@@ -73,6 +70,9 @@ function App() {
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [toast, setToast] = useState(null);
   const [approvalNote, setApprovalNote] = useState('');
+  const [requestToDelete, setRequestToDelete] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [processingApprovalId, setProcessingApprovalId] = useState(null);
 
   const isEmpMatch = (empId) => {
     if (!globalFilters) return true;
@@ -102,12 +102,12 @@ function App() {
   };
 
   const handleLogout = () => {
-    if (window.confirm('Você tem certeza que deseja sair do sistema?')) {
-      sessionStorage.removeItem('gbi_user');
-      sessionStorage.removeItem('gbi_token');
-      setCurrentUser(null);
-      setAuthToken(null);
-    }
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    sessionStorage.clear();
+    window.location.reload();
   };
 
   const fetchAll = useCallback(async (options = {}) => {
@@ -129,18 +129,29 @@ function App() {
       ];
 
       const responses = await Promise.allSettled(endpoints);
-      const getResult = (idx) => responses[idx].status === 'fulfilled' ? responses[idx].value : null;
+      const getResult = (idx, name) => {
+        if (responses[idx].status === 'rejected') {
+          console.warn(`Fetch failed for ${name}:`, responses[idx].reason);
+          return null;
+        }
+        const val = responses[idx].value;
+        if (!Array.isArray(val)) {
+          console.warn(`Expected array for ${name}, got:`, val);
+          return [];
+        }
+        return val;
+      };
 
-      const rEmployees = getResult(0);
-      const rColabs = getResult(1);
-      const rAreas = getResult(2);
-      const rRequests = getResult(3);
-      const rTasks = getResult(4);
-      const rEventos = getResult(5);
-      const rCargos = getResult(6);
-      const rHier = getResult(7);
-      const rStatus = getResult(8);
-      const rDemandas = getResult(9);
+      const rEmployees = getResult(0, 'employees');
+      const rColabs = getResult(1, 'colaboradores');
+      const rAreas = getResult(2, 'areas');
+      const rRequests = getResult(3, 'requests');
+      const rTasks = getResult(4, 'tasks');
+      const rEventos = getResult(5, 'eventos');
+      const rCargos = getResult(6, 'cargos');
+      const rHier = getResult(7, 'hierarquia');
+      const rStatus = getResult(8, 'status-tipos');
+      const rDemandas = getResult(9, 'demandas');
 
       if (rEmployees) setDbEmployees(rEmployees);
       if (rColabs) setColaboradores(rColabs);
@@ -158,12 +169,9 @@ function App() {
       }
       if (rTasks) {
         setTasks(rTasks.map(t => ({
-          ...t, id: t.Id || t.id, ownerId: t.OwnerId || t.ownerId,
-          status: t.Status || t.status, priority: t.Priority || t.priority,
-          title: t.Title || t.title,
-          startDate: (t.StartDate || t.startDate) ? (t.StartDate || t.startDate).slice(0, 10) : '',
-          endDate: (t.EndDate || t.endDate) ? (t.EndDate || t.endDate).slice(0, 10) : '',
-          demandaId: t.DemandaId || t.demandaId || null
+          ...t,
+          startDate: t.startDate ? t.startDate.slice(0, 10) : '',
+          endDate: t.endDate ? t.endDate.slice(0, 10) : ''
         })));
       }
       if (rEventos) setEventos(rEventos);
@@ -199,18 +207,14 @@ function App() {
 
   const detailedRequests = useMemo(() => {
     if (!requests || !Array.isArray(requests)) return [];
-    let filtered = requests;
-    if (globalFilters.gestorId) {
-      const subordinateIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
-      filtered = filtered.filter(r => subordinateIds.includes(parseInt(r.employeeId)));
-    }
-    return filtered.map(buildRequestDetails).sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0));
-  }, [requests, dbEmployees, globalFilters.gestorId]);
+    return requests.map(buildRequestDetails).sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0));
+  }, [requests, dbEmployees]);
 
   const filterByUserRole = useCallback((list) => {
-    if (currentUser && !currentUser.isAdmin) {
-      const subordinates = [currentUser.colaboradorId, ...getSubordinateIds(dbEmployees, currentUser.colaboradorId)];
-      return list.filter(r => subordinates.includes(Number(r.employeeId)));
+    if (!list) return [];
+    if (currentUser && !currentUser.isAdmin && currentUser.colaboradorId) {
+      const subordinates = [Number(currentUser.colaboradorId), ...getSubordinateIds(dbEmployees, currentUser.colaboradorId).map(id => Number(id))];
+      return list.filter(r => r && subordinates.includes(Number(r.employeeId)));
     }
     return list;
   }, [currentUser, dbEmployees]);
@@ -276,10 +280,14 @@ function App() {
     const method = editingRequestId ? 'PUT' : 'POST';
     const url = editingRequestId ? `${API_BASE}/api/requests/${editingRequestId}` : `${API_BASE}/api/requests`;
     fetch(url, { method, headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) }, body: JSON.stringify(payload) })
-      .then(res => res.json())
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Falha ao processar solicitação');
+        return data;
+      })
       .then(data => {
         if (editingRequestId) {
-          setRequests(prev => prev.map(r => r.id === editingRequestId ? { ...r, ...data } : r));
+          setRequests(prev => prev.map(r => Number(r.id) === Number(editingRequestId) ? { ...r, ...data } : r));
           setToast({ title: 'Alteração salva', message: 'O agendamento foi atualizado com sucesso.' });
           setEditingRequestId(null);
         } else {
@@ -288,37 +296,113 @@ function App() {
         }
         setActiveView('approvals');
       })
-      .catch(err => setToast({ title: 'Erro no servidor', message: err.message }));
+      .catch(err => setToast({ title: 'Erro no servidor', message: err.message, type: 'error' }));
   };
 
   const deleteRequest = (id) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
-    fetch(`${API_BASE}/api/requests/${id}`, { method: 'DELETE', headers: apiHeaders(authToken) })
-      .then(res => {
-        if (!res.ok) throw new Error('Falha ao excluir');
-        setRequests(prev => prev.filter(r => r.id !== id));
-        setToast({ title: 'Excluído', message: 'Agendamento removido.' });
+    if (!id) return;
+    setRequestToDelete(id);
+  };
+
+  const confirmDeleteRequest = (id) => {
+    setLoading(true);
+    fetch(`${API_BASE}/api/requests/${id}`, { 
+      method: 'DELETE', 
+      headers: apiHeaders(authToken) 
+    })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Falha ao excluir');
+        return data;
       })
-      .catch(err => alert(err.message));
+      .then(() => {
+        // Ensure type matching for the filter
+        setRequests(prev => prev.filter(r => String(r.id) !== String(id)));
+        setToast({ title: 'Excluido com sucesso', message: 'O agendamento foi removido da base de dados.' });
+        setRequestToDelete(null);
+      })
+      .catch(err => {
+        console.error('Delete error:', err);
+        setToast({ title: 'Erro ao excluir', message: err.message, type: 'error' });
+        setRequestToDelete(null);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const handleAdd = (initialStatus = 'Não Iniciado') => {
+    setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' });
+    const payload = {
+      title: '',
+      ownerId: dbEmployees?.length > 0 ? (currentUser?.colaboradorId || dbEmployees[0].id) : '',
+      status: initialStatus,
+      priority: 'Baixa',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      demandaId: null
+    };
+    const tempId = -(Date.now());
+    setTasks(prev => [...prev, { id: tempId, ...payload }]);
+    if (activeView !== 'tasks') setActiveView('tasks');
+  };
+
+  const handleNewDemanda = () => {
+    setRequestedModal({ type: 'demanda', data: { titulo: '', responsavelId: currentUser?.colaboradorId || null, inicioPlanjado: '', fimPlanejado: '', status: 'Não Iniciado', prioridade: 'Média' } });
+    if (activeView !== 'tasks') setActiveView('tasks');
   };
 
   const handleApproval = (requestId, decision) => {
+    const req = detailedRequests.find(r => Number(r.id) === Number(requestId));
+    if (!req) return;
+
     if (!currentUser.isAdmin) {
-      const req = detailedRequests.find(r => r.id === requestId);
-      const solicitanteNivel = req?.employee?.nivelHierarquia || 6;
-      if (!currentUser.nivelHierarquia || currentUser.nivelHierarquia >= solicitanteNivel) {
-        setToast({ title: 'Sem permissão', message: `Seu nível (N${currentUser.nivelHierarquia || '?'}) não permite aprovar N${solicitanteNivel}.` });
+      const isOwner = Number(req.employeeId) === Number(currentUser.colaboradorId);
+      const isDirectManager = Number(req.employee.gestorId) === Number(currentUser.colaboradorId);
+      const isSuperiorLevel = currentUser.nivelHierarquia < (req?.employee?.nivelHierarquia || 7);
+      const hasNoManager = req.employee.gestorId === null || !req.employee.gestorId;
+
+      if (isOwner && !hasNoManager) {
+        setToast({ title: 'Ação bloqueada', message: 'Você não pode aprovar ou rejeitar sua própria solicitação.' });
+        return;
+      }
+
+      if (!isOwner && !isDirectManager && !isSuperiorLevel) {
+        setToast({ title: 'Permissão negada', message: 'Você precisa ser o gestor direto ou possuir nível hierárquico superior para realizar aprovações.', type: 'error' });
         return;
       }
     }
-    fetch(`${API_BASE}/api/requests/${requestId}`, { method: 'PUT', headers: apiHeaders(authToken), body: JSON.stringify({ status: decision, aprovadorId: currentUser.colaboradorId }) })
-      .then(res => res.json())
+
+    setProcessingApprovalId(requestId);
+    fetch(`${API_BASE}/api/requests/${requestId}`, { 
+      method: 'PUT', 
+      headers: apiHeaders(authToken), 
+      body: JSON.stringify({ 
+        status: decision, 
+        aprovadorId: currentUser.colaboradorId,
+        note: approvalNote 
+      }) 
+    })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Falha ao processar a aprovação');
+        return data;
+      })
       .then(data => {
-        setRequests(current => current.map(r => r.id === requestId ? { ...r, ...data } : r));
+        setRequests(current => current.map(r => Number(r.id) === Number(requestId) ? { ...r, ...data } : r));
+        
+        if (decision === 'Aprovado' && (data.type === 'Escala de Trabalho' || data.type === 'Ajuste de Escala') && data.localTrabalho) {
+           setWorkDays(prev => {
+             const next = { ...prev };
+             if (!next[data.employeeId]) next[data.employeeId] = {};
+             next[data.employeeId][data.startDate] = data.localTrabalho;
+             return next;
+           });
+        }
+
         setToast({ title: decision === 'Aprovado' ? 'Solicitação aprovada' : 'Solicitação rejeitada', message: 'O status foi atualizado.' });
         setApprovalNote('');
       })
-      .catch(err => setToast({ title: 'Erro', message: err.message }));
+      .catch(err => setToast({ title: 'Erro', message: err.message, type: 'error' }))
+      .finally(() => setProcessingApprovalId(null));
   };
 
   if (!currentUser) return <LoginModal onLogin={handleLogin} />;
@@ -329,30 +413,58 @@ function App() {
       <div className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
       {showSettings && <SettingsModal currentUser={currentUser} authToken={authToken} onClose={() => setShowSettings(false)} onProfileUpdate={url => { const u = { ...currentUser, avatarUrl: url }; setCurrentUser(u); sessionStorage.setItem('gbi_user', JSON.stringify(u)); setShowSettings(false); setActiveView('dashboard'); }} refreshEmployees={fetchAll} colaboradores={colaboradores} areas={areas} cargos={cargos} hierarquia={hierarquia} statusTipos={statusTipos} eventos={eventos} fetchAll={fetchAll} />}
 
-      <div className="app-shell">
-        <aside className={`sidebar glass ${isSidebarOpen ? 'open' : ''}`}>
-          <div className="brand">
-            <div className="brand-badge">📊</div>
-            <div><h1 className="premium-title" style={{ fontSize: '1.2rem' }}>CONTROLLER</h1><p style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>GESTÃO À VISTA</p></div>
+      <div className={`app-shell ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <aside className={`sidebar glass ${isSidebarOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="sidebar-header">
+            <div className="brand">
+              <div className="brand-badge">📊</div>
+              <div className="brand-text">
+                <h1 className="premium-title" style={{ fontSize: '1.05rem', margin: 0 }}>CONTROLLER</h1>
+                <p style={{ color: 'var(--muted)', fontSize: '0.7rem', margin: 0 }}>GESTÃO À VISTA</p>
+              </div>
+            </div>
+            <button className="sidebar-toggle-btn" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} title={isSidebarCollapsed ? "Expandir" : "Recolher"}>
+              <span className="material-symbols-outlined">{isSidebarCollapsed ? 'menu' : 'menu_open'}</span>
+            </button>
           </div>
           <nav className="nav-list">
-            {views.map(v => <button key={v.id} className={`nav-button ${activeView === v.id ? 'active' : ''}`} onClick={() => { setActiveView(v.id); setIsSidebarOpen(false); }}><span className="material-symbols-outlined">{v.icon}</span><div><span className="nav-title">{v.title}</span><span className="nav-caption">{v.caption}</span></div></button>)}
+            {views.map(v => (
+              <button key={v.id} className={`nav-button ${activeView === v.id ? 'active' : ''}`} onClick={() => { setActiveView(v.id); setIsSidebarOpen(false); }}>
+                <span className="material-symbols-outlined">{v.icon}</span>
+                <div className="nav-text-wrapper">
+                  <span className="nav-title">{v.title}</span>
+                  <span className="nav-caption">{v.caption}</span>
+                </div>
+              </button>
+            ))}
           </nav>
           <button onClick={() => setIsDark(d => !d)} className="theme-toggle-btn" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 16px', margin: '12px 0 4px', background: isDark ? 'rgba(51,204,204,0.08)' : 'rgba(0,0,0,0.04)', border: '1px solid var(--line)', borderRadius: '12px', color: 'var(--text)', cursor: 'pointer', fontSize: '.84rem', fontWeight: 600 }}>
             <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
-            <span>{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
+            <span className="sidebar-text">{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
           </button>
-          <div className="user-badge" onClick={() => setShowSettings(true)}>
-             <div className="user-badge-content">
-               {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{ (currentUser.name || currentUser.nome || 'A').charAt(0) }</div>}
-               <div className="user-badge-info"><div className="user-badge-name">{currentUser.name || currentUser.nome}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.nivelDescricao || 'Usuário')}</div></div>
-             </div>
-             <button className="logout-btn" onClick={e => { e.stopPropagation(); handleLogout(); }}><span className="material-symbols-outlined">logout</span> Sair</button>
+          <div className="sidebar-user-area" style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
+            <div className="user-badge" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
+               <div className="user-badge-content">
+                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{ (currentUser.name || currentUser.nome || 'A').charAt(0) }</div>}
+                 <div className="user-badge-info"><div className="user-badge-name">{currentUser.name || currentUser.nome}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.nivelDescricao || 'Usuário')}</div></div>
+               </div>
+            </div>
+            <button 
+              className="logout-btn" 
+              onClick={handleLogout}
+            >
+              <span className="material-symbols-outlined">logout</span>
+              <span className="sidebar-text">Sair</span>
+            </button>
           </div>
         </aside>
 
         <main className="main-content">
-          <div className="topbar-header"><button className="menu-toggle" onClick={() => setIsSidebarOpen(true)}><span className="material-symbols-outlined">menu</span></button></div>
+          <div className="topbar-header">
+            <button className="menu-toggle" onClick={() => { setIsSidebarOpen(true); setIsSidebarCollapsed(false); }}>
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+          </div>
           {(activeView === 'dashboard' || activeView === 'tasks' || activeView === 'scale') && (
             <div className="top-filters glass-card">
               <div className="filter-group"><label>Colaborador</label><select value={globalFilters.colaboradorId} onChange={e => setGlobalFilters(f => ({ ...f, colaboradorId: e.target.value }))}><option value="">Todos</option>{dbEmployees.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}</select></div>
@@ -367,14 +479,57 @@ function App() {
             </div>
           )}
 
-          {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} globalFilters={globalFilters} currentUser={currentUser} />}
+          {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} />}
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
-          {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} />}
-          {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} approvalNote={approvalNote} setApprovalNote={setApprovalNote} handleApproval={handleApproval} currentUser={currentUser} />}
+          {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} />}
+          {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} approvalNote={approvalNote} setApprovalNote={setApprovalNote} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
           {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={requests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} />}
         </main>
       </div>
-      {toast && <div className="toast-container"><div className="toast"><h4>{toast.title}</h4><p>{toast.message}</p></div></div>}
+      {toast && (
+        <div className={`modern-toast ${toast.type || 'success'}`}>
+          <div className="toast-icon">
+            <span className="material-symbols-outlined">
+              {toast.type === 'error' ? 'error' : toast.type === 'warning' ? 'warning' : 'check_circle'}
+            </span>
+          </div>
+          <div className="toast-content">
+            <div className="toast-title">{toast.title}</div>
+            <div className="toast-message">{toast.message}</div>
+          </div>
+          <div className="toast-progress"></div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {requestToDelete && (
+        <div className="status-modal-overlay">
+          <div className="status-modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#ef4444', marginBottom: '16px' }}>warning</span>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Excluir Solicitação</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja excluir esta solicitação? Esta ação não pode ser desfeita.</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => setRequestToDelete(null)}>Cancelar</button>
+              <button className="btn btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444' }} onClick={() => confirmDeleteRequest(requestToDelete)}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="status-modal-overlay">
+          <div className="status-modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#f59e0b', marginBottom: '16px' }}>logout</span>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Sair do Sistema</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja encerrar sua sessão?</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => setShowLogoutConfirm(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={confirmLogout}>Sair</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

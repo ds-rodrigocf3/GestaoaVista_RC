@@ -1,4 +1,4 @@
-function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, globalFilters, currentUser }) {
+function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, globalFilters, currentUser, onAddTask }) {
 
   if (!employees || employees.length === 0) {
     return (
@@ -20,6 +20,11 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     };
     return [parseInt(globalFilters.gestorId), ...getSubIds(globalFilters.gestorId)];
   }, [globalFilters?.gestorId, employees]);
+
+  // Filters for Fila 360
+  const [selectedBuckets, setSelectedBuckets] = React.useState(['criticas', 'andamento', 'backlog', 'concluidas']);
+  const [periodFilter, setPeriodFilter] = React.useState('all'); // all, week, month, quarter, semester, year, custom
+  const [customRange, setCustomRange] = React.useState({ start: '', end: '' });
 
   const isMatch = (e) => {
     if (!e) return false;
@@ -48,7 +53,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
   const empIds = React.useMemo(() => new Set(filteredEmployees.map(e => Number(e.id))), [filteredEmployees]);
 
   const scopedTasks = React.useMemo(() => tasks ? tasks.filter(t => t && t.ownerId && empIds.has(Number(t.ownerId))) : [], [tasks, empIds]);
-  const scopedRequests = React.useMemo(() => requests ? requests.filter(r => r && r.employeeId && empIds.has(Number(r.employeeId)) && r.status !== 'Rejeitado') : [], [requests, empIds]);
+  const scopedRequests = React.useMemo(() => requests ? requests.filter(r => r && r.employeeId && empIds.has(Number(r.employeeId)) && r.status === 'Aprovado') : [], [requests, empIds]);
 
   const scopedWorkDays = React.useMemo(() => {
     const obj = {};
@@ -74,33 +79,98 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     return { total, done, deliveryRate };
   }, [scopedTasks]);
 
-  // Tabela 360 Groups
+  // Tabela 360 Groups (Dynamic Buckets)
   const grupos360 = React.useMemo(() => {
-    const baseTasks = (scopedTasks || []);
-    const criticas = baseTasks.filter(t => t.status === 'Bloqueio' || t.status === 'Cancelado');
-    const emAndamento = baseTasks.filter(t => t.status === 'Em Andamento');
-    const pausadas = baseTasks.filter(t => t.status === 'Pausado');
-    const backlog = baseTasks.filter(t => t.status === 'Não Iniciado');
+    let baseTasks = (scopedTasks || []);
+    
+    // Period Filtering
+    if (periodFilter !== 'all') {
+      const now = new Date();
+      let startLimit, endLimit;
+      
+      if (periodFilter === 'week') {
+        const d = now.getDay();
+        startLimit = new Date(now); startLimit.setDate(now.getDate() - d);
+        endLimit = new Date(now); endLimit.setDate(now.getDate() + (6 - d));
+      } else if (periodFilter === 'month') {
+        startLimit = new Date(now.getFullYear(), now.getMonth(), 1);
+        endLimit = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else if (periodFilter === 'quarter') {
+        const q = Math.floor(now.getMonth() / 3);
+        startLimit = new Date(now.getFullYear(), q * 3, 1);
+        endLimit = new Date(now.getFullYear(), (q + 1) * 3, 0);
+      } else if (periodFilter === 'semester') {
+        const s = Math.floor(now.getMonth() / 6);
+        startLimit = new Date(now.getFullYear(), s * 6, 1);
+        endLimit = new Date(now.getFullYear(), (s + 1) * 6, 0);
+      } else if (periodFilter === 'year') {
+        startLimit = new Date(now.getFullYear(), 0, 1);
+        endLimit = new Date(now.getFullYear(), 12, 0);
+      } else if (periodFilter === 'custom' && customRange.start && customRange.end) {
+        startLimit = new Date(customRange.start);
+        endLimit = new Date(customRange.end);
+      }
+
+      if (startLimit && endLimit) {
+        baseTasks = baseTasks.filter(t => {
+          const tStart = t.startDate ? new Date(t.startDate) : null;
+          const tEnd = t.endDate ? new Date(t.endDate) : null;
+          if (!tStart && !tEnd) return true; // Keep if no dates? Or exclude? User preference.
+          return (tStart && tStart <= endLimit) && (tEnd && tEnd >= startLimit);
+        });
+      }
+    }
+
+    const bucketDefinitions = [
+      { id: 'criticas', title: '⚠️ Críticas / Bloqueios', color: '#ef4444', statuses: ['Bloqueio', 'Crítica'] },
+      { id: 'andamento', title: '⚡ Em Andamento', color: '#3b82f6', statuses: ['Em Andamento'] },
+      { id: 'backlog', title: '⏳ Pausadas / Backlog', color: '#64748b', statuses: ['Não Iniciado', 'Pausado', 'Backlog', 'Aguardando'] },
+      { id: 'concluidas', title: '✅ Concluídas', color: '#10b981', statuses: ['Concluído'] },
+      { id: 'canceladas', title: '🚫 Canceladas', color: '#94a3b8', statuses: ['Cancelado'] }
+    ];
+
+    const statusWeight = { 'Bloqueio': 100, 'Crítica': 90, 'Pausado': 80, 'Aguardando': 75, 'Não Iniciado': 70, 'Backlog': 60, 'Em Andamento': 50, 'Concluído': 10, 'Cancelado': 0 };
+    const priorityWeight = { 'Crítica': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1 };
 
     const attachDetails = (list) => (list || []).map(t => {
       if (!t) return null;
       const emp = (employees || []).find(e => e && e.id === Number(t.ownerId));
       const dem = (demandas || []).find(d => d && (d.Id || d.id) === t.demandaId);
+      
+      let statusIcon = 'radio_button_unchecked';
+      if (t.status === 'Bloqueio') statusIcon = 'block';
+      if (t.status === 'Crítica') statusIcon = 'report';
+      if (t.status === 'Pausado' || t.status === 'Aguardando') statusIcon = 'pause_circle';
+      if (t.status === 'Em Andamento') statusIcon = 'pending';
+      if (t.status === 'Concluído') statusIcon = 'check_circle';
+
       return {
         ...t,
         emp: emp || { name: 'Sem Responsável', team: 'N/A' },
         demandaNome: dem ? (dem.Titulo || dem.titulo || 'Demanda') : 'Demanda não identificada',
-        corPrioridade: (priorityMap && t.priority) ? (priorityMap[t.priority] || '#c4c4c4') : '#c4c4c4'
+        corPrioridade: (priorityMap && t.priority) ? (priorityMap[t.priority] || '#c4c4c4') : '#c4c4c4',
+        statusIcon
       };
     }).filter(Boolean);
 
-    return {
-      criticas: attachDetails(criticas).sort((a, b) => new Date(a.endDate || 0) - new Date(b.endDate || 0)),
-      emAndamento: attachDetails(emAndamento).sort((a, b) => new Date(a.endDate || 0) - new Date(b.endDate || 0)),
-      pausadas: attachDetails(pausadas).sort((a, b) => new Date(a.endDate || 0) - new Date(b.endDate || 0)),
-      backlog: attachDetails(backlog).sort((a, b) => new Date(a.endDate || 0) - new Date(b.endDate || 0))
-    };
-  }, [scopedTasks, employees, demandas]);
+    return bucketDefinitions
+      .filter(b => selectedBuckets.includes(b.id))
+      .map(b => {
+        const filtered = baseTasks.filter(t => b.statuses.includes(t.status));
+        const detailed = attachDetails(filtered).sort((a, b) => {
+          const wa = statusWeight[a.status] || 0;
+          const wb = statusWeight[b.status] || 0;
+          if (wa !== wb) return wb - wa;
+          const pa = priorityWeight[a.priority] || 0;
+          const pb = priorityWeight[b.priority] || 0;
+          if (pa !== pb) return pb - pa;
+          const d1 = new Date(a.startDate || '9999-12-31');
+          const d2 = new Date(b.startDate || '9999-12-31');
+          return d1 - d2;
+        });
+        return { ...b, tasks: detailed };
+      }).filter(b => b.tasks.length > 0 || selectedBuckets.includes(b.id)); // Keep selected buckets even if empty
+  }, [scopedTasks, employees, demandas, selectedBuckets, periodFilter, customRange]);
 
   // Grid 7 Dias (Datas)
   const proximos7Dias = React.useMemo(() => {
@@ -118,40 +188,45 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
   const getStatusDia = (empId, dateObj) => {
     if (!dateObj || isNaN(dateObj.getTime())) return { type: 'pendente', icon: 'help_outline', color: 'var(--line)', title: 'Indisponível' };
     const dStr = dateObj.toISOString().split('T')[0];
-    const request = (scopedRequests || []).find(r => {
+    
+    // Prioridade 1: Ausências (Férias, Saúde, etc)
+    const absenceRequest = (scopedRequests || []).find(r => {
       if (!r || r.employeeId !== empId) return false;
       const type = r.type || '';
-      if (type === 'Escala de Trabalho' || type === 'Banco de horas') return false;
+      if (type === 'Escala de Trabalho' || type === 'Banco de horas' || type === 'Ajuste de Escala') return false;
       const s = new Date((r.startDate || '') + 'T00:00:00');
       const e = new Date((r.endDate || '') + 'T00:00:00');
       return dateObj >= s && dateObj <= e;
     });
-    if (request) {
-      const rt = request.type || '';
+
+    if (absenceRequest) {
+      const rt = absenceRequest.type || '';
       if (rt.includes('Férias')) return { type: 'ferias', icon: 'beach_access', color: '#f59e0b', title: rt };
       if (rt.includes('Saúde')) return { type: 'saude', icon: 'medical_services', color: '#ef4444', title: rt };
       return { type: 'ausencia', icon: 'event_busy', color: '#f59e0b', title: rt };
     }
-    // Prioridade 2: Escala
+
+    // Prioridade 2: Escala Aprovada
     const workDay = scopedWorkDays[empId] && scopedWorkDays[empId][dStr];
     if (workDay === 'Presencial') return { type: 'presencial', icon: 'check_circle', color: '#10b981', title: 'Presencial' };
     if (workDay === 'Home Office') return { type: 'homeoffice', icon: 'home', color: 'var(--muted)', title: 'Home Office' };
 
+
     const dw = dateObj.getDay();
     if (dw === 0 || dw === 6) return { type: 'fds', icon: 'weekend', color: 'var(--line)', title: 'Fim de Semana' };
-    return { type: 'pendente', icon: 'help_outline', color: 'var(--line)', title: 'Não informado' };
+    return { type: 'vazio', icon: 'help_outline', color: 'var(--line)', title: 'Não informado' };
   };
 
   const STATUS_COLORS = {
-    'Não Iniciado': { bg: '#c4c4c4', color: '#555' },
-    'Em Andamento': { bg: '#fdab3d', color: '#fff' },
-    'Concluído':    { bg: '#00b461', color: '#fff' },
-    'Pausado':      { bg: '#579bfc', color: '#fff' },
-    'Bloqueio':     { bg: '#e2445c', color: '#fff' },
+    'Não Iniciado': { bg: '#64748b', color: '#fff' }, // Modern Slate color
+    'Em Andamento': { bg: '#3b82f6', color: '#fff' }, // Vibrant blue
+    'Concluído':    { bg: '#10b981', color: '#fff' }, // Vibrant green
+    'Pausado':      { bg: '#f59e0b', color: '#fff' }, // Amber
+    'Bloqueio':     { bg: '#ef4444', color: '#fff' }, // Red
     'Cancelado':    { bg: '#94a3b8', color: '#fff' },
-    'Pendente':     { bg: '#a78bfa', color: '#fff' },
-    'Backlog':      { bg: '#64748b', color: '#fff' },
-    'Crítico':      { bg: '#e2445c', color: '#fff' },
+    'Pendente':     { bg: '#8b5cf6', color: '#fff' },
+    'Backlog':      { bg: '#475569', color: '#fff' },
+    'Crítico':      { bg: '#ef4444', color: '#fff' },
   };
 
   const EVENT_ICONS = {
@@ -167,7 +242,9 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     'Treinamento': 'menu_book',
     'Feedback': 'chat',
     'Aviso': 'priority_high',
-    'Compromisso': 'event'
+    'Compromisso': 'event',
+    'Aniversário': 'cake',
+    'Evento Corporativo': 'business'
   };
 
   const workloadMap = React.useMemo(() => {
@@ -213,27 +290,32 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     };
 
     // 1. Ausências (Férias, etc)
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga', 'Férias', 'Saúde'];
+    
     const absences = (scopedRequests || [])
-      .filter(r => r && r.status === 'Aprovado' && r.type !== 'Escala de Trabalho' && r.type !== 'Banco de horas')
+      .filter(r => r && r.status === 'Aprovado' && absenceTypes.includes(r.type))
       .filter(r => {
          const dEnd = r.endDateISO || r.endDate;
          return dEnd && dEnd >= todayStr;
       })
       .map(r => {
-        const sIso = r.startDate;
-        const eIso = r.endDate;
-        const startObj = new Date(sIso + 'T12:00:00');
-        const endObj = new Date(eIso + 'T12:00:00');
-        const isMultiDay = sIso !== eIso;
-        return {
-          ...r,
-          emp: (employees || []).find(e => e && e.id === Number(r.employeeId)),
-          isEvent: false,
-          formattedDate: formatDateBR(startObj),
-          formattedEndDate: isMultiDay ? formatDateBR(endObj) : null,
-          isMultiDay,
-          sortDate: startObj
-        };
+         const sIso = r.startDate;
+         const eIso = r.endDate;
+         
+         // Safe parsing for sort and display
+         const startObj = sIso ? new Date(sIso + 'T12:00:00') : new Date();
+         const endObj = eIso ? new Date(eIso + 'T12:00:00') : startObj;
+         const isMultiDay = sIso && eIso && sIso !== eIso;
+         
+         return {
+           ...r,
+           emp: (employees || []).find(e => e && e.id === Number(r.employeeId)),
+           isEvent: false,
+           formattedDate: formatDateBR(startObj),
+           formattedEndDate: isMultiDay ? formatDateBR(endObj) : null,
+           isMultiDay,
+           sortDate: startObj
+         };
       });
 
     // 2. Eventos (Reuniões, Workshops, etc)
@@ -266,17 +348,17 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
         const isMultiDay = startObj && endObj && startObj.toISOString().split('T')[0] !== endObj.toISOString().split('T')[0];
         
         return {
-          id: ev.id,
-          type: ev.tipo || 'Reunião',
+          id: ev.id || ev.Id,
+          type: ev.tipo || ev.Tipo || 'Reunião',
           startDate: formatDateBR(startObj),
           endDate: formatDateBR(endObj),
           startTime: formatTime24h(startObj),
           endTime: formatTime24h(endObj),
-          title: ev.titulo || 'Sem título',
-          note: ev.descricao || '',
+          title: ev.titulo || ev.Titulo || 'Sem título',
+          note: ev.descricao || ev.Descricao || '',
           isEvent: true,
-          areaNome: ev.areaNome,
-          responsavelNome: ev.responsavelNome,
+          areaNome: ev.areaNome || ev.AreaNome,
+          responsavelNome: ev.responsavelNome || ev.ResponsavelNome,
           isMultiDay,
           sortDate: startObj
         };
@@ -291,12 +373,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <header className="topbar glass" style={{ padding: '24px', borderRadius: '20px' }}>
+      <header className="page-header">
         <div>
-          <h2 className="premium-title" style={{ fontSize: '1.8rem' }}>Visão Executiva 360º</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.
-          </p>
+          <h2>Visão Executiva 360º</h2>
+          <p>Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.</p>
         </div>
       </header>
 
@@ -453,61 +533,164 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             </div>
           </div>
 
-          <div className="dash-360-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-              <div className="dash-360-col" style={{ background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '16px' }}>
-                <div className="dash-360-header crit" style={{ padding: '12px', borderRadius: '10px', marginBottom: '12px' }}>
-                  <span style={{ fontWeight: 700 }}>⚠️ Críticas & Bloqueios</span>
-                  <span className="badge" style={{ background: '#ef4444', color: '#fff' }}>{grupos360.criticas.length}</span>
+          {/* New Interactive Filters Bar */}
+          <div className="dash-360-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '24px', padding: '12px 20px', background: 'var(--panel-strong)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Visualizar Status</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  { id: 'criticas', label: 'Críticas', color: '#ef4444' },
+                  { id: 'andamento', label: 'Em Andamento', color: '#3b82f6' },
+                  { id: 'backlog', label: 'Backlog', color: '#64748b' },
+                  { id: 'concluidas', label: 'Concluídas', color: '#10b981' },
+                  { id: 'canceladas', label: 'Canceladas', color: '#94a3b8' }
+                ].map(b => (
+                  <button 
+                    key={b.id}
+                    onClick={() => setSelectedBuckets(prev => prev.includes(b.id) ? prev.filter(x => x !== b.id) : [...prev, b.id])}
+                    style={{ 
+                      padding: '6px 12px', 
+                      borderRadius: '8px', 
+                      fontSize: '0.75rem', 
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: selectedBuckets.includes(b.id) ? b.color : 'var(--line)',
+                      background: selectedBuckets.includes(b.id) ? `${b.color}15` : 'transparent',
+                      color: selectedBuckets.includes(b.id) ? b.color : 'var(--muted)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ width: '1px', height: '32px', background: 'var(--line)' }}></div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Período</label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select 
+                  value={periodFilter} 
+                  onChange={e => setPeriodFilter(e.target.value)}
+                  className="glass"
+                  style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', border: '1px solid var(--line)', color: 'var(--title)' }}
+                >
+                  <option value="all">Todo o Período</option>
+                  <option value="week">Esta Semana</option>
+                  <option value="month">Este Mês</option>
+                  <option value="quarter">Este Trimestre</option>
+                  <option value="semester">Este Semestre</option>
+                  <option value="year">Este Ano</option>
+                  <option value="custom">Personalizado...</option>
+                </select>
+                {periodFilter === 'custom' && (
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <input 
+                      type="date" 
+                      value={customRange.start} 
+                      onChange={e => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
+                      style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', border: '1px solid var(--line)' }}
+                    />
+                    <span style={{ color: 'var(--muted)' }}>-</span>
+                    <input 
+                      type="date" 
+                      value={customRange.end} 
+                      onChange={e => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
+                      style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', border: '1px solid var(--line)' }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="dash-360-container" style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', 
+            gap: '24px',
+            alignItems: 'start'
+          }}>
+            {grupos360.length === 0 ? (
+              <div className="glass-card" style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '16px' }}>task_alt</span>
+                <p>Nenhuma tarefa ativa nos filtros selecionados.</p>
+              </div>
+            ) : grupos360.map(bucket => (
+              <div key={bucket.id} className="dash-360-col" style={{ background: 'var(--panel-strong)', padding: '16px', borderRadius: '24px', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}>
+                <div className="dash-360-header" style={{ 
+                  padding: '12px 16px', 
+                  borderRadius: '12px', 
+                  marginBottom: '16px', 
+                  background: `${bucket.color}15`, 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  border: `1px solid ${bucket.color}30`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 700, color: bucket.color }}>{bucket.title}</span>
+                    <button className="icon-btn-micro" onClick={() => onAddTask(bucket.statuses[0])} style={{ background: `${bucket.color}20`, border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px' }} title={`Nova tarefa em ${bucket.title}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px', color: bucket.color }}>add</span>
+                    </button>
+                  </div>
+                  <span className="badge" style={{ background: bucket.color, color: '#fff' }}>{bucket.tasks.length}</span>
                 </div>
-                {grupos360.criticas.length === 0 ? <div className="empty-state" style={{ padding: '20px' }}>Tudo limpo.</div> :
-                  grupos360.criticas.map(t => (
-                    <div className="dash-360-card crit glass" key={'c' + t.id} style={{ borderLeft: `4px solid ${t.corPrioridade}`, padding: '12px', marginBottom: '10px', borderRadius: '12px' }}>
-                      <div style={{ fontSize: '.65rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>{t.demandaNome}</div>
-                      <div style={{ fontWeight: 600, fontSize: '.88rem', color: 'var(--title)', marginBottom: '8px' }}>{t.title}</div>
-                      <div className="dash-360-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {t.emp?.avatarUrl ? <img src={t.emp.avatarUrl} className="dash-360-avatar" style={{ width: '20px', height: '20px' }} /> : <div className="dash-360-avatar" style={{ background: t.corPrioridade, width: '20px', height: '20px', fontSize: '10px' }}>{(t.emp?.name || 'A').charAt(0)}</div>}
-                          <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{t.emp?.name?.split(' ')[0]}</span>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {bucket.tasks.map(t => (
+                    <div className="dash-360-card glass" key={bucket.id + t.id} style={{ 
+                      borderLeft: `4px solid ${bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade}`, 
+                      padding: '16px', 
+                      borderRadius: '16px',
+                      opacity: bucket.id === 'concluidas' || bucket.id === 'canceladas' ? 0.75 : 1,
+                      position: 'relative'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.demandaNome}</div>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '4px', 
+                          fontSize: '0.65rem', 
+                          fontWeight: 700, 
+                          color: t.status === 'Pausado' || t.status === 'Bloqueio' ? '#ef4444' : 'var(--muted)',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          background: t.status === 'Pausado' || t.status === 'Bloqueio' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(0,0,0,0.03)'
+                        }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{t.statusIcon}</span>
+                          <span>{t.status.toUpperCase()}</span>
                         </div>
-                        <span style={{ color: t.corPrioridade, fontWeight: 700, fontSize: '0.75rem' }}>{t.endDate ? t.endDate.split('-').reverse().slice(0, 2).join('/') : '-'}</span>
+                      </div>
+                      <div style={{ 
+                        fontWeight: 700, 
+                        fontSize: '.9rem', 
+                        color: 'var(--title)', 
+                        marginBottom: '12px', 
+                        lineHeight: '1.4', 
+                        whiteSpace: 'normal',
+                        textDecoration: bucket.id === 'concluidas' ? 'line-through' : 'none'
+                      }}>{t.title}</div>
+                      
+                      <div className="dash-360-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          {t.emp?.avatarUrl ? <img src={t.emp.avatarUrl} className="dash-360-avatar" style={{ width: '22px', height: '22px' }} /> : <div className="dash-360-avatar" style={{ background: bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade, width: '22px', height: '22px', fontSize: '10px' }}>{(t.emp?.name || 'A').charAt(0)}</div>}
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{t.emp?.name?.split(' ')[0]}</span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ color: bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade, fontWeight: 800, fontSize: '0.7rem' }}>
+                            {bucket.id === 'concluidas' ? 'FEITO' : `${t.startDate ? t.startDate.split('-').reverse().slice(0, 2).join('/') : '-'} - ${t.endDate ? t.endDate.split('-').reverse().slice(0, 2).join('/') : '-'}`}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))
-                }
-              </div>
-
-            <div className="dash-360-col" style={{ background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '16px' }}>
-              <div className="dash-360-header" style={{ padding: '12px', borderRadius: '10px', marginBottom: '12px', background: 'rgba(59,130,246,0.1)' }}>
-                <span style={{ fontWeight: 700 }}>Em Andamento</span>
-                <span className="badge" style={{ background: '#3b82f6', color: '#fff' }}>{grupos360.emAndamento.length}</span>
-              </div>
-              {grupos360.emAndamento.map(t => (
-                <div className="dash-360-card glass" key={'a' + t.id} style={{ borderLeft: `4px solid ${t.corPrioridade}`, padding: '12px', marginBottom: '10px', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '.65rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>{t.demandaNome}</div>
-                  <div style={{ fontWeight: 600, fontSize: '.88rem', color: 'var(--title)', marginBottom: '8px' }}>{t.title}</div>
-                  <div className="dash-360-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      {t.emp?.avatarUrl ? <img src={t.emp.avatarUrl} className="dash-360-avatar" style={{ width: '20px', height: '20px' }} /> : <div className="dash-360-avatar" style={{ background: 'var(--muted)', width: '20px', height: '20px', fontSize: '10px' }}>{(t.emp?.name || 'A').charAt(0)}</div>}
-                      <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{t.emp?.name?.split(' ')[0]}</span>
-                    </div>
-                    <span style={{ color: t.corPrioridade, fontWeight: 700, fontSize: '0.75rem' }}>{t.endDate ? t.endDate.split('-').reverse().slice(0, 2).join('/') : '-'}</span>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            <div className="dash-360-col" style={{ background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '16px' }}>
-              <div className="dash-360-header" style={{ padding: '12px', borderRadius: '10px', marginBottom: '12px' }}>
-                <span style={{ fontWeight: 700 }}>Pausadas / Backlog</span>
-                <span className="badge">{grupos360.pausadas.length + grupos360.backlog.length}</span>
               </div>
-              {[...grupos360.pausadas, ...grupos360.backlog].map(t => (
-                <div className="dash-360-card glass" key={'p' + t.id} style={{ borderLeft: `4px solid ${t.corPrioridade}`, padding: '12px', marginBottom: '10px', borderRadius: '12px', opacity: 0.8 }}>
-                  <div style={{ fontWeight: 600, fontSize: '.8rem' }}>{t.title}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--muted)', marginTop: '4px' }}>{t.emp?.name?.split(' ')[0]}</div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
 

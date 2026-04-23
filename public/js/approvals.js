@@ -1,17 +1,19 @@
-function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalNote, handleApproval, currentUser }) {
-  const canApprove = currentUser && (currentUser.isAdmin || (currentUser.nivelHierarquia && currentUser.nivelHierarquia <= 4));
+function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalNote, handleApproval, currentUser, processingApprovalId }) {
+  // Regra Global: Apenas Admin ou Nível 5 (Coordenador) para cima
+  const hasMinApprovalLevel = currentUser && (currentUser.isAdmin || (currentUser.nivelHierarquia && currentUser.nivelHierarquia <= 5));
+
   return (
     <div className="dashboard-grid">
-      <header className="topbar glass" style={{ padding: '24px', borderRadius: '20px', marginBottom: '32px' }}>
+      <header className="page-header">
         <div>
-          <h2 className="premium-title" style={{ fontSize: '1.8rem' }}>Painel de Aprovações</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Fila de processamento: analise impactos e valide solicitações.</p>
+          <h2>Painel de Aprovações</h2>
+          <p>Fila de processamento: analise impactos e valide solicitações estratégicas.</p>
         </div>
-        <div className="badge-row">
+        <div className="badge-row" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {currentUser && (
-            <span className={`dash-micro-badge glass ${canApprove ? 'done' : 'warning'}`} style={{ color: canApprove ? '#10b981' : '#f59e0b', border: '1px solid currentColor' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{canApprove ? 'verified' : 'lock'}</span>
-              {canApprove ? 'Permissão de Gestor' : 'Apenas Visualização'}
+            <span className={`dash-micro-badge glass ${hasMinApprovalLevel ? 'done' : 'warning'}`} style={{ color: hasMinApprovalLevel ? '#10b981' : '#f59e0b', border: '1px solid currentColor', height: 'fit-content' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{hasMinApprovalLevel ? 'verified' : 'lock'}</span>
+              {hasMinApprovalLevel ? 'Permissão de Gestor' : 'Apenas Visualização'}
             </span>
           )}
           <span className="dash-micro-badge glass">Inteligência de Conflito</span>
@@ -81,17 +83,40 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
                   )}
 
                   <div className="queue-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-                    {canApprove ? (
-                      <>
-                        <button className="btn btn-primary" onClick={() => handleApproval(request.id, 'Aprovado')} style={{ flex: 1, height: '48px', borderRadius: '12px' }}>Aprovar Agora</button>
-                        <button className="btn btn-secondary" onClick={() => handleApproval(request.id, 'Rejeitado')} style={{ height: '48px', borderRadius: '12px', padding: '0 24px' }}>Rejeitar</button>
-                      </>
-                    ) : (
-                      <div style={{ color: 'var(--muted)', fontSize: '.85rem', padding: '8px 0' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>lock</span>
-                        Você não tem permissão para aprovar solicitações.
-                      </div>
-                    )}
+                    {(() => {
+                      const isOwner = Number(request.employeeId) === Number(currentUser.colaboradorId);
+                      const isDirectManager = Number(request.employee?.gestorId) === Number(currentUser.colaboradorId);
+                      const isSuperiorLevel = currentUser.nivelHierarquia < (request.employee?.nivelHierarquia || 7);
+                      const hasNoManager = request.employee?.gestorId === null || !request.employee?.gestorId;
+                      
+                      const canAction = currentUser.isAdmin || (isOwner && hasNoManager) || (!isOwner && (isDirectManager || isSuperiorLevel));
+
+                      if (canAction) {
+                        return (
+                          <>
+                            <button className="btn btn-primary" onClick={() => handleApproval(request.id, 'Aprovado')} disabled={processingApprovalId === request.id} style={{ flex: 1, height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
+                              {processingApprovalId === request.id ? <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>autorenew</span> : 'Aprovar Agora'}
+                            </button>
+                            <button className="btn btn-secondary" onClick={() => handleApproval(request.id, 'Rejeitado')} disabled={processingApprovalId === request.id} style={{ height: '48px', borderRadius: '12px', padding: '0 24px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
+                              Rejeitar
+                            </button>
+                          </>
+                        );
+                      }
+
+                      return (
+                        <div style={{ color: 'var(--muted)', fontSize: '.85rem', padding: '8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#f59e0b' }}>
+                            {isOwner ? 'person_off' : 'lock'}
+                          </span>
+                          <span>
+                            {isOwner 
+                              ? 'Sua solicitação (apenas consulta)' 
+                              : 'Sem permissão para este nível hierárquico'}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );

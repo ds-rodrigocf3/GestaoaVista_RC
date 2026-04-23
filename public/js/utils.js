@@ -45,7 +45,7 @@ function toDate(value) {
 
 function formatDate(value) {
   if (!value) return '—';
-  return toDate(value).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return toDate(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function diffDays(start, end) {
@@ -206,6 +206,121 @@ function SearchableSelect({ options, value, onChange, placeholder = "Selecione..
   );
 }
 
+function MultiSelect({ options, value, onChange, placeholder = "Selecione..." }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
+  const containerRef = React.useRef(null);
+
+  const selectedValues = React.useMemo(() => {
+    if (!value) return [];
+    return String(value).split(',').filter(v => v !== '').map(v => String(v));
+  }, [value]);
+
+  const filteredOptions = React.useMemo(() => {
+    const s = search.toLowerCase();
+    return options.filter(o => o.label.toLowerCase().includes(s));
+  }, [options, search]);
+
+  const toggleValue = (val) => {
+    const v = String(val);
+    let next;
+    if (selectedValues.includes(v)) {
+      next = selectedValues.filter(x => x !== v);
+    } else {
+      next = [...selectedValues, v];
+    }
+    onChange(next.join(','));
+  };
+
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const displayText = React.useMemo(() => {
+    if (selectedValues.length === 0) return placeholder;
+    if (selectedValues.length === 1) {
+      const opt = options.find(o => String(o.value) === selectedValues[0]);
+      return opt ? opt.label : placeholder;
+    }
+    return `${selectedValues.length} selecionados`;
+  }, [selectedValues, options, placeholder]);
+
+  return (
+    <div className="searchable-select-container" ref={containerRef} style={{ position: 'relative' }}>
+      <div 
+        className="searchable-select-input" 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ 
+          width: '100%', minHeight: '42px', borderRadius: '10px', border: '1px solid var(--line)', 
+          padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem',
+          display: 'flex', alignItems: 'center', cursor: 'pointer', justifyContent: 'space-between'
+        }}
+      >
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{displayText}</span>
+        <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.5 }}>{isOpen ? 'expand_less' : 'expand_more'}</span>
+      </div>
+      
+      {isOpen && (
+        <div className="searchable-select-dropdown" style={{ 
+          position: 'absolute', top: '105%', left: 0, right: 0, zIndex: 9999, 
+          background: 'var(--card)', border: '1px solid var(--line)', borderRadius: '12px', 
+          boxShadow: '0 20px 40px rgba(0,0,0,0.15)', maxHeight: '250px', overflowY: 'auto' 
+        }}>
+          <div style={{ padding: '8px', borderBottom: '1px solid var(--line)' }}>
+            <input 
+              type="text" 
+              autoFocus
+              placeholder="Buscar áreas..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--bg)' }}
+            />
+          </div>
+          <div style={{ padding: '4px 0' }}>
+            <div 
+              onClick={() => onChange('')}
+              style={{ padding: '10px 14px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>backspace</span>
+              Limpar seleção
+            </div>
+            {filteredOptions.length > 0 ? filteredOptions.map(opt => {
+              const isSelected = selectedValues.includes(String(opt.value));
+              return (
+                <div
+                  key={opt.value}
+                  onClick={() => toggleValue(opt.value)}
+                  style={{ 
+                    padding: '10px 14px', cursor: 'pointer', fontSize: '0.88rem',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: isSelected ? 'rgba(51, 204, 204, 0.05)' : 'transparent',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  <div style={{ 
+                    width: '18px', height: '18px', borderRadius: '4px', border: '2px solid var(--line)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isSelected ? 'var(--primary)' : 'transparent',
+                    borderColor: isSelected ? 'var(--primary)' : 'var(--line)'
+                  }}>
+                    {isSelected && <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#fff', fontWeight: 'bold' }}>check</span>}
+                  </div>
+                  <span style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--title)' : 'var(--text)' }}>{opt.label}</span>
+                </div>
+              );
+            }) : <div style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: '0.82rem' }}>Nenhum resultado</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function ResizableHeader({ label, width, onResize, className = "", idPrefix = "" }) {
   const [isResizing, setIsResizing] = useState(false);
   const elementId = `th-${idPrefix}${label.replace(/\s+/g, '')}`;
@@ -257,12 +372,12 @@ function ResizableHeader({ label, width, onResize, className = "", idPrefix = ""
   }, [isResizing, resize, stopResizing]);
 
   return (
-    <th id={elementId} className={`resizable-th ${className}`} style={{ width: width ? `${width}px` : 'auto', borderRight: '1px solid var(--line)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: className.includes('center') ? 'center' : 'flex-start', padding: className.includes('center') ? '8px 4px' : '8px 12px', overflow: 'hidden' }}>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+    <th id={elementId} className={`resizable-th ${className}`} style={{ width: width ? `${width}px` : 'auto', minWidth: width ? `${width}px` : 'auto', borderRight: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: className.includes('center') ? 'center' : 'flex-start', padding: className.includes('center') ? '8px 4px' : '8px 12px', overflow: 'hidden', height: '100%' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
         {className.includes('tooltip-target') && <span className="material-symbols-outlined" style={{ fontSize: '14px', marginLeft: '4px', opacity: 0.5, flexShrink: 0 }}>info</span>}
       </div>
-      <div className={`resizer ${isResizing ? 'resizing' : ''}`} onMouseDown={startResizing} />
+      <div className={`resizer ${isResizing ? 'resizing' : ''}`} onMouseDown={startResizing} style={{ opacity: isResizing ? 1 : 0 }} />
     </th>
   );
 }

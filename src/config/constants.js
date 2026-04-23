@@ -1,0 +1,5 @@
+module.exports = {
+  JWT_SECRET: process.env.JWT_SECRET || 'gestaobi-secret-2026-change-in-prod',
+  JWT_EXPIRES: '8h',
+  DEFAULT_PASSWORD: 'Mudar@123'
+};

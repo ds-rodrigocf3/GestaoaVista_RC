@@ -1,0 +1,52 @@
+const { poolPromise, sql } = require('../config/database');
+
+exports.getAll = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request().query('SELECT * FROM BI_StatusTipos WHERE Ativo = 1 ORDER BY Ordem, Nome');
+    res.json(result.recordset);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.create = async (req, res) => {
+  try {
+    const { nome, cor, aplicacao, ordem } = req.body;
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('Nome', sql.NVARCHAR(100), nome)
+      .input('Cor', sql.NVARCHAR(20), cor || '#c4c4c4')
+      .input('App', sql.NVARCHAR(50), aplicacao || 'Ambos')
+      .input('Ordem', sql.INT, ordem || 99)
+      .query(`INSERT INTO BI_StatusTipos (Nome, Cor, Aplicacao, Ordem, Ativo, DataCriacao)
+              OUTPUT Inserted.Id VALUES (@Nome, @Cor, @App, @Ordem, 1, GETDATE())`);
+    res.json({ id: result.recordset[0].Id, success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, cor, aplicacao, ordem, ativo } = req.body;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .input('Nome', sql.NVARCHAR(100), nome)
+      .input('Cor', sql.NVARCHAR(20), cor)
+      .input('App', sql.NVARCHAR(50), aplicacao)
+      .input('Ordem', sql.INT, ordem)
+      .input('Ativo', sql.BIT, ativo !== false ? 1 : 0)
+      .query(`UPDATE BI_StatusTipos SET Nome=@Nome, Cor=@Cor, Aplicacao=@App, Ordem=@Ordem, Ativo=@Ativo WHERE Id=@Id`);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.delete = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await poolPromise;
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .query('UPDATE BI_StatusTipos SET Ativo = 0 WHERE Id = @Id');
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};

@@ -176,7 +176,7 @@ function SettingsModal({
   const labelStyle = { fontSize: '.8rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' };
   const inputStyle = { width: '100%', border: '1px solid var(--line)', borderRadius: '6px', padding: '7px 10px', fontSize: '.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box' };
 
-  const TIPO_EVENTO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Outro'];
+  const TIPO_EVENTO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Outro'];
   const APLICACAO_OPTIONS = ['Demanda', 'Tarefa', 'Ambos'];
 
   return (
@@ -515,28 +515,50 @@ function SettingsModal({
 
           {/* ===== EVENTOS ===== */}
           {tab === 'eventos' && (
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              <div style={{ minWidth: '280px', flex: '0 0 280px' }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: '.9rem' }}>{formEvento.id ? 'Editar' : 'Novo'} Evento</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div><label style={labelStyle}>Título*</label><input style={inputStyle} value={formEvento.titulo} onChange={e => setFormEvento(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Executiva Mensal" /></div>
-                  <div>
-                    <label style={labelStyle}>Tipo de Evento</label>
-                    <select style={inputStyle} value={formEvento.tipo} onChange={e => setFormEvento(p => ({ ...p, tipo: e.target.value }))}>
-                      {TIPO_EVENTO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                  <div><label style={labelStyle}>Data/Hora de Início*</label><input type="datetime-local" style={inputStyle} value={formEvento.dataInicio} onChange={e => setFormEvento(p => ({ ...p, dataInicio: e.target.value }))} /></div>
-                  <div><label style={labelStyle}>Data/Hora de Término</label><input type="datetime-local" style={inputStyle} value={formEvento.dataFim} onChange={e => setFormEvento(p => ({ ...p, dataFim: e.target.value }))} /></div>
-                  <div><label style={labelStyle}>Descrição / Pauta</label><textarea style={{ ...inputStyle, minHeight: '60px', resize: 'vertical' }} value={formEvento.descricao} onChange={e => setFormEvento(p => ({ ...p, descricao: e.target.value }))} placeholder="Pauta, participantes, observações..." /></div>
-                  
-                  <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="glass-card" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--line)', borderRadius: '16px' }}>
+                <h4 style={{ margin: '0 0 16px', fontSize: '.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{formEvento.id ? 'edit_calendar' : 'add_event'}</span>
+                  {formEvento.id ? 'Editar Evento' : 'Novo Evento'}
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                  {/* Row 1: Title & Type */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 2 }}>
+                      <label style={labelStyle}>Título do Evento*</label>
+                      <input style={inputStyle} value={formEvento.titulo} onChange={e => setFormEvento(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal" />
+                    </div>
                     <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>Atribuir à Área</label>
-                      <select style={inputStyle} value={formEvento.areaId} onChange={e => setFormEvento(p => ({ ...p, areaId: e.target.value }))}>
-                        <option value="">Todas (Global)</option>
-                        {areas.filter(a => a.ativo !== false).map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                      <label style={labelStyle}>Tipo</label>
+                      <select style={inputStyle} value={formEvento.tipo} onChange={e => setFormEvento(p => ({ ...p, tipo: e.target.value }))}>
+                        {TIPO_EVENTO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Dates */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Início*</label>
+                      <input type="datetime-local" style={inputStyle} value={formEvento.dataInicio} onChange={e => setFormEvento(p => ({ ...p, dataInicio: e.target.value }))} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Término</label>
+                      <input type="datetime-local" style={inputStyle} value={formEvento.dataFim} onChange={e => setFormEvento(p => ({ ...p, dataFim: e.target.value }))} />
+                    </div>
+                  </div>
+
+                  {/* Row 3: Areas & Responsavel */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Áreas Participantes</label>
+                      <MultiSelect 
+                        options={areas.filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
+                        value={formEvento.areaId}
+                        onChange={val => setFormEvento(p => ({ ...p, areaId: val }))}
+                        placeholder="Todas (Global)"
+                      />
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={labelStyle}>Responsável</label>
@@ -547,15 +569,23 @@ function SettingsModal({
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                    <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveEvento}>Salvar Evento</button>
-                    {formEvento.id && <button className="btn btn-secondary" onClick={() => setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' })}>Cancelar</button>}
+                  {/* Row 4: Description & Save */}
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={labelStyle}>Descrição / Pauta</label>
+                      <input style={inputStyle} value={formEvento.descricao} onChange={e => setFormEvento(p => ({ ...p, descricao: e.target.value }))} placeholder="Breve pauta ou observações..." />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-primary" onClick={saveEvento} style={{ padding: '0 24px', height: '42px' }}>Salvar</button>
+                      {formEvento.id && <button className="btn btn-secondary" onClick={() => setFormEvento({ id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' })} style={{ height: '42px' }}>Cancelar</button>}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div style={{ flex: 1, minWidth: '320px' }}>
+
+              <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid var(--line)' }}>
                 <table className="admin-table">
-                  <thead><tr><th>Evento</th><th>Tipo</th><th>Responsável</th><th>Início</th><th>Término</th><th>Ações</th></tr></thead>
+                  <thead><tr><th>Evento</th><th>Tipo</th><th>Responsável</th><th>Início</th><th>Ações</th></tr></thead>
                   <tbody>
                     {eventos.map(ev => {
                       const parseDateSafe = (d) => {
@@ -580,28 +610,31 @@ function SettingsModal({
                           case 'Reunião': return { bg: 'rgba(51,204,204,0.12)', color: 'var(--primary)' };
                           case 'Workshop': return { bg: 'rgba(139,92,246,0.12)', color: '#8b5cf6' };
                           case 'Treinamento': return { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' };
+                          case 'Aniversário': return { bg: 'rgba(236,72,153,0.12)', color: '#ec4899' }; // Pink color for birthdays
                           default: return { bg: 'rgba(100,116,139,0.12)', color: 'var(--muted)' };
                         }
                       };
-                      const badge = getTypeBadgeColor(ev.tipo);
+                      const badge = getTypeBadgeColor(ev.tipo || ev.Tipo);
 
                       return (
-                        <tr key={ev.id} style={{ borderBottom: '1px solid var(--panel-strong)' }}>
+                        <tr key={ev.id || ev.Id} style={{ borderBottom: '1px solid var(--panel-strong)' }}>
                           <td style={{ padding: '12px 6px' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--title)', fontSize: '.88rem' }}>{ev.titulo}</div>
-                            {ev.descricao && <div style={{ fontSize: '.72rem', color: 'var(--muted)', fontWeight: 400, marginTop: '2px' }}>{ev.descricao.substring(0, 80)}{ev.descricao.length > 80 ? '...' : ''}</div>}
+                            <div style={{ fontWeight: 700, color: 'var(--title)', fontSize: '.88rem' }}>{ev.titulo || ev.Titulo}</div>
+                            {(ev.descricao || ev.Descricao) && <div style={{ fontSize: '.72rem', color: 'var(--muted)', fontWeight: 400, marginTop: '2px' }}>{(ev.descricao || ev.Descricao).substring(0, 80)}{(ev.descricao || ev.Descricao).length > 80 ? '...' : ''}</div>}
                           </td>
                           <td style={{ padding: '12px 6px' }}>
-                            <span style={{ background: badge.bg, color: badge.color, padding: '2px 8px', borderRadius: '4px', fontSize: '.7rem', fontWeight: 700 }}>{ev.tipo}</span>
+                            <span style={{ background: badge.bg, color: badge.color, padding: '2px 8px', borderRadius: '4px', fontSize: '.7rem', fontWeight: 700 }}>{ev.tipo || ev.Tipo}</span>
                           </td>
                           <td style={{ padding: '12px 6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--panel-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--muted)', fontWeight: 700 }}>{(ev.responsavelNome || 'A').charAt(0)}</div>
-                              <span style={{ fontSize: '.78rem', color: 'var(--text)' }}>{ev.responsavelNome || '—'}</span>
+                              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--panel-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--muted)', fontWeight: 700 }}>{((ev.responsavelNome || ev.ResponsavelNome) || 'A').charAt(0)}</div>
+                              <span style={{ fontSize: '.78rem', color: 'var(--text)' }}>{(ev.responsavelNome || ev.ResponsavelNome) || '—'}</span>
                             </div>
                           </td>
-                          <td style={{ padding: '12px 6px', fontSize: '.78rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>{formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio)}</td>
-                          <td style={{ padding: '12px 6px', fontSize: '.78rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>{formatEventDate(ev.dataFim || ev.DataFim || ev.fim)}</td>
+                          <td style={{ padding: '12px 6px', fontSize: '.78rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                            {formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio)}
+                            {ev.dataFim && <><br /><span style={{ color: 'var(--muted)' }}>até {formatEventDate(ev.dataFim || ev.DataFim || ev.fim).split(' ')[1]}</span></>}
+                          </td>
                           <td>
                             <div style={{ display: 'flex', gap: '6px' }}>
                               <button className="admin-action-btn" onClick={() => {
@@ -613,14 +646,14 @@ function SettingsModal({
                                   return new Date(dateObj.getTime() - offset).toISOString().slice(0, 16);
                                 };
                                 setFormEvento({ 
-                                  id: ev.id, 
-                                  titulo: ev.titulo, 
-                                  descricao: ev.descricao || '', 
-                                  dataInicio: formatForInput(ev.dataInicio), 
-                                  dataFim: formatForInput(ev.dataFim), 
-                                  tipo: ev.tipo || 'Reunião',
-                                  areaId: ev.areaId || '',
-                                  responsavelId: ev.responsavelId || ''
+                                  id: ev.id || ev.Id, 
+                                  titulo: ev.titulo || ev.Titulo || '', 
+                                  descricao: ev.descricao || ev.Descricao || '', 
+                                  dataInicio: formatForInput(ev.dataInicio || ev.DataInicio || ev.inicio), 
+                                  dataFim: formatForInput(ev.dataFim || ev.DataFim || ev.fim), 
+                                  tipo: ev.tipo || ev.Tipo || 'Reunião',
+                                  areaId: ev.areaId || ev.AreaId || '',
+                                  responsavelId: ev.responsavelId || ev.ResponsavelId || ''
                                 });
                               }}>Editar</button>
                               <button className="admin-action-btn danger" onClick={() => deleteEvento(ev)}>Excluir</button>

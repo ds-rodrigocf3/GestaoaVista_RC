@@ -1,0 +1,17 @@
+
+    /* Dashboard Quadrants Layout */
+    .dash-360-container {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+      gap: 24px !important;
+    }
+
+    .dash-360-col {
+      transition: box-shadow 0.3s ease;
+      background: var(--surface) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+    }
+
+    .dash-360-col:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+    }

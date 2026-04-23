@@ -1,0 +1,72 @@
+
+    /* Kanban 360 & Cards */
+    .dash-360-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .dash-360-col {
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dash-360-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 120px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+
+    .dash-360-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
+      z-index: 5;
+    }
+
+    .dash-360-card.crit {
+      border-left-color: #ef4444 !important;
+    }
+
+    .dash-360-meta {
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1400px) {
+      .dash-360-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .dash-360-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }

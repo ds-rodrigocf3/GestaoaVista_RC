@@ -1,0 +1,20 @@
+require('dotenv').config();
+const { poolPromise } = require('../src/config/database');
+
+async function checkColumns() {
+  try {
+    const pool = await poolPromise;
+    const res = await pool.request().query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'BI_Colaboradores'");
+    console.log('BI_Colaboradores columns:', res.recordset.map(r => r.COLUMN_NAME));
+    
+    const res2 = await pool.request().query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'BI_Usuarios'");
+    console.log('BI_Usuarios columns:', res2.recordset.map(r => r.COLUMN_NAME));
+    
+    process.exit(0);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+checkColumns();
