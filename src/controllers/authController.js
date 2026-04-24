@@ -15,12 +15,14 @@ exports.login = async (req, res) => {
       .input('Email', sql.NVARCHAR(200), email.toLowerCase().trim())
       .query(`
         SELECT u.Id, u.Email, u.SenhaHash, u.IsAdmin, u.Ativo, u.ColaboradorId,
-               c.Nome, c.Cargo, c.NivelHierarquia, c.Color, c.AvatarUrl, c.AreaId,
+               c.Nome, c.Cargo, c.CargoId, c.NivelHierarquia, c.Color, c.AvatarUrl, c.AreaId,
                c.Gestor, c.Tp_contrato,
-               nh.Descricao as NivelDescricao
+               nh.Descricao as NivelDescricao,
+               car.Nome as CargoNome
         FROM BI_Usuarios u
         LEFT JOIN BI_Colaboradores c ON u.ColaboradorId = c.Id
         LEFT JOIN NiveisHierarquia nh ON c.NivelHierarquia = nh.Id
+        LEFT JOIN BI_Cargos car ON c.CargoId = car.Id
         WHERE LOWER(u.Email) = LOWER(@Email)
       `);
 
@@ -55,6 +57,7 @@ exports.login = async (req, res) => {
         areaId: user.AreaId,
         nome: user.Nome,
         cargo: user.Cargo,
+        cargoNome: user.CargoNome,
         nivelHierarquia: user.NivelHierarquia,
         nivelDescricao: user.NivelDescricao,
         color: user.Color,

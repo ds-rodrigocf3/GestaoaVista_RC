@@ -11,25 +11,31 @@ function RequestView({
   currentUser,
   editingRequestId,
   setEditingRequestId,
-  deleteRequest
+  deleteRequest,
+  setToast
 }) {
-  const [requestMonthOffset, setRequestMonthOffset] = useState(0);
+  const [requestMonthOffset, setRequestMonthOffset] = React.useState(0);
 
-  const displayMonth = useMemo(() => {
+  const displayMonth = React.useMemo(() => {
     const baseDate = form.startDate ? new Date(form.startDate + 'T12:00:00') : new Date(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01T12:00:00`);
     baseDate.setMonth(baseDate.getMonth() + requestMonthOffset);
     return baseDate;
   }, [form.startDate, requestMonthOffset]);
 
-  const monthDays = useMemo(() => getMonthMatrix(displayMonth), [displayMonth]);
-  const holidays = useMemo(() => getBrazilianHolidays(displayMonth.getFullYear()), [displayMonth]);
+  const monthDays = React.useMemo(() => getMonthMatrix(displayMonth), [displayMonth]);
+  const holidays = React.useMemo(() => getBrazilianHolidays(displayMonth.getFullYear()), [displayMonth]);
 
-  const pendingTeamMembers = useMemo(() => {
+  const pendingTeamMembers = React.useMemo(() => {
     if (!formEmployee) return [];
-    return (requests || []).filter((request) => request.employee?.team === formEmployee?.team && request.status !== 'Rejeitado');
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+    return (requests || []).filter((request) => 
+      request.employee?.team === formEmployee?.team && 
+      request.status !== 'Rejeitado' &&
+      absenceTypes.includes(request.type)
+    );
   }, [formEmployee, requests]);
 
-  const myRequests = useMemo(() => {
+  const myRequests = React.useMemo(() => {
     if (!currentUser) return [];
     return (requests || [])
       .filter(r => Number(r.employeeId) === Number(currentUser.colaboradorId) && r.type !== 'Escala de Trabalho' && r.type !== 'Ajuste de Escala')
@@ -70,16 +76,6 @@ function RequestView({
 
   return (
     <div className="dashboard-grid requests-page-container" style={{ gap: '24px' }}>
-      <header className="page-header">
-        <div>
-          <h2>{editingRequestId ? 'Editar agendamento' : 'Novo agendamento'}</h2>
-          <p>Planeje ausências com inteligência de dados e visibilidade total do time.</p>
-        </div>
-        <div className="badge-row" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {editingRequestId && <span className="status-pill warning" style={{ cursor: 'pointer', height: 'fit-content' }} onClick={cancelEdit}>Modo Edição (Cancelar)</span>}
-          <span className="dash-micro-badge glass">Visualização Unificada</span>
-        </div>
-      </header>
 
       <section className="form-grid-layout" style={{ display: 'grid', gap: '24px' }}>
         <div className="form-panel">
@@ -96,7 +92,7 @@ function RequestView({
               </div>
             </div>
 
-            <div className="field-grid" style={{ display: 'grid', gap: '20px' }}>
+            <div className="field-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
               <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Colaborador</label>
                 <select
@@ -237,13 +233,68 @@ function RequestView({
                   const dateKey = day.toISOString().slice(0, 10);
                   const isSelected = isWithinRange(dateKey, form.startDate, form.endDate);
                   const teamBookings = pendingTeamMembers.filter(r => isWithinRange(dateKey, r.startDate, r.endDate));
-                  const hasConflict = teamBookings.some(r => r.employeeId !== Number(form.employeeId));
+                  const conflicts = teamBookings.filter(r => r.employeeId !== Number(form.employeeId));
+                  const hasConflict = conflicts.length > 0;
                   const booked = teamBookings.length > 0;
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   const isHoliday = holidays[dateKey];
+                  
+                  const conflictDetails = conflicts.map(r => `${r.employee?.name || 'Colega'} (${r.type})`).join(', ');
+                  const tooltipText = hasConflict ? `Conflito com: ${conflictDetails}` : (isHoliday ? holidays[dateKey] : '');
+
+                  // Map request types to Material Symbols icons
+                  const TYPE_ICON = {
+                    'Férias integrais':    'beach_access',
+                    'Férias fracionadas':  'beach_access',
+                    'Banco de horas':      'schedule',
+                    'Day-off':             'wb_sunny',
+                    'Saúde (Exames/Consultas)': 'medical_services',
+                    'Licença programada':  'event_busy',
+                    'Escala de Trabalho':  'work',
+                    'Ajuste de Escala':    'sync_alt',
+                  };
+
+                  // Unique types booked on this day (excluding own bookings for conflicts)
+                  const bookingTypes = [...new Set(teamBookings.map(r => r.type))];
+
                   return (
-                    <div key={dateKey} className={`calendar-day mini ${isSelected ? 'selected' : ''} ${isWeekend ? 'weekend' : ''} ${isHoliday ? 'holiday' : ''} ${booked ? (hasConflict ? 'conflict' : 'booked') : ''}`}>
-                      {day.getDate()}
+                    <div 
+                      key={dateKey} 
+                      className={`calendar-day mini ${isSelected ? 'selected' : ''} ${isWeekend ? 'weekend' : ''} ${isHoliday ? 'holiday' : ''} ${booked ? (hasConflict ? 'conflict' : 'booked') : ''}`}
+                      title={tooltipText}
+                      onClick={() => {
+                        if (hasConflict) {
+                          setToast({ title: 'Alerta de Conflito', message: `Neste dia, ${conflictDetails} também possui(em) agendamento.`, type: 'warning' });
+                        } else if (isHoliday) {
+                          setToast({ title: 'Feriado', message: holidays[dateKey] });
+                        }
+                      }}
+                      style={{ cursor: (hasConflict || isHoliday) ? 'pointer' : 'default', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1px', padding: '2px 1px' }}
+                    >
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}>{day.getDate()}</span>
+                      {booked && bookingTypes.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', justifyContent: 'center', maxWidth: '100%' }}>
+                          {bookingTypes.slice(0, 2).map(type => (
+                            <span
+                              key={type}
+                              className="material-symbols-outlined"
+                              title={type}
+                              style={{
+                                fontSize: '9px',
+                                lineHeight: 1,
+                                color: hasConflict ? '#f59e0b' : '#60a5fa',
+                                fontVariationSettings: "'FILL' 1",
+                                display: 'block'
+                              }}
+                            >
+                              {TYPE_ICON[type] || 'event_note'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {isHoliday && !booked && (
+                        <span className="material-symbols-outlined" style={{ fontSize: '9px', color: '#f59e0b', fontVariationSettings: "'FILL' 1" }}>celebration</span>
+                      )}
                     </div>
                   );
                 })}

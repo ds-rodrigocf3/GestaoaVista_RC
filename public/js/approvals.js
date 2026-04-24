@@ -4,21 +4,6 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
 
   return (
     <div className="dashboard-grid">
-      <header className="page-header">
-        <div>
-          <h2>Painel de Aprovações</h2>
-          <p>Fila de processamento: analise impactos e valide solicitações estratégicas.</p>
-        </div>
-        <div className="badge-row" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {currentUser && (
-            <span className={`dash-micro-badge glass ${hasMinApprovalLevel ? 'done' : 'warning'}`} style={{ color: hasMinApprovalLevel ? '#10b981' : '#f59e0b', border: '1px solid currentColor', height: 'fit-content' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{hasMinApprovalLevel ? 'verified' : 'lock'}</span>
-              {hasMinApprovalLevel ? 'Permissão de Gestor' : 'Apenas Visualização'}
-            </span>
-          )}
-          <span className="dash-micro-badge glass">Inteligência de Conflito</span>
-        </div>
-      </header>
 
       <section className="content-grid">
         <div className="card">
@@ -31,9 +16,11 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
 
           <div className="queue-list">
             {pendingRequests.length ? pendingRequests.map((request) => {
+              const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
               const relatedConflicts = allRequests.filter((item) => {
                 if (item.id === request.id) return false;
                 if (item.status === 'Rejeitado') return false;
+                if (!absenceTypes.includes(item.type)) return false;
                 if (item.employee?.team !== request.employee?.team) return false;
                 return rangesOverlap(item.startDate, item.endDate, request.startDate, request.endDate);
               });

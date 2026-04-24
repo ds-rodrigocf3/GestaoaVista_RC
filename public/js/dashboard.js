@@ -1,4 +1,9 @@
 function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, areas, globalFilters, currentUser, onAddTask }) {
+  const [, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   if (!employees || employees.length === 0) {
     return (
@@ -346,7 +351,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
       .map(ev => {
         const startObj = parseDateSafe(ev.dataInicio || ev.DataInicio);
         const endObj = parseDateSafe(ev.dataFim || ev.DataFim);
-        const isMultiDay = startObj && endObj && startObj.toISOString().split('T')[0] !== endObj.toISOString().split('T')[0];
+        const isMultiDay = startObj && endObj && (startObj.toLocaleDateString('pt-BR') !== endObj.toLocaleDateString('pt-BR'));
         
         const aid = ev.areaId || ev.AreaId;
         const areaInfo = (() => {
@@ -391,12 +396,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <header className="page-header">
-        <div>
-          <h2>Visão Executiva 360º</h2>
-          <p>Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.</p>
-        </div>
-      </header>
+
 
       <div className="dash-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }}>
         <div className="dash-panel" style={{ gridColumn: 'span 12' }}>
@@ -406,7 +406,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
 
           <div className="workload-list team-agenda-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {timelineAusencias.map(a => (
-              <div className="workload-item glass-card" key={a.id || Math.random()} style={{ padding: '16px', border: '1px solid var(--line)', background: 'var(--card)', display: 'flex', gap: '12px', alignItems: 'center', borderRadius: '16px', transition: 'transform 0.2s ease' }}>
+              <div className="workload-item glass-card" key={a.id || Math.random()}>
                 {a.isEvent ? (
                   <div className="workload-avatar" style={{ 
                     background: a.type === 'Aniversário' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'var(--primary)', 
@@ -435,50 +435,86 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   </div>
                 )}
                 
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--title)' }}>
-                    {a.isEvent ? a.title : a.emp?.name}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                  {/* Row 1: Header (Title + Badge) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ 
+                      fontWeight: 800, 
+                      fontSize: '0.85rem', 
+                      color: 'var(--title)', 
+                      lineHeight: '1.3',
+                      flex: 1,
+                      wordBreak: 'break-word'
+                    }}>
+                      {a.isEvent ? a.title : a.emp?.name}
+                    </div>
+                    {(() => {
+                      const relTime = getRelativeTime(a.sortDate, a.type);
+                      if (!relTime) return null;
+                      const isPastBadge = relTime === 'PASSADO';
+                      return (
+                        <span style={{ 
+                          fontSize: '0.62rem', 
+                          fontWeight: 900, 
+                          color: isPastBadge ? 'var(--muted)' : '#fff', 
+                          background: isPastBadge ? 'var(--panel-strong)' : 'var(--primary)', 
+                          padding: '3px 10px', 
+                          borderRadius: '8px', 
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          border: isPastBadge ? '1px solid var(--line)' : 'none',
+                          boxShadow: isPastBadge ? 'none' : '0 4px 12px rgba(51, 204, 204, 0.2)',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap',
+                          marginTop: '2px'
+                        }}>
+                          {relTime}
+                        </span>
+                      );
+                    })()}
                   </div>
-                  <div style={{ fontSize: '.72rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+
+                  {/* Row 2: Metadata (Area/Type) */}
+                  <div style={{ fontSize: '.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     {a.isEvent ? (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '12px', color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)', opacity: 0.8 }}>
                           {a.areaInfo.isGlobal ? 'public' : 'category'}
                         </span>
                         <span 
                           title={a.areaInfo.full}
                           style={{ 
-                            fontWeight: a.areaInfo.isGlobal ? 400 : 700,
+                            fontWeight: a.areaInfo.isGlobal ? 500 : 700,
                             color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)',
-                            background: a.areaInfo.isGlobal ? 'transparent' : 'rgba(51,204,204,0.06)',
-                            padding: a.areaInfo.isGlobal ? '0' : '1px 6px',
-                            borderRadius: '4px',
                             cursor: 'help'
                           }}
                         >
                           {a.areaInfo.text}
                         </span>
-                        • {a.type}
+                        <span style={{ opacity: 0.4 }}>•</span>
+                        <span style={{ fontWeight: 600 }}>{a.type}</span>
                       </>
                     ) : (
-                      a.type
+                      <span style={{ fontWeight: 600 }}>{a.type}</span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+
+                  {/* Row 3: Temporal Context (Date & Time) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
                     <div style={{ 
-                      display: 'flex', alignItems: 'center', gap: '4px', 
-                      fontSize: '.72rem', fontWeight: 700, 
+                      display: 'flex', alignItems: 'center', gap: '6px', 
+                      fontSize: '.75rem', fontWeight: 700, 
                       color: a.isEvent ? 'var(--primary)' : '#f59e0b', 
-                      background: a.isEvent ? 'rgba(51,204,204,0.06)' : 'rgba(245,158,11,0.06)', 
-                      padding: '2px 6px', borderRadius: '4px' 
+                      background: a.isEvent ? 'rgba(51,204,204,0.08)' : 'rgba(245,158,11,0.08)', 
+                      padding: '2px 8px', borderRadius: '6px' 
                     }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>calendar_today</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
                       {a.isEvent 
-                        ? (a.isMultiDay ? `${a.startDate} até ${a.endDate}` : a.startDate) 
+                        ? (a.isMultiDay && a.type !== 'Aniversário' ? `${a.startDate} até ${a.endDate}` : a.startDate) 
                         : (a.isMultiDay ? `${a.formattedDate} até ${a.formattedEndDate}` : a.formattedDate)
                       }
                     </div>
-                    {a.isEvent && (a.startTime || a.endTime) && (
+                    {a.isEvent && a.type !== 'Aniversário' && (a.startTime || a.endTime) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '.72rem', color: 'var(--muted)', fontWeight: 600, borderLeft: '1px solid var(--line)', paddingLeft: '8px' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>schedule</span>
                         {a.startTime || ''}{a.endTime && a.endTime !== a.startTime ? ` - ${a.endTime}` : ''}
@@ -491,6 +527,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             {timelineAusencias.length === 0 && <div className="empty-state" style={{ gridColumn: 'span 12', textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>Sem eventos ou ausências agendadas para o período.</div>}
           </div>
         </div>
+
 
         <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
           <div className="section-title" style={{ marginBottom: '24px' }}>
@@ -615,25 +652,45 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
         </div>
 
         <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
-          <div className="section-title" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px', flexWrap: 'wrap', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--primary-txt)' }}>table_chart</span>
+              <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '24px' }}>analytics</span>
               </div>
               <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 600 }}>Fila Operacional (Gestão 360)</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Visão dinâmica de blocos e andamento por colaborador</p>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Fila Operacional & Performance</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Gestão 360 e indicadores de produtividade</p>
               </div>
             </div>
-            
-            <div className="dash-inline-kpis" style={{ display: 'flex', gap: '12px' }}>
-              <div className="dash-micro-badge glass" style={{ padding: '8px 16px', borderRadius: '12px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--muted)' }}>inventory_2</span>
-                <span style={{ fontSize: '0.85rem' }}>Total: <strong>{kpis.total}</strong></span>
+
+            {/* Embedded KPIs */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '18px' }}>inventory_2</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Total de Tarefas</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800 }}>{kpis.total}</div>
+                </div>
               </div>
-              <div className="dash-micro-badge glass" style={{ padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--primary)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>task_alt</span>
-                <span style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>Entrega: <strong>{kpis.deliveryRate}%</strong></span>
+              <div style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '18px' }}>task_alt</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Taxa de Conclusão</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{kpis.deliveryRate}%</div>
+                </div>
+              </div>
+              <div style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '18px' }}>verified</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Concluídas</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>{kpis.done}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -787,7 +844,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ color: bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade, fontWeight: 800, fontSize: '0.7rem' }}>
-                            {bucket.id === 'concluidas' ? 'FEITO' : `${t.startDate ? t.startDate.split('-').reverse().slice(0, 2).join('/') : '-'} - ${t.endDate ? t.endDate.split('-').reverse().slice(0, 2).join('/') : '-'}`}
+                            {bucket.id === 'concluidas' ? 'CONCLUÍDA' : `${t.startDate ? t.startDate.split('-').reverse().slice(0, 2).join('/') : '-'} - ${t.endDate ? t.endDate.split('-').reverse().slice(0, 2).join('/') : '-'}`}
                           </div>
                         </div>
                       </div>

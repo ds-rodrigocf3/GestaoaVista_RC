@@ -36,8 +36,14 @@ app.use(['/api/colaboradores', '/api/employees'], colaboradoresRouter); // Handl
 app.use('/api/eventos', eventosRouter);
 app.use('/api/status-tipos', statusTiposRouter);
 
-// Static Files
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Static Files — força charset UTF-8 para arquivos JS
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+  }
+}));
 
 app.use((req, res) => res.status(404).json({ error: 'Endpoint não encontrado' }));
 

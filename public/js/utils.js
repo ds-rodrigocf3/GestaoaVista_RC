@@ -144,18 +144,18 @@ function getMonthMatrix(date) {
 
 // Global UI Components
 function SearchableSelect({ options, value, onChange, placeholder = "Selecione..." }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [search, setSearch] = React.useState('');
   const containerRef = React.useRef(null);
 
-  const filteredOptions = useMemo(() => {
+  const filteredOptions = React.useMemo(() => {
     const s = search.toLowerCase();
     return options.filter(o => o.label.toLowerCase().includes(s));
   }, [options, search]);
 
   const selectedOption = options.find(o => String(o.value) === String(value));
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
     };
@@ -269,9 +269,11 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
       
       {isOpen && (
         <div className="searchable-select-dropdown" style={{ 
-          position: 'absolute', top: '105%', left: 0, right: 0, zIndex: 9999, 
-          background: 'var(--card)', border: '1px solid var(--line)', borderRadius: '12px', 
-          boxShadow: '0 20px 40px rgba(0,0,0,0.15)', maxHeight: '250px', overflowY: 'auto' 
+          position: 'absolute', top: '105%', left: 0, right: 0, zIndex: 99999, 
+          background: 'var(--surface)', backgroundColor: 'var(--surface)',
+          border: '1px solid var(--line)', borderRadius: '12px', 
+          boxShadow: '0 20px 40px rgba(0,0,0,0.4)', maxHeight: '250px', overflowY: 'auto',
+          opacity: 1
         }}>
           <div style={{ padding: '8px', borderBottom: '1px solid var(--line)' }}>
             <input 
@@ -325,17 +327,17 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
 
 
 function ResizableHeader({ label, width, onResize, className = "", idPrefix = "" }) {
-  const [isResizing, setIsResizing] = useState(false);
+  const [isResizing, setIsResizing] = React.useState(false);
   const elementId = `th-${idPrefix}${label.replace(/\s+/g, '')}`;
 
-  const startResizing = useCallback((e) => {
+  const startResizing = React.useCallback((e) => {
     e.preventDefault();
     setIsResizing(true);
     const table = e.target.closest('table');
     if (table) table.classList.add('resizing');
   }, []);
 
-  const stopResizing = useCallback((e) => {
+  const stopResizing = React.useCallback((e) => {
     setIsResizing(false);
     const th = document.getElementById(elementId);
     if (th && e && e.clientX) {
@@ -345,7 +347,7 @@ function ResizableHeader({ label, width, onResize, className = "", idPrefix = ""
     }
   }, [elementId, onResize]);
 
-  const resize = useCallback((e) => {
+  const resize = React.useCallback((e) => {
     if (isResizing) {
       const th = document.getElementById(elementId);
       if (th) {
@@ -363,7 +365,7 @@ function ResizableHeader({ label, width, onResize, className = "", idPrefix = ""
     }
   }, [isResizing, elementId]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isResizing) {
       window.addEventListener('mousemove', resize);
       window.addEventListener('mouseup', stopResizing);
@@ -383,4 +385,41 @@ function ResizableHeader({ label, width, onResize, className = "", idPrefix = ""
       <div className={`resizer ${isResizing ? 'resizing' : ''}`} onMouseDown={startResizing} style={{ opacity: isResizing ? 1 : 0 }} />
     </th>
   );
+}
+
+function getRelativeTime(dateValue, type = '') {
+  const now = new Date();
+  const eventDate = new Date(dateValue);
+  if (isNaN(eventDate.getTime())) return null;
+
+  const isAnniversary = type === 'Aniversário';
+  const isToday = now.toLocaleDateString('pt-BR') === eventDate.toLocaleDateString('pt-BR');
+
+  if (isAnniversary) {
+    if (isToday) return 'Hoje';
+    const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d2 = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+    const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'PASSADO';
+    return 'Daqui ' + diffDays + (diffDays === 1 ? ' dia' : ' dias');
+  }
+
+  const diffMs = eventDate - now;
+  if (diffMs < 0) {
+    if (isToday) return 'Hoje';
+    return 'PASSADO';
+  }
+
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (isToday) {
+    if (diffHours < 1) return 'Em breve';
+    return 'Daqui ' + diffHours + (diffHours === 1 ? ' hora' : ' horas');
+  }
+
+  const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const d2 = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+  const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+
+  return 'Daqui ' + diffDays + (diffDays === 1 ? ' dia' : ' dias');
 }

@@ -501,6 +501,22 @@ button {
   display: none; /* Escondido por padrão, aparece no mobile */
   padding: 16px 0;
   margin-bottom: 20px;
+  align-items: center;
+  gap: 16px;
+}
+
+.mobile-page-title {
+  margin: 0;
+  font-size: clamp(1.1rem, 5vw, 1.4rem);
+  font-weight: 800;
+  color: var(--title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desktop-only {
+  display: flex;
 }
 
 @media (max-width: 768px) {
@@ -517,6 +533,9 @@ button {
   }
   .topbar-header {
     display: flex;
+  }
+  .desktop-only {
+    display: none !important;
   }
 }
 
@@ -727,18 +746,23 @@ button {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .page-header h2 {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 800;
   margin: 0;
   color: var(--title);
+  letter-spacing: -0.02em;
 }
 
 .page-header p {
   color: var(--muted);
-  margin: 8px 0 0;
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  max-width: 800px;
 }
 
 .segmented-control {
@@ -3436,4 +3460,96 @@ select:focus, input:focus, textarea:focus {
   .main-content { padding: 0; }
 }
 }
+}
+
+/* =====================================================
+   COMPONENTE DE RESUMO DE INDICADORES (STATS BAR)
+   ===================================================== */
+.stats-summary-bar {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  background: var(--panel-strong);
+  padding: 24px 32px;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.stats-summary-item {
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-right: 1px solid var(--line);
+}
+
+.stats-summary-item:last-child {
+  border-right: none;
+}
+
+.stats-summary-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stats-summary-label {
+  font-size: clamp(0.6rem, 1.5vw, 0.65rem);
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+.stats-summary-value {
+  font-size: clamp(1.2rem, 3.5vw, 1.7rem);
+  font-weight: 900;
+  color: var(--title);
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.1;
+}
+
+.stats-summary-subvalue {
+  font-size: clamp(0.7rem, 2vw, 0.85rem);
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+@media (max-width: 900px) {
+  .stats-summary-bar {
+    gap: 16px;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-summary-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 20px;
+  }
+  .stats-summary-item {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+    width: 100%;
+  }
+  .stats-summary-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .stats-summary-icon {
+    width: 40px;
+    height: 40px;
+  }
 }

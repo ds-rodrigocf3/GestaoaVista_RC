@@ -1,5 +1,7 @@
 # 📋 Resumo Executivo: Correção de Persistência de Agendamentos e Escala
 
+"msnodesqlv8": "^5.1.9", <<< pra poder rodar no local>>>
+
 ## ✅ Problema Resolvido
 
 Os agendamentos e marcações de escala não estavam sendo salvos no banco de dados. Após recarregar a página, todas as marcações desapareciam.

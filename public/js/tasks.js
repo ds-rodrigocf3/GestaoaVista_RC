@@ -1,26 +1,26 @@
 function TaskView({ tasks, setTasks, employees: initialEmployees, requests, demandas, setDemandas, currentUser, authToken, globalFilters, onAddTask, onAddDemanda, requestedModal, setRequestedModal }) {
-  const [dbEmployees, setDbEmployees] = useState(initialEmployees || []);
-  const holidays = useMemo(() => getBrazilianHolidays(2026), []);
-  const [statusModal, setStatusModal] = useState(null); // {taskId, newStatus, oldStatus}
-  const [statusComment, setStatusComment] = useState('');
-  const [demandaModal, setDemandaModal] = useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado }
+  const [dbEmployees, setDbEmployees] = React.useState(initialEmployees || []);
+  const holidays = React.useMemo(() => getBrazilianHolidays(2026), []);
+  const [statusModal, setStatusModal] = React.useState(null); // {taskId, newStatus, oldStatus}
+  const [statusComment, setStatusComment] = React.useState('');
+  const [demandaModal, setDemandaModal] = React.useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado }
 
   // Novos filtros locais
-  const [taskStatusFilter, setTaskStatusFilter] = useState('');
-  const [taskResponsibleFilter, setTaskResponsibleFilter] = useState('');
-  const [localDemandaStatusFilter, setLocalDemandaStatusFilter] = useState('');
-  const [demandaResponsibleFilter, setDemandaResponsibleFilter] = useState('');
+  const [taskStatusFilter, setTaskStatusFilter] = React.useState('');
+  const [taskResponsibleFilter, setTaskResponsibleFilter] = React.useState('');
+  const [localDemandaStatusFilter, setLocalDemandaStatusFilter] = React.useState('');
+  const [demandaResponsibleFilter, setDemandaResponsibleFilter] = React.useState('');
 
   // Largura das colunas (não persistente conforme solicitado)
   // Largura das colunas (otimizadas para 100% da tela sem scroll)
-  const [taskColWidths, setTaskColWidths] = useState({ title: 240, demanda: 150, owner: 140, priority: 100, status: 110, dates: 160, actions: 60 });
-  const [demandColWidths, setDemandColWidths] = useState({ title: 280, owner: 140, status: 110, priority: 100, progress: 120, dates: 160, actions: 100 });
+  const [taskColWidths, setTaskColWidths] = React.useState({ title: 240, demanda: 150, owner: 140, priority: 100, status: 110, dates: 160, actions: 60 });
+  const [demandColWidths, setDemandColWidths] = React.useState({ title: 280, owner: 140, status: 110, priority: 100, progress: 120, dates: 160, actions: 100 });
   
   // Tamanho do modal dinâmico
-  const [modalSize, setModalSize] = useState({ width: 800, height: 600 });
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [modalSize, setModalSize] = React.useState({ width: 800, height: 600 });
+  const [isFirstLoad, setIsFirstLoad] = React.useState(true);
 
-  const filteredTasks = useMemo(() => {
+  const filteredTasks = React.useMemo(() => {
     if (!tasks || !Array.isArray(tasks)) return [];
     
     let list = tasks;
@@ -53,7 +53,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     });
   }, [tasks, dbEmployees, globalFilters, getSubordinateIds, taskStatusFilter, taskResponsibleFilter]);
 
-  const filteredDemandas = useMemo(() => {
+  const filteredDemandas = React.useMemo(() => {
     if (!demandas || !Array.isArray(demandas)) return [];
     
     // Filtros locais (Avançados)
@@ -84,7 +84,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   }, [demandas, dbEmployees, globalFilters, getSubordinateIds, localDemandaStatusFilter, demandaResponsibleFilter]);
 
   // Auto-ajuste de colunas ao carregar
-  useEffect(() => {
+  React.useEffect(() => {
     if (isFirstLoad && ((filteredTasks && filteredTasks.length > 0) || (filteredDemandas && filteredDemandas.length > 0))) {
       const timer = setTimeout(() => {
         const calculateWidths = (tableClass) => {
@@ -127,21 +127,21 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   }, [filteredTasks.length, filteredDemandas.length, isFirstLoad]);
 
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetch(`${API_BASE}/api/employees`, { headers: apiHeaders(authToken) })
       .then(res => res.json())
       .then(data => setDbEmployees(data || []))
       .catch(err => console.error('Failed to fetch employees in TaskView', err));
   }, [authToken]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (requestedModal && requestedModal.type === 'demanda') {
       setDemandaModal(requestedModal.data);
       if (setRequestedModal) setRequestedModal(null);
     }
   }, [requestedModal, setRequestedModal]);
 
-  const getSubordinateIds = useCallback((allEmps, managerId) => {
+  const getSubordinateIds = React.useCallback((allEmps, managerId) => {
     const direct = allEmps.filter(e => String(e.gestorId) === String(managerId));
     let ids = direct.map(e => e.id);
     direct.forEach(sub => {
@@ -296,14 +296,14 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     return count;
   };
 
-  const [showGantt, setShowGantt] = useState(false);
-  const [ganttScale, setGanttScale] = useState('month');
-  const [ganttBaseDate, setGanttBaseDate] = useState(() => {
+  const [showGantt, setShowGantt] = React.useState(false);
+  const [ganttScale, setGanttScale] = React.useState('month');
+  const [ganttBaseDate, setGanttBaseDate] = React.useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
-  const [selectedDemandaId, setSelectedDemandaId] = useState(null);
-  const [demandaStatusFilter, setDemandaStatusFilter] = useState('');
+  const [selectedDemandaId, setSelectedDemandaId] = React.useState(null);
+  const [demandaStatusFilter, setDemandaStatusFilter] = React.useState('');
 
 
 
@@ -790,33 +790,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         </div>
       )}
 
-      <header className="page-header">
-        <div>
-          <h2>Gestão de Demandas</h2>
-          <p>Acompanhamento de tarefas, prazos e alocação de recursos da equipe.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div className="segmented-control glass" style={{ display: 'flex', padding: '4px', borderRadius: '12px' }}>
-            <button 
-               className={`dash-micro-badge ${!showGantt ? 'glass active' : ''}`} 
-               onClick={() => setShowGantt(false)}
-               style={{ border: 'none', cursor: 'pointer', padding: '8px 16px', background: !showGantt ? 'var(--primary)' : 'transparent', color: !showGantt ? 'var(--primary-txt)' : 'var(--muted)' }}
-            >
-              Visual Quadro
-            </button>
-            <button 
-               className={`dash-micro-badge ${showGantt ? 'glass active' : ''}`} 
-               onClick={() => setShowGantt(true)}
-               style={{ border: 'none', cursor: 'pointer', padding: '8px 16px', background: showGantt ? 'var(--primary)' : 'transparent', color: showGantt ? 'var(--primary-txt)' : 'var(--muted)' }}
-            >
-              Visual Gantt
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Barra de filtros locais do módulo de demandas */}
-      <div className="glass-card" style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '32px', padding: '20px 28px', borderRadius: '24px', position: 'relative', zIndex: 10 }}>
+      <div className="glass-card" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', marginBottom: '32px', padding: '20px 28px', borderRadius: '24px', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(51,204,204,0.1)', color: 'var(--primary)', display: 'grid', placeItems: 'center' }}>
               <span className="material-symbols-outlined">filter_list</span>
@@ -827,9 +801,28 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
            </div>
         </div>
 
-        <div style={{ height: '32px', width: '1px', background: 'var(--glass-border)' }}></div>
+        <div className="desktop-only" style={{ height: '32px', width: '1px', background: 'var(--glass-border)' }}></div>
 
-        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        <div className="segmented-control glass" style={{ display: 'flex', padding: '4px', borderRadius: '12px' }}>
+          <button 
+             className={`dash-micro-badge ${!showGantt ? 'glass active' : ''}`} 
+             onClick={() => setShowGantt(false)}
+             style={{ border: 'none', cursor: 'pointer', padding: '8px 16px', background: !showGantt ? 'var(--primary)' : 'transparent', color: !showGantt ? 'var(--primary-txt)' : 'var(--muted)' }}
+          >
+            Quadro
+          </button>
+          <button 
+             className={`dash-micro-badge ${showGantt ? 'glass active' : ''}`} 
+             onClick={() => setShowGantt(true)}
+             style={{ border: 'none', cursor: 'pointer', padding: '8px 16px', background: showGantt ? 'var(--primary)' : 'transparent', color: showGantt ? 'var(--primary-txt)' : 'var(--muted)' }}
+          >
+            Gantt
+          </button>
+        </div>
+
+        <div className="desktop-only" style={{ height: '32px', width: '1px', background: 'var(--glass-border)' }}></div>
+
+        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '200px' }}>
           <select
             value={localDemandaStatusFilter}
             onChange={e => setLocalDemandaStatusFilter(e.target.value)}
@@ -840,9 +833,9 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           </select>
         </div>
 
-        <div style={{ height: '32px', width: '1px', background: 'var(--glass-border)' }}></div>
+        <div className="desktop-only" style={{ height: '32px', width: '1px', background: 'var(--glass-border)' }}></div>
 
-        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '200px' }}>
           <select
             value={demandaResponsibleFilter}
             onChange={e => setDemandaResponsibleFilter(e.target.value)}

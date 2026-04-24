@@ -1,8 +1,8 @@
 function LoginModal({ onLogin }) {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [email, setEmail] = React.useState('');
+  const [senha, setSenha] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();

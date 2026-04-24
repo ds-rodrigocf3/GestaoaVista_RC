@@ -3,24 +3,24 @@ function SettingsModal({
   colaboradores, areas, cargos, hierarquia, statusTipos, eventos, fetchAll, refreshEmployees 
 }) {
   const { Fragment } = React;
-  const [tab, setTab] = useState('senha');
-  const [msg, setMsg] = useState('');
+  const [tab, setTab] = React.useState('senha');
+  const [msg, setMsg] = React.useState('');
 
   // Senha
-  const [senhaAtual, setSenhaAtual] = useState('');
-  const [novaSenha, setNovaSenha] = useState('');
-  const [confSenha, setConfSenha] = useState('');
+  const [senhaAtual, setSenhaAtual] = React.useState('');
+  const [novaSenha, setNovaSenha] = React.useState('');
+  const [confSenha, setConfSenha] = React.useState('');
 
   // Perfil
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(currentUser.avatarUrl || '');
+  const [avatarFile, setAvatarFile] = React.useState(null);
+  const [previewUrl, setPreviewUrl] = React.useState(currentUser.avatarUrl || '');
 
   // Form state
-  const [formColab, setFormColab] = useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
-  const [formArea, setFormArea] = useState({ id: null, nome: '', cor: '#33CCCC' });
-  const [formCargo, setFormCargo] = useState({ id: null, nome: '' });
-  const [formNivel, setFormNivel] = useState({ id: null, descricao: '' });
-  const [formStatus, setFormStatus] = useState({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 });
+  const [formColab, setFormColab] = React.useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
+  const [formArea, setFormArea] = React.useState({ id: null, nome: '', cor: '#33CCCC' });
+  const [formCargo, setFormCargo] = React.useState({ id: null, nome: '' });
+  const [formNivel, setFormNivel] = React.useState({ id: null, descricao: '' });
+  const [formStatus, setFormStatus] = React.useState({ id: null, nome: '', cor: '#c4c4c4', aplicacao: 'Ambos', ordem: 99 });
 
 
   const TABS = [
@@ -33,7 +33,7 @@ function SettingsModal({
     { id: 'status', label: 'Status', icon: 'label', admin: true },
   ];
 
-  const headers = useCallback(() => apiHeaders(authToken), [authToken]);
+  const headers = React.useCallback(() => apiHeaders(authToken), [authToken]);
 
   // File handling
   const handleFileChange = (e) => {
@@ -581,11 +581,12 @@ function SettingsModal({
                         return isNaN(dateObj.getTime()) ? null : dateObj;
                       };
 
-                      const formatEventDate = (d) => {
+                      const formatEventDate = (d, tipo) => {
                         const dateObj = parseDateSafe(d);
                         if (!dateObj) return '—';
-                        return dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
-                               ' ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        if (tipo === 'Aniversário') return dateStr;
+                        return dateStr + ' ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                       };
 
                       const getTypeBadgeColor = (type) => {
@@ -615,8 +616,10 @@ function SettingsModal({
                             </div>
                           </td>
                           <td style={{ padding: '12px 6px', fontSize: '.78rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
-                            {formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio)}
-                            {ev.dataFim && <><br /><span style={{ color: 'var(--muted)' }}>até {formatEventDate(ev.dataFim || ev.DataFim || ev.fim).split(' ')[1]}</span></>}
+                            {formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio, ev.tipo || ev.Tipo)}
+                            {ev.dataFim && (ev.tipo || ev.Tipo) !== 'Aniversário' && (
+                              <><br /><span style={{ color: 'var(--muted)' }}>até {formatEventDate(ev.dataFim || ev.DataFim || ev.fim, ev.tipo || ev.Tipo).split(' ')[1] || '—'}</span></>
+                            )}
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '6px' }}>

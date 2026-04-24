@@ -13,6 +13,7 @@ exports.getAll = async (req, res) => {
         e.Tipo as tipo, 
         e.AreaId as areaId, 
         e.ResponsavelId as responsavelId,
+        e.CriadoPor as criadorId,
         c.Nome as responsavelNome
       FROM BI_Eventos e
       LEFT JOIN BI_Colaboradores c ON e.ResponsavelId = c.Id

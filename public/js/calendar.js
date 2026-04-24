@@ -1,9 +1,9 @@
 function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast }) {
-  const [selectedMonthOffset, setSelectedMonthOffset] = useState(0);
-  const [loadingToggle, setLoadingToggle] = useState(null); // Rastreia qual dia está sendo processado
+  const [selectedMonthOffset, setSelectedMonthOffset] = React.useState(0);
+  const [loadingToggle, setLoadingToggle] = React.useState(null); // Rastreia qual dia está sendo processado
 
   // Sincronizar workDays com requests - garante que alterações do servidor sejam refletidas
-  useEffect(() => {
+  React.useEffect(() => {
     // Reconstrução total do estado baseada em requests para garantir sincronia real (inclusive deleções)
     const newWorkDays = {};
     
@@ -42,7 +42,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     });
   }, [requests, setWorkDays, loadingToggle, selectedEmployeeId]);
 
-  const getSubIdsScale = useCallback((managerId) => {
+  const getSubIdsScale = React.useCallback((managerId) => {
     const direct = employees.filter(e => String(e.gestorId) === String(managerId));
     let ids = direct.map(e => e.id);
     direct.forEach(sub => { ids = [...ids, ...getSubIdsScale(sub.id)]; });
@@ -64,19 +64,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     return true;
   };
 
-  const filteredEmployees = useMemo(() => {
+  const filteredEmployees = React.useMemo(() => {
     return employees.filter(isMatch);
   }, [employees, globalFilters, getSubIdsScale]);
 
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(currentUser?.colaboradorId || (filteredEmployees.length > 0 ? filteredEmployees[0].id : ''));
+  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState(currentUser?.colaboradorId || (filteredEmployees.length > 0 ? filteredEmployees[0].id : ''));
   const isReadOnly = !currentUser.isAdmin && Number(selectedEmployeeId) !== Number(currentUser?.colaboradorId);
   
-  const [compareEntity, setCompareEntity] = useState('none');
-  const [adjustModal, setAdjustModal] = useState(null); // { dateKey, currentStatus }
-  const [adjustMotivo, setAdjustMotivo] = useState('');
-  const [adjustNewValue, setAdjustNewValue] = useState('Presencial');
+  const [compareEntity, setCompareEntity] = React.useState('none');
+  const [adjustModal, setAdjustModal] = React.useState(null); // { dateKey, currentStatus }
+  const [adjustMotivo, setAdjustMotivo] = React.useState('');
+  const [adjustNewValue, setAdjustNewValue] = React.useState('Presencial');
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!currentUser.isAdmin && currentUser.colaboradorId) {
       setSelectedEmployeeId(currentUser.colaboradorId);
       return;
@@ -91,14 +91,14 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     }
   }, [filteredEmployees, currentUser]);
 
-  const displayMonth = useMemo(() => {
+  const displayMonth = React.useMemo(() => {
     const d = new Date(defaultMonth);
     d.setMonth(d.getMonth() + selectedMonthOffset);
     return d;
   }, [defaultMonth, selectedMonthOffset]);
 
-  const displayMonthDays = useMemo(() => getMonthMatrix(displayMonth), [displayMonth]);
-  const holidays = useMemo(() => getBrazilianHolidays(displayMonth.getFullYear()), [displayMonth]);
+  const displayMonthDays = React.useMemo(() => getMonthMatrix(displayMonth), [displayMonth]);
+  const holidays = React.useMemo(() => getBrazilianHolidays(displayMonth.getFullYear()), [displayMonth]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -267,7 +267,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
 
   const currentEmployeeData = workDays[selectedEmployeeId] || {};
 
-  const businessDaysCount = useMemo(() => {
+  const businessDaysCount = React.useMemo(() => {
     let count = 0;
     for (const day of displayMonthDays) {
       if (!day) continue;
@@ -285,7 +285,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     return count;
   }, [displayMonthDays, holidays, requests, selectedEmployeeId]);
 
-  const totalBusinessDays = useMemo(() => {
+  const totalBusinessDays = React.useMemo(() => {
     let count = 0;
     for (const day of displayMonthDays) {
       if (!day) continue;
@@ -296,7 +296,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     return count;
   }, [displayMonthDays, holidays]);
 
-  const presencialCount = useMemo(() => {
+  const presencialCount = React.useMemo(() => {
     return Object.keys(currentEmployeeData).filter(k => {
       if (!isWithinRange(k,
         new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1).toISOString().slice(0, 10),
@@ -315,7 +315,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     }).length;
   }, [currentEmployeeData, displayMonth, requests, selectedEmployeeId]);
 
-  const fillStats = useMemo(() => {
+  const fillStats = React.useMemo(() => {
     let totalBiz = 0;
     for (const day of displayMonthDays) {
       if (!day) continue;
@@ -418,26 +418,6 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         </div>
       )}
 
-      <header className="topbar glass-card" style={{ padding: '24px', borderRadius: '20px', marginBottom: '32px', border: '1px solid var(--line)' }}>
-        <div>
-          <h2 className="premium-title" style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--title)' }}>Escala Mensal</h2>
-          <p style={{ color: 'var(--muted)', fontSize: '0.9rem', fontWeight: 500 }}>Frequência inteligente: o objetivo é atingir 50% de presença física.</p>
-        </div>
-        <div className="badge-row" style={{ display: 'flex', gap: '12px' }}>
-          <span className={`dash-micro-badge glass ${targetReached ? 'done' : 'warning'}`} style={{ color: targetReached ? '#10b981' : '#f59e0b', border: '1px solid currentColor', fontWeight: 700 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{targetReached ? 'verified' : 'analytics'}</span>
-            Frequência: {percentage}%
-          </span>
-          <span className="dash-micro-badge glass" style={{ border: '1px solid var(--line)', color: 'var(--title)', fontWeight: 600 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--muted)' }}>calendar_today</span>
-            Dias Úteis: {businessDaysCount}
-          </span>
-          <span className="dash-micro-badge glass" style={{ border: '1px solid var(--line)', color: '#10b981', fontWeight: 600 }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
-            Presencial: {presencialCount}
-          </span>
-        </div>
-      </header>
 
       {isReadOnly && (
         <div className="alert-banner" style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', padding: '16px', borderRadius: '14px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 500 }}>
@@ -449,10 +429,48 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
       )}
 
       <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-        <div className="card glass-card" style={{ padding: '24px', borderRadius: '24px', border: '1px solid var(--line)' }}>
+        <div className="glass-card">
+          {/* Selection Filters */}
+          <div className="field-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Colaborador:</label>
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
+                style={{ width: '100%' }}
+              >
+                {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
+                {filteredEmployees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name} · {employee.team}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Comparar com:</label>
+              <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ width: '100%' }}>
+                <option value="none">Nenhum</option>
+                <optgroup label="Áreas / Equipes">
+                  {uniqueAreas.map(area => (
+                    <option key={`team_${area}`} value={`team_${area}`}>Área: {area}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Colaboradores Individuais">
+                  {filteredEmployees.map(employee => (
+                    <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
+                      {employee.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+          </div>
+
           {/* Numeric Indicators Bar */}
           <div style={{ 
-            display: 'flex', gap: '24px', marginBottom: '32px', 
+            display: 'flex', gap: '24px', marginBottom: '8px', 
             background: 'var(--panel-strong)', padding: '24px 32px', 
             borderRadius: '24px', border: '1px solid var(--line)',
             boxShadow: 'var(--shadow-sm)',
@@ -493,45 +511,9 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             </div>
           </div>
 
-          <div className="field-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Colaborador:</label>
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                style={{ width: '100%' }}
-              >
-                {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
-                {filteredEmployees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name} · {employee.team}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Comparar com:</label>
-              <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ width: '100%' }}>
-                <option value="none">Nenhum</option>
-                <optgroup label="Áreas / Equipes">
-                  {uniqueAreas.map(area => (
-                    <option key={`team_${area}`} value={`team_${area}`}>Área: {area}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Colaboradores Individuais">
-                  {filteredEmployees.map(employee => (
-                    <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-          </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '28px', borderRadius: '28px', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}>
+        <div className="glass-card">
           <div className="section-title" style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal — <span style={{ textTransform: 'capitalize' }}>{displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></h3>
@@ -578,9 +560,26 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                     return isWithinRange(dateKey, r.startDate, r.endDate);
                   });
 
-                  const isNonWorkingDay = isWeekend || holidayInfo || absenceRequest;
-                  const absenceIcon = absenceRequest ? (absenceRequest.type === 'Férias integrais' || absenceRequest.type === 'Férias fracionadas' ? 'beach_access' : absenceRequest.type === 'Day-off' ? 'event_busy' : 'medical_services') : '';
+                  const pendingAbsence = requests && requests.find(r => {
+                    if (Number(r.employeeId) !== Number(selectedEmployeeId)) return false;
+                    if (r.status !== 'Pendente') return false;
+                    if (['Escala de Trabalho', 'Ajuste de Escala'].includes(r.type)) return false;
+                    return isWithinRange(dateKey, r.startDate, r.endDate);
+                  });
+
+                  const getAbsenceIcon = (req) => {
+                    if (!req) return '';
+                    const type = req.type;
+                    if (type.includes('Férias')) return 'beach_access';
+                    if (type.includes('Saúde') || type.includes('Afastamento')) return 'medical_services';
+                    if (type.includes('Banco') || type.includes('Folga') || type.includes('Compensação')) return 'event_busy';
+                    if (type.includes('Day-off')) return 'wb_sunny';
+                    return 'event_note';
+                  };
+
+                  const absenceIcon = getAbsenceIcon(absenceRequest);
                   const absenceColor = absenceRequest ? (absenceRequest.type.includes('Férias') ? '#10b981' : absenceRequest.type === 'Day-off' ? '#f59e0b' : '#ef4444') : '';
+                   const isNonWorkingDay = isWeekend || holidayInfo || absenceRequest || pendingAbsence;
 
                   const dayEvents = (eventos || []).filter(ev => {
                     const evDate = (ev.dataInicio || ev.inicio || '').slice(0, 10);
@@ -598,23 +597,42 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
 
                   const comparedPeople = getComparedPeople(dateKey);
                   const isComparedPresent = comparedPeople.length > 0;
-                  const tooltipText = isComparedPresent ? `Presencial: ${comparedPeople.map(p => p.name).join(', ')}` : '';
+                  
+                  const tooltipParts = [];
+                  if (holidayInfo) tooltipParts.push(`Feriado: ${holidayInfo}`);
+                  if (dayEvents.length > 0) tooltipParts.push(`Eventos: ${dayEvents.map(e => e.titulo || e.Titulo).join(', ')}`);
+                  if (isComparedPresent) tooltipParts.push(`Presencial: ${comparedPeople.map(p => p.name).join(', ')}`);
+                  if (absenceRequest) tooltipParts.push(`Ausência: ${absenceRequest.type}`);
+                  if (pendingAbsence) tooltipParts.push(`Pendente: ${pendingAbsence.type}`);
+                  const unifiedTooltip = tooltipParts.join(' | ');
 
                   return (
                     <div
                       key={dateKey}
-                      onClick={() => toggleDay(dateKey)}
+                      onClick={() => {
+                        if (absenceRequest || pendingAbsence) {
+                          if (unifiedTooltip) {
+                             setToast({ title: 'Informação do Dia', message: unifiedTooltip, type: 'info' });
+                          }
+                          return;
+                        }
+                        toggleDay(dateKey);
+                        if (unifiedTooltip && (window.innerWidth <= 768)) {
+                          setToast({ title: 'Informação do Dia', message: unifiedTooltip, type: 'info' });
+                        }
+                      }}
                       className={`calendar-day glass ${isWeekend ? 'weekend' : ''} ${holidayInfo ? 'holiday' : ''} ${status === 'Presencial' ? 'active' : status === 'Home Office' ? 'active' : ''} ${isPast ? 'past' : ''}`}
+                      title={unifiedTooltip}
                       style={{ 
                         position: 'relative',
-                        background: 'transparent',
+                        background: pendingAbsence ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
                         borderRadius: '14px',
-                        border: status ? '1.5px solid var(--line)' : '1.5px dashed var(--line)',
+                        border: status ? '1.5px solid var(--line)' : (pendingAbsence ? '1.5px dashed rgba(245, 158, 11, 0.4)' : '1.5px dashed var(--line)'),
                         color: 'var(--title)',
-                        cursor: isReadOnly || absenceRequest ? 'default' : 'pointer',
+                        cursor: isReadOnly || absenceRequest || pendingAbsence ? 'default' : 'pointer',
                         transition: 'all 0.2s ease',
                         opacity: (isPast && !status) || absenceRequest ? 0.6 : 1,
-                        pointerEvents: absenceRequest ? 'none' : 'auto'
+                        pointerEvents: 'auto'
                       }}
                     >
                       <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--title)', opacity: 0.9, zIndex: 2 }}>{day.getDate()}</span>
@@ -622,12 +640,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       {!absenceRequest && status === 'Presencial' && <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px', marginTop: '4px' }}>check_circle</span>}
                       {!absenceRequest && status === 'Home Office' && <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px', marginTop: '4px' }}>home</span>}
 
-                      {/* Pending Indicator for Absences Only (Scale is auto-approved now) */}
-                      {!status && requests && requests.some(r => Number(r.employeeId) === Number(selectedEmployeeId) && !['Escala de Trabalho', 'Ajuste de Escala'].includes(r.type) && r.startDate === dateKey && r.status === 'Pendente') && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                           <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px', marginTop: '4px', opacity: 0.8 }}>hourglass_top</span>
-                           <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>Pendente</span>
-                        </div>
+                      {!status && pendingAbsence && (
+                        <>
+                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.9 }}>
+                              <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '22px', marginTop: '4px' }}>
+                                {getAbsenceIcon(pendingAbsence)}
+                              </span>
+                           </div>
+                           <span className="material-symbols-outlined" style={{ 
+                             position: 'absolute', bottom: '6px', right: '6px', 
+                             fontSize: '14px', color: '#f59e0b', opacity: 0.8,
+                             fontVariationSettings: "'FILL' 1"
+                           }}>hourglass_top</span>
+                        </>
                       )}
 
                       {loadingToggle === dateKey && (
@@ -641,7 +666,39 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       
                       {/* Event Slot: Top-Right */}
                       {dayEvents.length > 0 && !status && !absenceRequest && (
-                        <div className="event-indicator-badge" title={`${dayEvents.length} evento(s)`}></div>
+                        <div 
+                          title={`${dayEvents.length} evento(s): ${dayEvents.map(e => e.titulo || e.Titulo).join(', ')}`}
+                          style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '2px' }}
+                        >
+                          {(() => {
+                            // Deduplicate by type to show variety
+                            const uniqueTypes = [];
+                            const filteredEvents = dayEvents.filter(ev => {
+                              const type = ev.tipo || ev.Tipo || 'Outro';
+                              if (uniqueTypes.includes(type)) return false;
+                              uniqueTypes.push(type);
+                              return true;
+                            });
+                            
+                            return filteredEvents.slice(0, 3).map((ev, i) => {
+                              const type = ev.tipo || ev.Tipo || 'Outro';
+                              const iconMap = {
+                                'Reunião': { icon: 'groups', color: 'var(--primary)' },
+                                'Workshop': { icon: 'school', color: '#8b5cf6' },
+                                'Apresentação': { icon: 'present_to_all', color: '#3b82f6' },
+                                'Treinamento': { icon: 'menu_book', color: '#f59e0b' },
+                                'Evento Corporativo': { icon: 'business', color: 'var(--muted)' },
+                                'Aniversário': { icon: 'celebration', color: '#ff3399' }
+                              };
+                              const config = iconMap[type] || { icon: 'event', color: 'var(--primary)' };
+                              return (
+                                <span key={i} className="material-symbols-outlined" style={{ fontSize: '15px', color: config.color, opacity: 0.9 }}>
+                                  {config.icon}
+                                </span>
+                              );
+                            });
+                          })()}
+                        </div>
                       )}
                       
                       {/* Lock Slot: Bottom-Right (Only if past and no status) */}
@@ -678,7 +735,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             </div>
 
             <div className="scale-stats-panel">
-               <div className="glass-card" style={{ padding: '24px', borderRadius: '24px', background: 'var(--panel-strong)', border: '1px solid var(--line)' }}>
+               <div className="glass-card">
                  <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '20px', color: 'var(--title)' }}>Status da Equipe</h4>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {fillStats.slice(0, 12).map(s => (

@@ -5,7 +5,7 @@ function App() {
     const saved = sessionStorage.getItem('gbi_user');
     try {
       if (!saved) {
-        sessionStorage.removeItem('gbi_token'); // Garante que não haja token sem usuário
+        sessionStorage.removeItem('gbi_token'); // Garante que nÃ£o haja token sem usuÃ¡rio
         return null;
       }
       return JSON.parse(saved);
@@ -42,9 +42,9 @@ function App() {
   }, [dbEmployees]);
 
   const buildRequestDetails = useCallback((request) => {
-    if (!request) return { id: 0, employee: { name: 'Inválido', team: '-', id: 0 }, startDate: '', endDate: '', status: 'Erro' };
+    if (!request) return { id: 0, employee: { name: 'InvÃ¡lido', team: '-', id: 0 }, startDate: '', endDate: '', status: 'Erro' };
     const employee = getEmployeeById(request.employeeId);
-    const safeEmp = employee || { name: 'Colaborador não identificado', team: 'Sem Área', id: Number(request.employeeId || 0), avatarUrl: null };
+    const safeEmp = employee || { name: 'Colaborador nÃ£o identificado', team: 'Sem Ãrea', id: Number(request.employeeId || 0), avatarUrl: null };
     return {
       ...request,
       employee: safeEmp,
@@ -269,35 +269,35 @@ function App() {
 
   const submitRequest = () => {
     if (!form.employeeId || !form.startDate || !form.endDate || !form.type) {
-      setToast({ title: 'Campos obrigatórios', message: 'Preencha colaborador, tipo e período antes de enviar.' });
+      setToast({ title: 'Campos obrigatÃ³rios', message: 'Preencha colaborador, tipo e perÃ­odo antes de enviar.' });
       return;
     }
     if (toDate(form.endDate) < toDate(form.startDate)) {
-      setToast({ title: 'Período inválido', message: 'A data final precisa ser igual ou posterior à data inicial.' });
+      setToast({ title: 'PerÃ­odo invÃ¡lido', message: 'A data final precisa ser igual ou posterior Ã  data inicial.' });
       return;
     }
     const empId = Number(form.employeeId);
     if (!currentUser.isAdmin && currentUser.colaboradorId !== empId) {
-      setToast({ title: 'Acesso negado', message: 'Você só pode criar agendamentos para si mesmo.' });
+      setToast({ title: 'Acesso negado', message: 'VocÃª sÃ³ pode criar agendamentos para si mesmo.' });
       return;
     }
-    const payload = { employeeId: empId, startDate: form.startDate, endDate: form.endDate, type: form.type, status: 'Pendente', note: form.note || 'Sem observações adicionais.', coverage: form.coverage || 'A definir', priority: formConflicts.length >= 2 ? 'Alta' : formConflicts.length === 1 ? 'Média' : 'Baixa' };
+    const payload = { employeeId: empId, startDate: form.startDate, endDate: form.endDate, type: form.type, status: 'Pendente', note: form.note || 'Sem observaÃ§Ãµes adicionais.', coverage: form.coverage || 'A definir', priority: formConflicts.length >= 2 ? 'Alta' : formConflicts.length === 1 ? 'MÃ©dia' : 'Baixa' };
     const method = editingRequestId ? 'PUT' : 'POST';
     const url = editingRequestId ? `${API_BASE}/api/requests/${editingRequestId}` : `${API_BASE}/api/requests`;
     fetch(url, { method, headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) }, body: JSON.stringify(payload) })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Falha ao processar solicitação');
+        if (!res.ok) throw new Error(data.error || 'Falha ao processar solicitaÃ§Ã£o');
         return data;
       })
       .then(data => {
         if (editingRequestId) {
           setRequests(prev => prev.map(r => Number(r.id) === Number(editingRequestId) ? { ...r, ...data } : r));
-          setToast({ title: 'Alteração salva', message: 'O agendamento foi atualizado com sucesso.' });
+          setToast({ title: 'AlteraÃ§Ã£o salva', message: 'O agendamento foi atualizado com sucesso.' });
           setEditingRequestId(null);
         } else {
           setRequests(current => [...current, data]);
-          setToast({ title: 'Solicitação enviada', message: formConflicts.length ? `Pedido criado com ${formConflicts.length} conflitos detectados.` : 'Pedido criado com sucesso.' });
+          setToast({ title: 'SolicitaÃ§Ã£o enviada', message: formConflicts.length ? `Pedido criado com ${formConflicts.length} conflitos detectados.` : 'Pedido criado com sucesso.' });
         }
         setActiveView('approvals');
       })
@@ -334,7 +334,7 @@ function App() {
       .finally(() => setLoading(false));
   };
 
-  const handleAdd = (initialStatus = 'Não Iniciado') => {
+  const handleAdd = (initialStatus = 'NÃ£o Iniciado') => {
     setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' });
     const payload = {
       title: '',
@@ -351,7 +351,7 @@ function App() {
   };
 
   const handleNewDemanda = () => {
-    setRequestedModal({ type: 'demanda', data: { titulo: '', responsavelId: currentUser?.colaboradorId || null, inicioPlanjado: '', fimPlanejado: '', status: 'Não Iniciado', prioridade: 'Média' } });
+    setRequestedModal({ type: 'demanda', data: { titulo: '', responsavelId: currentUser?.colaboradorId || null, inicioPlanjado: '', fimPlanejado: '', status: 'NÃ£o Iniciado', prioridade: 'MÃ©dia' } });
     if (activeView !== 'tasks') setActiveView('tasks');
   };
 
@@ -366,12 +366,12 @@ function App() {
       const hasNoManager = req.employee.gestorId === null || !req.employee.gestorId;
 
       if (isOwner && !hasNoManager) {
-        setToast({ title: 'Ação bloqueada', message: 'Você não pode aprovar ou rejeitar sua própria solicitação.' });
+        setToast({ title: 'AÃ§Ã£o bloqueada', message: 'VocÃª nÃ£o pode aprovar ou rejeitar sua prÃ³pria solicitaÃ§Ã£o.' });
         return;
       }
 
       if (!isOwner && !isDirectManager && !isSuperiorLevel) {
-        setToast({ title: 'Permissão negada', message: 'Você precisa ser o gestor direto ou possuir nível hierárquico superior para realizar aprovações.', type: 'error' });
+        setToast({ title: 'PermissÃ£o negada', message: 'VocÃª precisa ser o gestor direto ou possuir nÃ­vel hierÃ¡rquico superior para realizar aprovaÃ§Ãµes.', type: 'error' });
         return;
       }
     }
@@ -388,7 +388,7 @@ function App() {
     })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Falha ao processar a aprovação');
+        if (!res.ok) throw new Error(data.error || 'Falha ao processar a aprovaÃ§Ã£o');
         return data;
       })
       .then(data => {
@@ -403,7 +403,7 @@ function App() {
            });
         }
 
-        setToast({ title: decision === 'Aprovado' ? 'Solicitação aprovada' : 'Solicitação rejeitada', message: 'O status foi atualizado.' });
+        setToast({ title: decision === 'Aprovado' ? 'SolicitaÃ§Ã£o aprovada' : 'SolicitaÃ§Ã£o rejeitada', message: 'O status foi atualizado.' });
         setApprovalNote('');
       })
       .catch(err => setToast({ title: 'Erro', message: err.message, type: 'error' }))
@@ -453,7 +453,7 @@ function App() {
             <div className="user-badge" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
                <div className="user-badge-content">
                  {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{ (currentUser.name || currentUser.nome || 'A').charAt(0) }</div>}
-                 <div className="user-badge-info"><div className="user-badge-name">{currentUser.name || currentUser.nome}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.nivelDescricao || 'Usuário')}</div></div>
+                 <div className="user-badge-info"><div className="user-badge-name">{(() => { const n = (currentUser.name || currentUser.nome || "").trim(); const parts = n.split(" ").filter(Boolean); return parts.length > 2 ? `${parts[0]} ${parts[parts.length - 1]}` : n; })()}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.cargoNome || currentUser.cargo || 'Usuário')}</div></div>
                </div>
             </div>
             <button 
@@ -467,24 +467,95 @@ function App() {
         </aside>
 
         <main className="main-content">
-          <div className="topbar-header">
-            <button className="menu-toggle" onClick={() => { setIsSidebarOpen(true); setIsSidebarCollapsed(false); }}>
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-          </div>
-          {(activeView === 'dashboard' || activeView === 'tasks' || activeView === 'scale') && (
-            <div className="top-filters glass-card">
-              <div className="filter-group"><label>Colaborador</label><select value={globalFilters.colaboradorId} onChange={e => setGlobalFilters(f => ({ ...f, colaboradorId: e.target.value }))}><option value="">Todos</option>{dbEmployees.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}</select></div>
-              <div className="filter-group"><label>Área</label><select value={globalFilters.gestor} onChange={e => setGlobalFilters(f => ({ ...f, gestor: e.target.value }))}><option value="">Todas</option>{areas.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)}</select></div>
-              <div className="filter-group"><label>Gestor</label><select value={globalFilters.gestorId} onChange={e => setGlobalFilters(f => ({ ...f, gestorId: e.target.value }))}><option value="">Todos</option>{dbEmployees.filter(e => e.nivelHierarquia <= 4 || dbEmployees.some(sub => String(sub.gestorId) === String(e.id))).map(g => <option key={g.id} value={String(g.id)}>{g.name}</option>)}</select></div>
-              {(globalFilters.colaboradorId || globalFilters.gestor || globalFilters.gestorId) && (
-                <button className="btn-clear" onClick={() => setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' })}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_alt_off</span>
-                  Limpar
-                </button>
-              )}
-            </div>
-          )}
+          {(() => {
+            const PAGE_META = {
+              dashboard:  { title: 'Visão Executiva 360°',     description: 'Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.' },
+              tasks:      { title: 'Gestão de Demandas',        description: 'Acompanhamento de tarefas, prazos e alocação de recursos da equipe.' },
+              requests:   { title: 'Agendamentos',              description: 'Solicitações de férias, afastamentos e ajustes de escala.' },
+              approvals:  { title: 'Aprovações',                description: 'Central de solicitações pendentes e histórico de decisões hierárquicas.' },
+              scale:      { title: 'Escala Mensal',             description: 'Planejamento de dias presenciais e remotos da equipe.' },
+              eventos:    { title: 'Eventos',                   description: 'Agenda corporativa, reuniões e compromissos da equipe.' },
+            };
+            const meta = PAGE_META[activeView] || { title: '', description: '' };
+            return (
+              <>
+                {/* Mobile: hamburger + título inline */}
+                <div className="topbar-header">
+                  <button className="menu-toggle" onClick={() => { setIsSidebarOpen(true); setIsSidebarCollapsed(false); }}>
+                    <span className="material-symbols-outlined">menu</span>
+                  </button>
+                  {meta.title && (
+                    <span className="topbar-mobile-title">{meta.title}</span>
+                  )}
+                </div>
+
+                {/* Desktop: título e descrição completos */}
+                {meta.title && (
+                  <div className="topbar">
+                    <div>
+                      <h2>{meta.title}</h2>
+                      <p>{meta.description}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+          {(() => {
+            // Lógica de Filtros Cruzados (Cascateamento)
+            const filteredEmpsForSelect = (() => {
+              let list = dbEmployees;
+              if (globalFilters.gestor) list = list.filter(e => e.areaNome === globalFilters.gestor || e.manager === globalFilters.gestor);
+              if (globalFilters.gestorId) {
+                const subIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
+                list = list.filter(e => subIds.includes(parseInt(e.id)));
+              }
+              return list;
+            })();
+
+            const filteredAreasForSelect = (() => {
+              let list = areas;
+              if (globalFilters.gestorId) {
+                const subIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
+                const areaNomes = dbEmployees.filter(e => subIds.includes(parseInt(e.id))).map(e => e.areaNome);
+                list = list.filter(a => areaNomes.includes(a.nome));
+              }
+              if (globalFilters.colaboradorId) {
+                const emp = dbEmployees.find(e => String(e.id) === String(globalFilters.colaboradorId));
+                if (emp) list = list.filter(a => a.nome === emp.areaNome);
+              }
+              return list;
+            })();
+
+            const filteredGestoresForSelect = (() => {
+              let list = dbEmployees.filter(e => e.nivelHierarquia <= 4 || dbEmployees.some(sub => String(sub.gestorId) === String(e.id)));
+              if (globalFilters.gestor) list = list.filter(g => g.areaNome === globalFilters.gestor || g.manager === globalFilters.gestor);
+              if (globalFilters.colaboradorId) {
+                const emp = dbEmployees.find(e => String(e.id) === String(globalFilters.colaboradorId));
+                if (emp && emp.gestorId) {
+                   const manager = dbEmployees.find(g => String(g.id) === String(emp.gestorId));
+                   if (manager) list = list.filter(g => String(g.id) === String(manager.id));
+                }
+              }
+              return list;
+            })();
+
+            return (activeView === 'dashboard' || activeView === 'tasks' || activeView === 'scale') && (
+              <div className="top-filters glass-card">
+                {activeView !== 'scale' && (
+                  <div className="filter-group"><label>Colaborador</label><select value={globalFilters.colaboradorId} onChange={e => setGlobalFilters(f => ({ ...f, colaboradorId: e.target.value }))}><option value="">Todos</option>{filteredEmpsForSelect.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}</select></div>
+                )}
+                <div className="filter-group"><label>Área</label><select value={globalFilters.gestor} onChange={e => setGlobalFilters(f => ({ ...f, gestor: e.target.value }))}><option value="">Todas</option>{filteredAreasForSelect.map(a => <option key={a.id} value={a.nome}>{a.nome}</option>)}</select></div>
+                <div className="filter-group"><label>Gestor</label><select value={globalFilters.gestorId} onChange={e => setGlobalFilters(f => ({ ...f, gestorId: e.target.value }))}><option value="">Todos</option>{filteredGestoresForSelect.map(g => <option key={g.id} value={String(g.id)}>{g.name}</option>)}</select></div>
+                {(globalFilters.colaboradorId || globalFilters.gestor || globalFilters.gestorId) && (
+                  <button className="btn-clear" onClick={() => setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' })}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_alt_off</span>
+                    Limpar
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} />}
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
@@ -514,8 +585,8 @@ function App() {
         <div className="status-modal-overlay">
           <div className="status-modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#ef4444', marginBottom: '16px' }}>warning</span>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Excluir Solicitação</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja excluir esta solicitação? Esta ação não pode ser desfeita.</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Excluir SolicitaÃ§Ã£o</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja excluir esta solicitaÃ§Ã£o? Esta aÃ§Ã£o nÃ£o pode ser desfeita.</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button className="btn btn-secondary" onClick={() => setRequestToDelete(null)}>Cancelar</button>
               <button className="btn btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444' }} onClick={() => confirmDeleteRequest(requestToDelete)}>Excluir</button>
@@ -530,7 +601,7 @@ function App() {
           <div className="status-modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#f59e0b', marginBottom: '16px' }}>logout</span>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Sair do Sistema</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja encerrar sua sessão?</p>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja encerrar sua sessÃ£o?</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button className="btn btn-secondary" onClick={() => setShowLogoutConfirm(false)}>Cancelar</button>
               <button className="btn btn-primary" onClick={confirmLogout}>Sair</button>

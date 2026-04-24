@@ -1,13 +1,29 @@
 function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, currentUser, setToast }) {
+  const [, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
   const TIPO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Outro'];
 
-  const emptyForm = { id: null, titulo: '', descricao: '', dataInicio: '', dataFim: '', tipo: 'Reunião', areaId: '', responsavelId: '' };
-  const [form, setForm] = useState(emptyForm);
-  const [filterTipo, setFilterTipo] = useState('');
-  const [filterPeriodo, setFilterPeriodo] = useState('');
-  const [filterSearch, setFilterSearch] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
+  const getDefaultDates = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return {
+      start: `${yyyy}-${mm}-${dd}T00:00`,
+      end: `${yyyy}-${mm}-${dd}T23:59`
+    };
+  };
+  const defaults = getDefaultDates();
+  const emptyForm = { id: null, titulo: '', descricao: '', dataInicio: defaults.start, dataFim: defaults.end, tipo: 'Reunião', areaId: '', responsavelId: '' };
+  const [form, setForm] = React.useState(emptyForm);
+  const [filterTipo, setFilterTipo] = React.useState('');
+  const [filterPeriodo, setFilterPeriodo] = React.useState('upcoming'); // Default to upcoming
+  const [filterArea, setFilterArea] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState(null);
 
   const inputStyle = { width: '100%', border: '1px solid var(--line)', borderRadius: '8px', padding: '8px 12px', fontSize: '.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box' };
   const labelStyle = { fontSize: '.78rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' };
@@ -80,11 +96,12 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     return isNaN(obj.getTime()) ? null : obj;
   };
 
-  const formatEventDate = (d) => {
+  const formatEventDate = (d, tipo) => {
     const obj = parseDateSafe(d);
     if (!obj) return '—';
-    return obj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-      ' ' + obj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = obj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (tipo === 'Aniversário') return dateStr;
+    return dateStr + ' ' + obj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
   const TYPE_STYLE = {
@@ -97,7 +114,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     'Outro':            { bg: 'rgba(51,204,204,0.08)',   color: 'var(--primary)',  icon: 'event' },
   };
 
-  const filteredEventos = useMemo(() => {
+  const filteredEventos = React.useMemo(() => {
     let list = [...(eventos || [])];
 
     // Visibility Filtering (if not admin)
@@ -121,13 +138,6 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     }
 
     if (filterTipo) list = list.filter(ev => (ev.tipo || ev.Tipo) === filterTipo);
-    if (filterSearch) {
-      const s = filterSearch.toLowerCase();
-      list = list.filter(ev => 
-        (ev.titulo || ev.Titulo || '').toLowerCase().includes(s) || 
-        (ev.descricao || ev.Descricao || '').toLowerCase().includes(s)
-      );
-    }
     if (filterPeriodo) {
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -143,48 +153,134 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         if (filterPeriodo === 'month') {
           return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
         }
+        if (filterPeriodo === 'year') {
+          return d.getFullYear() === now.getFullYear();
+        }
         return true;
       });
+    }
+    if (filterArea) {
+      const selectedAreas = String(filterArea).split(',').filter(Boolean);
+      if (selectedAreas.length > 0) {
+        list = list.filter(ev => {
+          const evAreaId = String(ev.areaId || ev.AreaId || '');
+          // Eventos sem área definida são considerados "Globais" e devem sempre aparecer
+          if (!evAreaId || evAreaId.trim() === '') return true;
+          
+          const evAreas = evAreaId.split(',').filter(Boolean);
+          return evAreas.some(a => selectedAreas.includes(a));
+        });
+      }
     }
     return list.sort((a, b) => {
       const da = parseDateSafe(a.dataInicio || a.DataInicio || a.inicio);
       const db = parseDateSafe(b.dataInicio || b.DataInicio || b.inicio);
       return (da || 0) - (db || 0);
     });
-  }, [eventos, filterTipo, filterPeriodo, filterSearch, currentUser]);
+  }, [eventos, filterTipo, filterPeriodo, filterArea, currentUser]);
 
 
-  const upcomingCount = useMemo(() => {
+  const upcomingCount = React.useMemo(() => {
     const now = new Date();
-    return (eventos || []).filter(ev => {
+    return filteredEventos.filter(ev => {
       const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
       return d && d >= now;
     }).length;
-  }, [eventos]);
+  }, [filteredEventos]);
+
+  const eventsThisWeekCount = React.useMemo(() => {
+    const now = new Date();
+    const nextWeek = new Date(now);
+    nextWeek.setDate(now.getDate() + 7);
+    return filteredEventos.filter(ev => {
+      const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
+      return d && d >= now && d <= nextWeek;
+    }).length;
+  }, [filteredEventos]);
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <header className="page-header">
-        <div>
-          <h2>Eventos</h2>
-          <p>Gerencie a agenda corporativa — reuniões, aniversários e atividades da equipe.</p>
+
+      {/* Quick Filters Bar */}
+      <div className="glass-card" style={{ 
+        padding: '12px 20px', borderRadius: '16px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', 
+        background: 'var(--bg-soft)', border: '1px solid var(--line)', 
+        position: 'relative', zIndex: 100, boxShadow: 'var(--shadow)' 
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filtros Rápidos:</span>
         </div>
-      </header>
+        
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { id: 'upcoming', label: 'Próximos' },
+            { id: 'week', label: 'Esta Semana' },
+            { id: 'month', label: 'Este Mês' },
+            { id: 'year', label: 'Este Ano' },
+            { id: 'past', label: 'Passados' },
+            { id: '', label: 'Tudo' }
+          ].map(p => (
+            <button 
+              key={p.id}
+              onClick={() => setFilterPeriodo(p.id)}
+              style={{ 
+                padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                border: '1px solid',
+                borderColor: filterPeriodo === p.id ? 'var(--primary)' : 'var(--line)',
+                background: filterPeriodo === p.id ? 'var(--primary)15' : 'transparent',
+                color: filterPeriodo === p.id ? 'var(--primary)' : 'var(--muted)',
+                transition: '0.2s'
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ width: '1px', height: '24px', background: 'var(--line)' }}></div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, maxWidth: '400px' }}>
+          <div style={{ flex: 1 }}>
+            <MultiSelect
+              options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
+              value={filterArea}
+              onChange={val => setFilterArea(val)}
+              placeholder="Todas as Áreas"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* KPI Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+      <div className="stats-summary-bar" style={{ position: 'relative' }}>
+        {(filterArea !== '' || filterTipo !== '' || (filterPeriodo !== '' && filterPeriodo !== 'all')) && (
+          <div
+            title="Filtro aplicado"
+            style={{ 
+              position: 'absolute', top: '50%', right: '20px', transform: 'translateY(-50%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'var(--primary)20',
+              border: '1.5px solid var(--primary)50',
+              boxShadow: '0 0 10px var(--primary)20'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)', fontVariationSettings: "'FILL' 1" }}>filter_alt</span>
+          </div>
+        )}
         {[
-          { label: 'Total de Eventos', value: (eventos || []).length, icon: 'event', color: 'var(--primary)' },
+          { label: 'Total de Eventos', value: filteredEventos.length, icon: 'event', color: 'var(--primary)' },
           { label: 'Próximos Eventos', value: upcomingCount, icon: 'upcoming', color: '#10b981' },
-          { label: 'Tipos Cadastrados', value: new Set((eventos || []).map(ev => ev.tipo || ev.Tipo)).size, icon: 'category', color: '#8b5cf6' },
+          { label: 'Eventos esta Semana', value: eventsThisWeekCount, icon: 'date_range', color: '#8b5cf6' },
         ].map(kpi => (
-          <div key={kpi.label} className="glass-card" style={{ padding: '20px 24px', borderRadius: '20px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${kpi.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span className="material-symbols-outlined" style={{ color: kpi.color, fontSize: '22px' }}>{kpi.icon}</span>
+          <div key={kpi.label} className="stats-summary-item">
+            <div className="stats-summary-icon" style={{ background: `${kpi.color}15` }}>
+              <span className="material-symbols-outlined" style={{ color: kpi.color, fontSize: '24px' }}>{kpi.icon}</span>
             </div>
             <div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--title)', lineHeight: 1.1 }}>{kpi.value}</div>
-              <div style={{ fontSize: '.72rem', color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: '2px' }}>{kpi.label}</div>
+              <div className="stats-summary-label">{kpi.label}</div>
+              <div className="stats-summary-value" style={{ color: kpi.label.includes('Total') ? 'var(--title)' : kpi.color }}>{kpi.value}</div>
             </div>
           </div>
         ))}
@@ -289,19 +385,6 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
-          {/* Search */}
-          <div style={{ flex: 2 }}>
-            <label style={labelStyle}>Buscar por Título ou Descrição</label>
-            <div style={{ position: 'relative' }}>
-              <span className="material-symbols-outlined" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: 'var(--muted)' }}>search</span>
-              <input 
-                style={{ ...inputStyle, paddingLeft: '40px' }} 
-                value={filterSearch} 
-                onChange={e => setFilterSearch(e.target.value)} 
-                placeholder="Ex: Reunião mensal..." 
-              />
-            </div>
-          </div>
 
           {/* Type */}
           <div>
@@ -333,10 +416,10 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
           </div>
 
           {/* Clear Filters */}
-          {(filterTipo || filterPeriodo || filterSearch) && (
+          {(filterTipo || filterPeriodo || filterArea) && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button 
-                onClick={() => { setFilterTipo(''); setFilterPeriodo(''); setFilterSearch(''); }}
+                onClick={() => { setFilterTipo(''); setFilterPeriodo(''); setFilterArea(''); }}
                 style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: '10px' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
@@ -375,7 +458,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
 
               // Resolver nomes de áreas (pode ser múltiplo)
               const aid = ev.areaId || ev.AreaId;
-              const areaInfo = React.useMemo(() => {
+              const areaInfo = (() => {
                 if (!aid) return { text: 'Global', full: 'Todas as áreas do sistema', count: 0, isGlobal: true };
                 const ids = String(aid).split(',').filter(x => x !== '');
                 if (ids.length === 0) return { text: 'Global', full: 'Todas as áreas do sistema', count: 0, isGlobal: true };
@@ -388,7 +471,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                 if (names.length === 0) return { text: 'Áreas Selecionadas', full: 'Áreas não identificadas', count: ids.length, isGlobal: false };
                 if (names.length === 1) return { text: names[0], full: names[0], count: 1, isGlobal: false };
                 return { text: `${names.length} Áreas`, full: names.join(', '), count: names.length, isGlobal: false };
-              }, [aid, areas]);
+              })();
 
               return (
                 <div
@@ -436,16 +519,36 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                       </div>
                       <span style={{ background: style.bg, color: style.color, padding: '2px 10px', borderRadius: '6px', fontSize: '.7rem', fontWeight: 800, letterSpacing: '0.04em' }}>{tipo}</span>
                     </div>
-                    {isPast && (
-                      <span style={{ fontSize: '.65rem', fontWeight: 700, color: 'var(--muted)', background: 'var(--panel-strong)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--line)' }}>PASSADO</span>
-                    )}
+                    {(() => {
+                      const relTime = getRelativeTime(ev.dataInicio || ev.DataInicio || ev.inicio, tipo);
+                      if (!relTime) return null;
+                      const isPastBadge = relTime === 'PASSADO';
+                      return (
+                        <span style={{ 
+                          fontSize: '.62rem', 
+                          fontWeight: 900, 
+                          color: isPastBadge ? 'var(--muted)' : '#fff', 
+                          background: isPastBadge ? 'var(--panel-strong)' : 'var(--primary)', 
+                          padding: '3px 10px', 
+                          borderRadius: '8px', 
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          border: isPastBadge ? '1px solid var(--line)' : 'none',
+                          boxShadow: isPastBadge ? 'none' : '0 4px 12px rgba(51, 204, 204, 0.2)',
+                          flexShrink: 0,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {relTime}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Title + Description */}
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '.95rem', color: 'var(--title)', lineHeight: 1.35 }}>{ev.titulo || ev.Titulo}</div>
+                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--title)', lineHeight: 1.35, wordBreak: 'break-word' }}>{ev.titulo || ev.Titulo}</div>
                     {(ev.descricao || ev.Descricao) && (
-                      <div style={{ fontSize: '.82rem', color: 'var(--muted)', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '4px', wordBreak: 'break-word' }}>
                         {ev.descricao || ev.Descricao}
                       </div>
                     )}
@@ -457,9 +560,9 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '.78rem', color: isPast ? 'var(--muted)' : 'var(--text)' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '14px', color: style.color }}>calendar_today</span>
-                      <span style={{ fontWeight: 700 }}>{formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio)}</span>
+                      <span style={{ fontWeight: 700 }}>{formatEventDate(ev.dataInicio || ev.DataInicio || ev.inicio, tipo)}</span>
                       {endObj && startObj && endObj.toDateString() !== startObj.toDateString() && (
-                        <span style={{ color: 'var(--muted)' }}>→ {formatEventDate(ev.dataFim || ev.DataFim || ev.fim)}</span>
+                        <span style={{ color: 'var(--muted)' }}>→ {formatEventDate(ev.dataFim || ev.DataFim || ev.fim, tipo)}</span>
                       )}
                     </div>
                     {respNome && (
@@ -492,8 +595,8 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  {(currentUser?.isAdmin || (ev.responsavelId || ev.ResponsavelId) && currentUser?.colaboradorId && String(ev.responsavelId || ev.ResponsavelId) === String(currentUser.colaboradorId)) && (
+                  {/* Actions (Creator or Admin only) */}
+                  {(currentUser?.isAdmin || String(ev.criadorId || ev.CriadorId) === String(currentUser?.colaboradorId)) && (
                     <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                       <button
                         className="admin-action-btn"
