@@ -76,7 +76,7 @@ BEGIN
         GestorId INT NULL,  -- FK auto-referência (adicionada após criação)
         Tp_contrato NVARCHAR(20),
         Color NVARCHAR(20),
-        AvatarUrl NVARCHAR(500),
+        AvatarUrl NVARCHAR(MAX),
         Email NVARCHAR(200),
         NivelHierarquia INT NULL FOREIGN KEY REFERENCES NiveisHierarquia(Id),
         AreaId INT NULL FOREIGN KEY REFERENCES BI_Areas(Id),

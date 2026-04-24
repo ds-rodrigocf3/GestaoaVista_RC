@@ -62,7 +62,7 @@ async function runSetup() {
 
         CREATE TABLE BI_Colaboradores (
             Id INT PRIMARY KEY IDENTITY(1,1), Nome NVARCHAR(100), Cargo NVARCHAR(100), Gestor NVARCHAR(100),
-            Tp_contrato NVARCHAR(20), Color NVARCHAR(20), AvatarUrl NVARCHAR(500), Email NVARCHAR(200),
+            Tp_contrato NVARCHAR(20), Color NVARCHAR(20), AvatarUrl NVARCHAR(MAX), Email NVARCHAR(200),
             NivelHierarquia INT FOREIGN KEY REFERENCES NiveisHierarquia(Id),
             AreaId INT FOREIGN KEY REFERENCES BI_Areas(Id),
             CargoId INT NULL, GestorId INT NULL, Ativo BIT DEFAULT 1
