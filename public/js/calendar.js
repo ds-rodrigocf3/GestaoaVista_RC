@@ -406,7 +406,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             </div>
             <div className="field" style={{ marginBottom: '12px' }}>
               <label>Motivo do ajuste:</label>
-              <textarea value={adjustMotivo} onChange={e => setAdjustMotivo(e.target.value)} placeholder="Ex.: Esqueci de registrar, estava presencial no escritório..." style={{ width: '100%', minHeight: '70px', boxSizing: 'border-box', padding: '10px', border: '1px solid var(--line)', borderRadius: '8px', fontSize: '.875rem', resize: 'vertical' }} />
+              <textarea value={adjustMotivo} onChange={e => setAdjustMotivo(e.target.value)} placeholder="Ex.: Esqueci de registrar, estava presencial no escritório..." style={{ width: '100%', minHeight: '70px', boxSizing: 'border-box', padding: '10px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '.875rem', resize: 'vertical' }} />
             </div>
             <div className="action-row" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={() => setAdjustModal(null)}>
@@ -420,7 +420,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
 
 
       {isReadOnly && (
-        <div className="alert-banner" style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', padding: '16px', borderRadius: '14px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 500 }}>
+        <div className="alert-banner" style={{ background: 'rgba(245,158,11,0.08)', color: '#d97706', padding: '16px', borderRadius: 'var(--radius-md)', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 500 }}>
           <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>visibility</span>
           <div>
             <strong>Modo Somente Leitura:</strong> Você está visualizando a escala de outro colaborador.
@@ -469,15 +469,16 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
           </div>
 
           {/* Numeric Indicators Bar */}
-          <div style={{ 
+          <div className="calendar-stats-strip" style={{ 
             display: 'flex', gap: '24px', marginBottom: '8px', 
             background: 'var(--panel-strong)', padding: '24px 32px', 
-            borderRadius: '24px', border: '1px solid var(--line)',
+            borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)',
             boxShadow: 'var(--shadow-sm)',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexWrap: 'wrap'
           }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '24px' }}>calendar_month</span>
                </div>
                <div>
@@ -489,7 +490,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             </div>
 
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px' }}>analytics</span>
                </div>
                <div>
@@ -501,7 +502,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             </div>
 
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px' }}>verified</span>
                </div>
                <div>
@@ -520,10 +521,10 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                <p style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 500 }}>Toque nos dias para alternar entre Presencial e Home Office.</p>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o - 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: '10px', padding: '8px' }}>
+               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o - 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
                  <span className="material-symbols-outlined" style={{ color: 'var(--title)' }}>chevron_left</span>
                </button>
-               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o + 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: '10px', padding: '8px' }}>
+               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o + 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
                  <span className="material-symbols-outlined" style={{ color: 'var(--title)' }}>chevron_right</span>
                </button>
             </div>
@@ -533,10 +534,10 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             <div className="calendar-container">
               <div className="legend" style={{ marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>check_circle</span> Presencial
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)', color: '#10b981' }}>check_circle</span> Presencial
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>home</span> Home Office
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)', color: 'var(--primary)' }}>home</span> Home Office
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)' }}>
                   <div style={{ width: '12px', height: '12px', borderRadius: '4px', border: '1.5px dashed var(--line)' }}></div> Em Aberto
@@ -626,7 +627,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       style={{ 
                         position: 'relative',
                         background: pendingAbsence ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
-                        borderRadius: '14px',
+                        borderRadius: 'var(--radius-md)',
                         border: status ? '1.5px solid var(--line)' : (pendingAbsence ? '1.5px dashed rgba(245, 158, 11, 0.4)' : '1.5px dashed var(--line)'),
                         color: 'var(--title)',
                         cursor: isReadOnly || absenceRequest || pendingAbsence ? 'default' : 'pointer',
@@ -710,7 +711,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       
                       {absenceRequest && (
                         <div className="day-label" style={{ color: absenceColor, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }} title={`${absenceRequest.type} (${absenceRequest.status})`}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{absenceIcon}</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 20px)' }}>{absenceIcon}</span>
                           <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{absenceRequest.type.split(' ')[0].toUpperCase()}</span>
                         </div>
                       )}
@@ -760,14 +761,14 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             {Object.keys(holidays).length > 0 && Object.entries(holidays).some(([date]) => date.startsWith(displayMonth.toISOString().slice(0, 7))) && (
               <div>
                 <p style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>celebration</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)' }}>celebration</span>
                   Feriados em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}:
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     {Object.entries(holidays)
                       .filter(([date]) => date.startsWith(displayMonth.toISOString().slice(0, 7)))
                       .map(([date, name]) => (
-                      <span key={date} className="dash-micro-badge" style={{ fontSize: '0.7rem', padding: '6px 12px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', fontWeight: 700 }}>
+                      <span key={date} className="dash-micro-badge" style={{ fontSize: '0.7rem', padding: '6px 12px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
                         {date.split('-').reverse()[0]}/{date.split('-')[1]} - {name}
                       </span>
                     ))}
@@ -779,7 +780,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             {(eventos || []).some(ev => (ev.dataInicio || ev.inicio || '').startsWith(displayMonth.toISOString().slice(0, 7))) && (
               <div>
                 <p style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>event</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)' }}>event</span>
                   Reuniões / Eventos em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}:
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
@@ -827,7 +828,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                           background: style.bg, 
                           color: style.color, 
                           border: `1px solid ${style.border}`, 
-                          borderRadius: '12px', 
+                          borderRadius: 'var(--radius-md)', 
                           fontWeight: 700 
                         }}>
                           {date}/{month} - {title}

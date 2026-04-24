@@ -1,0 +1,80 @@
+const fs = require('fs');
+const path = require('path');
+
+const jsDir = path.join(__dirname, '..', 'public', 'js');
+const files = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'));
+
+const map = {
+    'ÁÂ£': 'ã',
+    'ÁÂ¡': 'á',
+    'ÁÂ©': 'é',
+    'ÁÂ³': 'ó',
+    'ÁÂº': 'ú',
+    'ÁÂ§': 'ç',
+    'ÁÂí': 'í',
+    'ÁÂµ': 'õ',
+    'ÁÂª': 'ê',
+    'ÁÂ´': 'ô',
+    'ÃƒÂ§': 'ç',
+    'ÃƒÂ£': 'ã',
+    'ÃƒÂ¡': 'á',
+    'ÃƒÂ©': 'é',
+    'ÃƒÂ³': 'ó',
+    'ÃƒÂº': 'ú',
+    'ÃƒÂ*': 'í',
+    'ÃƒÂµ': 'õ',
+    'ÃƒÂª': 'ê',
+    'ÃƒÂ´': 'ô',
+    'Ã§': 'ç',
+    'Ã£': 'ã',
+    'Ã¡': 'á',
+    'Ã©': 'é',
+    'Ã³': 'ó',
+    'Ãº': 'ú',
+    'Ã*': 'í',
+    'Ãµ': 'õ',
+    'Ãª': 'ê',
+    'Ã´': 'ô',
+    'Ã€': 'À',
+    'Ã ': 'à',
+    'Ã ': 'Á',
+    'Ãƒ': 'Ã',
+    'Ã‰': 'É',
+    'Ã“': 'Ó',
+    'Ãš': 'Ú',
+    'Ã‡': 'Ç',
+    'Â°': '°',
+    'Ã¬': 'í'
+};
+
+files.forEach(file => {
+    const filePath = path.join(jsDir, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+    
+    const sortedKeys = Object.keys(map).sort((a, b) => b.length - a.length);
+    
+    sortedKeys.forEach(key => {
+        const regex = new RegExp(key, 'g');
+        content = content.replace(regex, map[key]);
+    });
+    
+    // Final fixes for common words
+    content = content.replace(/nã£o/g, 'não')
+                     .replace(/usuã¡rio/g, 'usuário')
+                     .replace(/Solicitação/g, 'Solicitação')
+                     .replace(/Atenção/g, 'Atenção')
+                     .replace(/Crítica/g, 'Crítica')
+                     .replace(/Média/g, 'Média');
+
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`Deep cleaned ${file}`);
+});
+
+const cssPath = path.join(__dirname, '..', 'public', 'styles.css');
+let cssContent = fs.readFileSync(cssPath, 'utf8');
+Object.keys(map).sort((a, b) => b.length - a.length).forEach(key => {
+    const regex = new RegExp(key, 'g');
+    cssContent = cssContent.replace(regex, map[key]);
+});
+fs.writeFileSync(cssPath, cssContent, 'utf8');
+console.log(`Deep cleaned styles.css`);

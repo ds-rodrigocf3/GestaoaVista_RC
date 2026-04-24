@@ -482,13 +482,13 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     }
 
     return (
-      <div className="gantt-container" style={{ marginTop: '20px', background: 'var(--panel-strong)', borderRadius: '16px', padding: '24px', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+      <div className="gantt-container" style={{ marginTop: '20px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', padding: '24px', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)', maxWidth: '100%', overflowX: 'hidden' }}>
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>calendar_today</span>
             <input type="date" className="monday-date-input" value={ganttBaseDate} onChange={e => setGanttBaseDate(e.target.value)} title="Data de início" style={{ border: 'none', background: 'transparent', color: 'var(--title)', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', padding: '6px 12px', borderRadius: '10px', border: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>aspect_ratio</span>
             <select className="monday-select" value={ganttScale} onChange={e => setGanttScale(e.target.value)} style={{ border: 'none', background: 'transparent', color: 'var(--title)', outline: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
               <option value="week">Semana (7 dias)</option>
@@ -497,7 +497,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
             </select>
           </div>
           {selectedDemandaId && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(51,204,204,.12)', padding: '6px 14px', borderRadius: '20px', fontSize: '.8rem', color: 'var(--primary)', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(51,204,204,.12)', padding: '6px 14px', borderRadius: 'var(--radius-lg)', fontSize: '.8rem', color: 'var(--primary)', fontWeight: 700 }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>filter_alt</span>
               Filtrando por demanda
               <span style={{ cursor: 'pointer', marginLeft: '6px', opacity: 0.7 }} onClick={() => setSelectedDemandaId(null)} title="Limpar filtro">✕</span>
@@ -515,85 +515,87 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--line)', background: 'var(--surface)' }}>
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '12px 0', minWidth: 'min-content', background: 'var(--panel-strong)' }}>
-            <div style={{ minWidth: '240px', width: '240px', fontWeight: 800, position: 'sticky', left: 0, background: 'var(--panel-strong)', zIndex: 10, paddingLeft: '16px', color: 'var(--title)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tarefas</div>
-            {days.map((d, i) => (
-              <div key={i} className={`gantt-day-header ${ganttScale === 'quarter' ? 'rotated' : ''}`} style={{ minWidth: `${colWidth}px`, width: `${colWidth}px`, textAlign: 'center', fontSize: '10px', color: 'var(--muted)', fontWeight: 700, borderLeft: i % 7 === 0 && ganttScale !== 'week' ? '1px solid var(--line)' : 'none' }}>
-                {d.getDate()}/{d.getMonth() + 1}
-              </div>
-            ))}
-          </div>
-          {filteredTasks.length === 0 && <div className="empty-state" style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Sem tarefas correspondentes aos filtros.</div>}
-          <div style={{ padding: '8px 0' }}>
-            {filteredTasks.map(t => {
-              const employee = dbEmployees?.find(e => e.id === t.ownerId) || dbEmployees?.[0] || {};
-              let offsetDays = 0;
-              let lengthDays = 0;
-              let isVisible = false;
-
-              if (t.startDate && t.endDate) {
-                const startObj = new Date(t.startDate + 'T12:00:00');
-                const endObj = new Date(t.endDate + 'T12:00:00');
-                offsetDays = Math.floor((startObj - baseDateObj) / (1000 * 60 * 60 * 24));
-                lengthDays = Math.floor((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
-
-                const visualLeft = Math.max(0, offsetDays) * colWidth;
-                const endOffset = offsetDays + lengthDays;
-                const visualEnd = Math.min(daysCount, endOffset);
-                const visualStart = Math.max(0, offsetDays);
-                const visualWidth = Math.max(0, (visualEnd - visualStart) * colWidth);
-
-                if (visualWidth > 0 && offsetDays < daysCount && endOffset > 0) {
-                  isVisible = { left: visualLeft, width: visualWidth };
-                }
-              }
-
-              return (
-                <div key={t.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--line)', padding: '8px 0' }}>
-                  <div style={{ 
-                    minWidth: '240px', 
-                    width: '240px', 
-                    fontSize: '0.8rem', 
-                    fontWeight: 500, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px', 
-                    position: 'sticky', 
-                    left: 0, 
-                    background: 'var(--surface)', 
-                    zIndex: 10, 
-                    padding: '8px 16px', 
-                    color: 'var(--title)',
-                    lineHeight: '1.2',
-                    whiteSpace: 'normal',
-                    overflowWrap: 'break-word',
-                    borderRight: '1px solid var(--line)'
-                  }}>
-                    {employee.AvatarUrl || employee.avatarUrl ? <img src={employee.AvatarUrl || employee.avatarUrl} loading="lazy" style={{ width: '24px', height: '24px', borderRadius: '8px', flexShrink: 0, objectFit: 'cover', border: '1px solid var(--line)' }} alt="Avatar" /> : <div style={{ width: '24px', height: '24px', borderRadius: '8px', flexShrink: 0, background: employee.color || '#ccc', border: '1px solid var(--line)' }} />}
-                    <span style={{ flex: 1 }}>{t.title || 'Sem título'}</span>
-                  </div>
-                  <div style={{ display: 'flex', position: 'relative', height: '24px', flex: 1, minWidth: `${daysCount * colWidth}px` }}>
-                    {isVisible && (
-                      <div style={{
-                        position: 'absolute',
-                        left: `${isVisible.left}px`,
-                        width: `${isVisible.width}px`,
-                        height: '14px',
-                        background: STATUS_COLORS[t.status] || 'var(--primary)',
-                        borderRadius: '10px',
-                        top: '5px',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }} title={`${t.title} (${t.status}): ${t.startDate} a ${t.endDate}`}>
-                      </div>
-                    )}
-                  </div>
+        <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', width: '100%' }}>
+          <div style={{ minWidth: 'min-content' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '12px 0', background: 'var(--panel-strong)' }}>
+              <div style={{ minWidth: '240px', width: '240px', fontWeight: 800, position: 'sticky', left: 0, background: 'var(--panel-strong)', zIndex: 10, paddingLeft: '16px', color: 'var(--title)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tarefas</div>
+              {days.map((d, i) => (
+                <div key={i} className={`gantt-day-header ${ganttScale === 'quarter' ? 'rotated' : ''}`} style={{ minWidth: `${colWidth}px`, width: `${colWidth}px`, textAlign: 'center', fontSize: '10px', color: 'var(--muted)', fontWeight: 700, borderLeft: i % 7 === 0 && ganttScale !== 'week' ? '1px solid var(--line)' : 'none' }}>
+                  {d.getDate()}/{d.getMonth() + 1}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+            {filteredTasks.length === 0 && <div className="empty-state" style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Sem tarefas correspondentes aos filtros.</div>}
+            <div style={{ padding: '8px 0' }}>
+              {filteredTasks.map(t => {
+                const employee = dbEmployees?.find(e => e.id === t.ownerId) || dbEmployees?.[0] || {};
+                let offsetDays = 0;
+                let lengthDays = 0;
+                let isVisible = false;
+
+                if (t.startDate && t.endDate) {
+                  const startObj = new Date(t.startDate + 'T12:00:00');
+                  const endObj = new Date(t.endDate + 'T12:00:00');
+                  offsetDays = Math.floor((startObj - baseDateObj) / (1000 * 60 * 60 * 24));
+                  lengthDays = Math.floor((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
+
+                  const visualLeft = Math.max(0, offsetDays) * colWidth;
+                  const endOffset = offsetDays + lengthDays;
+                  const visualEnd = Math.min(daysCount, endOffset);
+                  const visualStart = Math.max(0, offsetDays);
+                  const visualWidth = Math.max(0, (visualEnd - visualStart) * colWidth);
+
+                  if (visualWidth > 0 && offsetDays < daysCount && endOffset > 0) {
+                    isVisible = { left: visualLeft, width: visualWidth };
+                  }
+                }
+
+                return (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--line)', padding: '8px 0' }}>
+                    <div style={{ 
+                      minWidth: '240px', 
+                      width: '240px', 
+                      fontSize: '0.8rem', 
+                      fontWeight: 500, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '10px', 
+                      position: 'sticky', 
+                      left: 0, 
+                      background: 'var(--surface)', 
+                      zIndex: 10, 
+                      padding: '8px 16px', 
+                      color: 'var(--title)',
+                      lineHeight: '1.2',
+                      whiteSpace: 'normal',
+                      overflowWrap: 'break-word',
+                      borderRight: '1px solid var(--line)'
+                    }}>
+                      {employee.AvatarUrl || employee.avatarUrl ? <img src={employee.AvatarUrl || employee.avatarUrl} loading="lazy" style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', flexShrink: 0, objectFit: 'cover', border: '1px solid var(--line)' }} alt="Avatar" /> : <div style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', flexShrink: 0, background: employee.color || '#ccc', border: '1px solid var(--line)' }} />}
+                      <span style={{ flex: 1 }}>{t.title || 'Sem título'}</span>
+                    </div>
+                    <div style={{ display: 'flex', position: 'relative', height: '24px', flex: 1, minWidth: `${daysCount * colWidth}px` }}>
+                      {isVisible && (
+                        <div style={{
+                          position: 'absolute',
+                          left: `${isVisible.left}px`,
+                          width: `${isVisible.width}px`,
+                          height: '14px',
+                          background: STATUS_COLORS[t.status] || 'var(--primary)',
+                          borderRadius: 'var(--radius-sm)',
+                          top: '5px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }} title={`${t.title} (${t.status}): ${t.startDate} a ${t.endDate}`}>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -627,7 +629,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       fontWeight: 700, 
       fontSize: '.75rem', 
       border: 'none', 
-      borderRadius: '20px', 
+      borderRadius: 'var(--radius-lg)', 
       padding: '6px 12px', 
       cursor: 'pointer', 
       textAlign: 'center', 
@@ -672,7 +674,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   value={demandaModal.titulo} 
                   onChange={e => setDemandaModal({ ...demandaModal, titulo: e.target.value })} 
                   placeholder="Ex: Expansão de Infraestrutura Q4" 
-                  style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: '12px', border: '1px solid var(--line)', padding: '10px 14px' }}
+                  style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px 14px' }}
                 />
               </div>
 
@@ -682,7 +684,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   <select 
                     value={demandaModal.responsavelId || ''} 
                     onChange={e => setDemandaModal({ ...demandaModal, responsavelId: e.target.value })}
-                    style={{ flex: 1, background: 'var(--panel-strong)', borderRadius: '12px', border: '1px solid var(--line)', padding: '10px 14px' }}
+                    style={{ flex: 1, background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px 14px' }}
                   >
                     <option value="">Selecione um responsável...</option>
                     {dbEmployees?.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
@@ -690,7 +692,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   {demandaModal.responsavelId && (
                     <img
                       src={dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.name}&background=random`}
-                      style={{ width: '42px', height: '42px', borderRadius: '12px', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}
+                      style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}
                     />
                   )}
                 </div>
@@ -699,18 +701,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                 <div className="field">
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Início Planejado</label>
-                  <input type="date" value={demandaModal.inicioPlanjado} onChange={e => setDemandaModal({ ...demandaModal, inicioPlanjado: e.target.value })} style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: '12px', border: '1px solid var(--line)', padding: '10px' }} />
+                  <input type="date" value={demandaModal.inicioPlanjado} onChange={e => setDemandaModal({ ...demandaModal, inicioPlanjado: e.target.value })} style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px' }} />
                 </div>
                 <div className="field">
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Término Planejado</label>
-                  <input type="date" value={demandaModal.fimPlanejado} onChange={e => setDemandaModal({ ...demandaModal, fimPlanejado: e.target.value })} style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: '12px', border: '1px solid var(--line)', padding: '10px' }} />
+                  <input type="date" value={demandaModal.fimPlanejado} onChange={e => setDemandaModal({ ...demandaModal, fimPlanejado: e.target.value })} style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px' }} />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div className="field">
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Prioridade</label>
-                  <select value={demandaModal.prioridade || 'Média'} onChange={e => setDemandaModal({ ...demandaModal, prioridade: e.target.value })} style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: '12px', border: '1px solid var(--line)', padding: '10px' }}>
+                  <select value={demandaModal.prioridade || 'Média'} onChange={e => setDemandaModal({ ...demandaModal, prioridade: e.target.value })} style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px' }}>
                     {priorities.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
@@ -719,7 +721,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   <select 
                     value={demandaModal.status || 'Não Iniciado'} 
                     onChange={e => setDemandaModal({ ...demandaModal, status: e.target.value })} 
-                    style={{ width: '100%', borderRadius: '12px', border: '1px solid var(--line)', padding: '10px', ...statusSelectStyle(demandaModal.status || 'Não Iniciado') }}
+                    style={{ width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px', ...statusSelectStyle(demandaModal.status || 'Não Iniciado') }}
                   >
                     {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -733,7 +735,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   <div className="field" style={{ marginBottom: '20px', animation: 'fadeIn 0.3s ease' }}>
                     <label style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Justificativa da Alteração (Obrigatório)</label>
                     <textarea
-                      style={{ minHeight: '60px', borderColor: 'var(--warning)', background: 'var(--panel-strong)', borderRadius: '12px', width: '100%', padding: '10px 14px', fontSize: '0.9rem' }}
+                      style={{ minHeight: '60px', borderColor: 'var(--warning)', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', width: '100%', padding: '10px 14px', fontSize: '0.9rem' }}
                       placeholder="Descreva o motivo da mudança estratégica de responsável ou prazos..."
                       value={demandaModal.justificativa}
                       onChange={e => setDemandaModal({ ...demandaModal, justificativa: e.target.value })}
@@ -742,7 +744,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '20px', justifyContent: 'flex-end', borderTop: '1px solid var(--line)' }}>
-                <button className="btn-secondary" onClick={() => setDemandaModal(null)} style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: 600 }}>Cancelar</button>
+                <button className="btn-secondary" onClick={() => setDemandaModal(null)} style={{ padding: '10px 24px', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>Cancelar</button>
                 <button
                   className="btn-primary"
                   onClick={() => {
@@ -755,7 +757,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     }
                     saveDemanda(demandaModal);
                   }}
-                  style={{ padding: '10px 32px', borderRadius: '12px', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff', boxShadow: '0 4px 12px rgba(51, 204, 204, 0.2)' }}
+                  style={{ padding: '10px 32px', borderRadius: 'var(--radius-md)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff', boxShadow: '0 4px 12px rgba(51, 204, 204, 0.2)' }}
                 >
                   {demandaModal.id ? 'Salvar Alterações' : 'Criar Demanda'}
                 </button>
@@ -780,19 +782,19 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
               value={statusComment}
               onChange={e => setStatusComment(e.target.value)}
               placeholder="Ex: Aguardando aprovação técnica final ou retorno do cliente..."
-              style={{ width: '100%', minHeight: '120px', marginBottom: '28px', background: 'var(--panel-strong)', borderRadius: '16px', border: '1px solid var(--line)', padding: '16px' }}
+              style={{ width: '100%', minHeight: '120px', marginBottom: '28px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', padding: '16px' }}
             />
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '12px 24px', borderRadius: '14px', fontWeight: 600 }}>Voltar</button>
-              <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '12px 32px', borderRadius: '14px', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff', boxShadow: '0 8px 20px rgba(51, 204, 204, 0.3)' }}>Confirmar Mudança</button>
+              <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>Voltar</button>
+              <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '12px 32px', borderRadius: 'var(--radius-md)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff', boxShadow: '0 8px 20px rgba(51, 204, 204, 0.3)' }}>Confirmar Mudança</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="glass-card" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', marginBottom: '32px', padding: '20px 28px', borderRadius: '24px', position: 'relative', zIndex: 10 }}>
+      <div className="glass-card" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', marginBottom: '32px', padding: '20px 28px', borderRadius: 'var(--radius-xl)', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-           <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(51,204,204,0.1)', color: 'var(--primary)', display: 'grid', placeItems: 'center' }}>
+           <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(51,204,204,0.1)', color: 'var(--primary)', display: 'grid', placeItems: 'center' }}>
               <span className="material-symbols-outlined">filter_list</span>
            </div>
            <div>
@@ -803,7 +805,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
 
         <div className="desktop-only" style={{ height: '32px', width: '1px', background: 'var(--glass-border)' }}></div>
 
-        <div className="segmented-control glass" style={{ display: 'flex', padding: '4px', borderRadius: '12px' }}>
+        <div className="segmented-control glass" style={{ display: 'flex', padding: '4px', borderRadius: 'var(--radius-md)' }}>
           <button 
              className={`dash-micro-badge ${!showGantt ? 'glass active' : ''}`} 
              onClick={() => setShowGantt(false)}
@@ -852,7 +854,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           <button
             className="dash-micro-badge glass"
             onClick={() => { setLocalDemandaStatusFilter(''); setDemandaResponsibleFilter(''); }}
-            style={{ borderRadius: '12px', padding: '8px 16px', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer' }}
+            style={{ borderRadius: 'var(--radius-md)', padding: '8px 16px', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_alt_off</span>
             <span>Limpar</span>
@@ -861,13 +863,13 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       </div>
 
 
-      <div className="glass-card" style={{ marginBottom: '24px', padding: '24px', borderRadius: '24px' }}>
+      <div className="glass-card" style={{ marginBottom: '24px', padding: '24px', borderRadius: 'var(--radius-xl)' }}>
         <div className="section-title" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>list_alt</span>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Demandas em Foco</h3>
           </div>
-          <button className="dash-micro-badge glass" onClick={onAddDemanda} style={{ cursor: 'pointer', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem' }}>
+          <button className="dash-micro-badge glass" onClick={onAddDemanda} style={{ cursor: 'pointer', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '8px 16px', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>folder_add</span>
             <span style={{ fontWeight: 700 }}>Nova Demanda</span>
           </button>
@@ -965,7 +967,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="mini-progress-track" style={{ flex: 1, height: '6px', background: 'var(--line)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div className="mini-progress-track" style={{ flex: 1, height: '6px', background: 'var(--line)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
                           <div className="mini-progress-fill" style={{ width: `${progressPct}%`, height: '100%', background: progressPct === 100 ? '#10b981' : 'var(--primary)', transition: 'width 0.5s ease' }}></div>
                         </div>
                         <span style={{ fontSize: '.75rem', fontWeight: 800, minWidth: '35px' }}>{progressPct}%</span>
@@ -977,7 +979,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                         value={dStatus}
                         onChange={e => { e.stopPropagation(); handleDemandaStatusChange(d, e.target.value); }}
                         onClick={e => e.stopPropagation()}
-                        style={{ ...statusSelectStyle(dStatus), fontSize: '.72rem', borderRadius: '20px', padding: '4px 12px', width: '100%' }}
+                        style={{ ...statusSelectStyle(dStatus), fontSize: '.72rem', borderRadius: 'var(--radius-lg)', padding: '4px 12px', width: '100%' }}
                       >
                         {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -1001,7 +1003,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
 
 
       {/* Barra de filtros locais do módulo de TAREFAS */}
-      <div className="glass-card" style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px', padding: '16px 24px', borderRadius: '20px', position: 'relative', zIndex: 10 }}>
+      <div className="glass-card tasks-filter-bar" style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px', padding: '16px 24px', borderRadius: 'var(--radius-lg)', position: 'relative', zIndex: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
            <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>task_alt</span>
            <span style={{ fontSize: '.85rem', fontWeight: 700 }}>Tarefas</span>
@@ -1039,7 +1041,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           <button
             className="dash-micro-badge glass"
             onClick={() => { setTaskStatusFilter(''); setTaskResponsibleFilter(''); }}
-            style={{ height: '32px', borderRadius: '10px', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', padding: '0 12px' }}
+            style={{ height: '32px', borderRadius: 'var(--radius-sm)', border: '1px solid #ef4444', color: '#ef4444', cursor: 'pointer', padding: '0 12px' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_alt_off</span>
           </button>
@@ -1047,13 +1049,13 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       </div>
 
       {showGantt ? renderGantt() : (
-        <div className="glass-card" style={{ padding: '24px', borderRadius: '24px', marginBottom: '24px' }}>
+        <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-xl)', marginBottom: '24px' }}>
           <div className="section-title" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>view_list</span>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Lista de Entregas</h3>
             </div>
-            <button className="dash-micro-badge glass" onClick={() => onAddTask('Não Iniciado')} style={{ cursor: 'pointer', background: 'var(--primary)', color: 'var(--primary-txt)', padding: '8px 16px', borderRadius: '12px', border: 'none', fontSize: '0.85rem' }}>
+            <button className="dash-micro-badge glass" onClick={() => onAddTask('Não Iniciado')} style={{ cursor: 'pointer', background: 'var(--primary)', color: 'var(--primary-txt)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: '0.85rem' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_task</span>
               <span style={{ fontWeight: 700 }}>Nova Tarefa</span>
             </button>
@@ -1099,7 +1101,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                             value={task.demandaId || ''}
                             onChange={e => updateTask(task.id, 'demandaId', e.target.value ? Number(e.target.value) : null)}
                             className="glass"
-                            style={{ width: '100%', border: '1px solid var(--glass-border)', borderRadius: '8px', fontSize: '.75rem', padding: '6px', background: 'transparent', color: 'var(--title)' }}
+                            style={{ width: '100%', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', fontSize: '.75rem', padding: '6px', background: 'transparent', color: 'var(--title)' }}
                           >
                             <option value="">Sem demanda</option>
                             {(demandas || []).map(d => <option key={d.Id || d.id} value={d.Id || d.id}>{d.Titulo || d.titulo}</option>)}
@@ -1112,7 +1114,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                               value={task.ownerId}
                               onChange={(e) => updateTask(task.id, 'ownerId', Number(e.target.value))}
                               className="glass"
-                              style={{ flex: 1, border: '1px solid var(--glass-border)', borderRadius: '8px', fontSize: '.7rem', padding: '4px', background: 'transparent', color: 'var(--title)' }}
+                              style={{ flex: 1, border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', fontSize: '.7rem', padding: '4px', background: 'transparent', color: 'var(--title)' }}
                             >
                               {dbEmployees?.map(e => (
                                 <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>
@@ -1146,7 +1148,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                                   display: 'flex', 
                                   alignItems: 'center', 
                                   justifyContent: 'center', 
-                                  borderRadius: '20px', 
+                                  borderRadius: 'var(--radius-lg)', 
                                   fontSize: '0.72rem', 
                                   fontWeight: 700,
                                   whiteSpace: 'nowrap',
@@ -1208,7 +1210,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           </div>
           {/* Legenda de Status Estratégica */}
           {Object.values(taskColWidths).some(w => w < 95) && (
-            <div className="status-legend" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '20px', padding: '14px 20px', borderRadius: '14px', background: 'var(--panel-strong)', border: '1px solid var(--line)', animation: 'fadeIn 0.3s ease' }}>
+            <div className="status-legend" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '20px', padding: '14px 20px', borderRadius: 'var(--radius-md)', background: 'var(--panel-strong)', border: '1px solid var(--line)', animation: 'fadeIn 0.3s ease' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', marginRight: '8px', display: 'flex', alignItems: 'center' }}>Legenda de Status:</div>
               {Object.entries(STATUS_INITIALS).map(([full, init]) => (
                 <div key={init} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1240,13 +1242,13 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   value={statusComment}
                   onChange={e => setStatusComment(e.target.value)}
                   placeholder="Ex: Aguardando aprovação técnica final..."
-                  style={{ width: '100%', minHeight: '100px', background: 'var(--panel-strong)', borderRadius: '12px', border: '1px solid var(--line)', padding: '12px', fontSize: '0.9rem' }}
+                  style={{ width: '100%', minHeight: '100px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '12px', fontSize: '0.9rem' }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
-                <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 600 }}>Voltar</button>
-                <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '10px 28px', borderRadius: '10px', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff' }}>Confirmar</button>
+                <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '10px 20px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>Voltar</button>
+                <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '10px 28px', borderRadius: 'var(--radius-sm)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff' }}>Confirmar</button>
               </div>
             </div>
           </div>

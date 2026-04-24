@@ -172,7 +172,7 @@ function SearchableSelect({ options, value, onChange, placeholder = "Selecione..
         value={isOpen ? search : ''}
         onFocus={() => { setIsOpen(true); setSearch(''); }}
         onChange={(e) => setSearch(e.target.value)}
-        style={{ width: '100%', height: '42px', borderRadius: '10px', border: '1px solid var(--line)', padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem' }}
+        style={{ width: '100%', height: '42px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem' }}
       />
       {isOpen && (
         <div className="searchable-select-dropdown" style={{ 
@@ -183,7 +183,7 @@ function SearchableSelect({ options, value, onChange, placeholder = "Selecione..
           zIndex: 9999, 
           background: 'var(--card)', 
           border: '1px solid var(--line)', 
-          borderRadius: '12px', 
+          borderRadius: 'var(--radius-md)', 
           boxShadow: '0 10px 25px rgba(0,0,0,0.1)', 
           maxHeight: '200px', 
           overflowY: 'auto' 
@@ -257,7 +257,7 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
         className="searchable-select-input" 
         onClick={() => setIsOpen(!isOpen)}
         style={{ 
-          width: '100%', minHeight: '42px', borderRadius: '10px', border: '1px solid var(--line)', 
+          width: '100%', minHeight: '42px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', 
           padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem',
           display: 'flex', alignItems: 'center', cursor: 'pointer', justifyContent: 'space-between',
           overflow: 'hidden', boxSizing: 'border-box'
@@ -271,7 +271,7 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
         <div className="searchable-select-dropdown" style={{ 
           position: 'absolute', top: '105%', left: 0, right: 0, zIndex: 99999, 
           background: 'var(--surface)', backgroundColor: 'var(--surface)',
-          border: '1px solid var(--line)', borderRadius: '12px', 
+          border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', 
           boxShadow: '0 20px 40px rgba(0,0,0,0.4)', maxHeight: '250px', overflowY: 'auto',
           opacity: 1
         }}>
@@ -282,7 +282,7 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
               placeholder="Buscar áreas..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--bg)' }}
+              style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--bg)' }}
             />
           </div>
           <div style={{ padding: '4px 0' }}>

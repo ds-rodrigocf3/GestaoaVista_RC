@@ -500,10 +500,16 @@ button {
 .topbar-header {
   display: none;
   align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  margin-bottom: 16px;
+  gap: 16px;
+  padding: 16px 24px;
+  margin: -12px -12px 20px -12px;
   border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
 /* Título inline no mobile (ao lado do hamburger) */
@@ -527,7 +533,7 @@ button {
     position: fixed;
     left: -280px;
     width: 280px;
-    z-index: 1000;
+    z-index: 1100;
   }
   .sidebar.open {
     left: 0;
@@ -2975,7 +2981,7 @@ button {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
-  z-index: 9990;
+  z-index: 1050;
   backdrop-filter: blur(2px);
   animation: fadeIn 0.2s ease;
 }
@@ -4742,7 +4748,7 @@ select:focus, input:focus, textarea:focus {
     left: 0;
     width: 280px;
     height: 100vh;
-    z-index: 1000;
+    z-index: 1100;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 5px 0 15px rgba(0,0,0,0.1);
@@ -4893,7 +4899,7 @@ html, body, #root, .app-shell, .app-container {
     left: 0 !important;
     width: 280px !important;
     height: 100vh !important;
-    z-index: 1000 !important;
+    z-index: 1100 !important;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 5px 0 15px rgba(0,0,0,0.1) !important;
@@ -4934,14 +4940,14 @@ html, body, #root, .app-shell, .app-container {
 
   .app-shell {
     display: grid !important;
-    grid-template-columns: 280px 1fr !important;
+    grid-template-columns: 280px minmax(0, 1fr) !important;
     height: 100vh !important;
     overflow: hidden !important;
     transition: grid-template-columns 0.3s ease !important;
   }
 
   .app-shell.collapsed {
-    grid-template-columns: 80px 1fr !important;
+    grid-template-columns: 80px minmax(0, 1fr) !important;
   }
 
   .sidebar {
@@ -4959,7 +4965,7 @@ html, body, #root, .app-shell, .app-container {
     overflow-x: hidden !important;
     padding: 32px 0 !important; 
     display: grid !important;
-    grid-template-columns: minmax(32px, 1fr) minmax(auto, 1440px) minmax(32px, 1fr) !important;
+    grid-template-columns: minmax(32px, 1fr) minmax(0, 1440px) minmax(32px, 1fr) !important;
     align-content: start !important;
   }
 
@@ -5352,3 +5358,210 @@ html:not([data-theme="dark"]) .admin-table td {
     top: auto;
   }
 }
+
+/* Responsive Adjustments for Small Screens */
+@media (max-width: 480px) {
+  .glass-card {
+    padding: 16px !important;
+  }
+  .dash-360-header {
+    gap: 8px !important;
+  }
+  .stats-summary-bar {
+    padding: 16px !important;
+  }
+}
+
+:root {
+  --cal-icon-size: clamp(18px, 4vw, 24px);
+}
+
+/* =====================================================
+   ESTILO RESPONSIVO - PADRONIZAÇÃO (SENIOR UX)
+   ===================================================== */
+@media (max-width: 768px) {
+  :root {
+    --radius-xl: 16px !important;
+    --radius-lg: 12px !important;
+    --radius-md: 10px !important;
+    --radius-sm: 8px !important;
+  }
+
+  .main-content, .main {
+    padding: 12px !important;
+  }
+
+  .glass-card {
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+    border-radius: var(--radius-xl) !important;
+  }
+
+  /* Garante que elementos internos respeitem o novo raio */
+  .glass-card > div {
+    border-radius: inherit;
+  }
+
+  .section-title {
+    margin-bottom: 16px !important;
+    gap: 12px !important;
+  }
+
+  .section-title h2, .section-title h3 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Espaçamentos simétricos entre blocos */
+  .dashboard-grid, .form-grid, .form-grid-layout, .content-grid, .scale-layout-grid, .scale-layout-grid > div {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Ajuste de inputs para mobile */
+  select, input, button {
+    padding: 10px 12px !important;
+    font-size: 0.9rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  /* Dashboard & Component Specific Mobile Fixes */
+  .dash-kpi-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 0 !important;
+  }
+
+  .dash-kpi-card {
+    flex-direction: row !important;
+    padding: 12px 20px !important;
+    min-height: 60px !important;
+    gap: 16px !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+  }
+
+  .dash-kpi-card > div:last-child {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+
+  .dash-kpi-card > div:last-child > div:first-child {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px;
+  }
+
+  .dash-kpi-card > div:last-child > div:last-child {
+    font-size: 1.2rem !important;
+    line-height: 1 !important;
+  }
+
+  .calendar-stats-strip {
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+
+  .calendar-stats-strip > div {
+    border-right: none !important;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px !important;
+    width: 100% !important;
+  }
+
+  .calendar-stats-strip > div:last-child {
+    border-bottom: none !important;
+  }
+
+  .dash-360-filters-bar,
+  .tasks-filter-bar,
+  .events-quick-filters {
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+
+  .dash-360-filters-bar label {
+    margin-bottom: 8px !important;
+  }
+
+  .dash-360-filters-bar > div:first-child > div {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .dash-360-filters-bar button {
+    width: 100% !important;
+    padding: 8px 4px !important;
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .dash-360-filters-bar > div:nth-child(2),
+  .tasks-filter-bar > div:nth-child(2),
+  .tasks-filter-bar > div:nth-child(4),
+  .events-quick-filters > div:nth-child(3) {
+    display: none !important;
+  }
+
+  .dash-360-filters-bar > div,
+  .tasks-filter-bar > div,
+  .events-quick-filters > div {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .events-filter-buttons {
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    padding-bottom: 8px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .events-filter-buttons button {
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Global overflow containment */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.dashboard-container, .main-content {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  min-width: 0 !important;
+}
+
+/* Ensure all glass-cards respect their container */
+.glass-card {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Allow internal scrolling only where explicitly needed */
+.horizontal-scroll-container,
+.requests-table-container,
+.tasks-table-container,
+.gantt-container {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gantt-container { 
+  min-width: 0 !important;
+}
+

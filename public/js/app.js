@@ -445,14 +445,14 @@ function App() {
               </button>
             ))}
           </nav>
-          <button onClick={() => setIsDark(d => !d)} className="theme-toggle-btn" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 16px', margin: '12px 0 4px', background: isDark ? 'rgba(51,204,204,0.08)' : 'rgba(0,0,0,0.04)', border: '1px solid var(--line)', borderRadius: '12px', color: 'var(--text)', cursor: 'pointer', fontSize: '.84rem', fontWeight: 600 }}>
+          <button onClick={() => setIsDark(d => !d)} className="theme-toggle-btn" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 16px', margin: '12px 0 4px', background: isDark ? 'rgba(51,204,204,0.08)' : 'rgba(0,0,0,0.04)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', color: 'var(--text)', cursor: 'pointer', fontSize: '.84rem', fontWeight: 600 }}>
             <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
             <span className="sidebar-text">{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
           </button>
           <div className="sidebar-user-area" style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
             <div className="user-badge" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
                <div className="user-badge-content">
-                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{ (currentUser.name || currentUser.nome || 'A').charAt(0) }</div>}
+                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{ (currentUser.name || currentUser.nome || 'A').charAt(0) }</div>}
                  <div className="user-badge-info"><div className="user-badge-name">{(() => { const n = (currentUser.name || currentUser.nome || "").trim(); const parts = n.split(" ").filter(Boolean); return parts.length > 2 ? `${parts[0]} ${parts[parts.length - 1]}` : n; })()}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.cargoNome || currentUser.cargo || 'Usuário')}</div></div>
                </div>
             </div>

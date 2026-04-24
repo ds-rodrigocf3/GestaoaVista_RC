@@ -164,7 +164,7 @@ function SettingsModal({
 
   return (
     <div className="settings-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="settings-modal" style={{ maxWidth: '1000px', width: '97%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: '16px' }}>
+      <div className="settings-modal" style={{ maxWidth: '1000px', width: '97%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', borderRadius: 'var(--radius-lg)' }}>
 
         {/* Header */}
         <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--line)', paddingBottom: '12px' }}>
@@ -202,7 +202,7 @@ function SettingsModal({
 
         {/* Content */}
         <div className="settings-modal-inner" style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-          {msg && <div style={{ marginBottom: '12px', padding: '8px 14px', background: 'rgba(51,204,204,.1)', border: '1px solid rgba(51,204,204,.3)', borderRadius: '8px', fontSize: '.85rem', color: 'var(--primary)', fontWeight: 600 }}>{msg}</div>}
+          {msg && <div style={{ marginBottom: '12px', padding: '8px 14px', background: 'rgba(51,204,204,.1)', border: '1px solid rgba(51,204,204,.3)', borderRadius: 'var(--radius-sm)', fontSize: '.85rem', color: 'var(--primary)', fontWeight: 600 }}>{msg}</div>}
 
           {/* ===== PERFIL ===== */}
           {tab === 'perfil' && (
@@ -215,7 +215,7 @@ function SettingsModal({
                 <button className="btn btn-primary" onClick={salvarPerfil}>Atualizar Foto</button>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <img src={previewUrl || 'https://ui-avatars.com/api/?name=U&background=33CCCC&color=fff'} loading="lazy" style={{ width: '100px', height: '100px', borderRadius: '12px', objectFit: 'cover', border: '2px solid var(--line)' }} />
+                <img src={previewUrl || 'https://ui-avatars.com/api/?name=U&background=33CCCC&color=fff'} loading="lazy" style={{ width: '100px', height: '100px', borderRadius: 'var(--radius-md)', objectFit: 'cover', border: '2px solid var(--line)' }} />
               </div>
             </div>
           )}
@@ -292,7 +292,7 @@ function SettingsModal({
                       return (
                         <tr key={c.id} style={{ opacity: c.ativo === false ? 0.5 : 1 }}>
                           <td style={{ fontWeight: 600 }}>{c.name}</td>
-                          <td><span style={{ background: 'rgba(51,204,204,.12)', color: 'var(--primary)', borderRadius: '10px', padding: '1px 7px', fontSize: '.75rem', fontWeight: 700 }}>N{c.nivelHierarquia || '?'}</span></td>
+                          <td><span style={{ background: 'rgba(51,204,204,.12)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '1px 7px', fontSize: '.75rem', fontWeight: 700 }}>N{c.nivelHierarquia || '?'}</span></td>
                           <td style={{ fontSize: '.8rem', color: 'var(--muted)' }}>{c.areaNome || '—'}</td>
                           <td style={{ fontSize: '.8rem' }}>{gestor ? gestor.name : <span style={{ color: 'var(--muted)' }}>— Topo</span>}</td>
                           <td><span style={{ fontSize: '.75rem', fontWeight: 600, color: c.ativo !== false ? '#10b981' : '#ef4444' }}>{c.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
@@ -326,7 +326,7 @@ function SettingsModal({
                       <label style={labelStyle}>Cor de Identificação</label>
                       <input type="color" value={formArea.cor || '#33CCCC'} onChange={e => setFormArea(p => ({ ...p, cor: e.target.value }))} style={{ width: '100%', height: '36px', borderRadius: '6px', cursor: 'pointer', border: '1px solid var(--line)' }} />
                     </div>
-                    <div style={{ padding: '8px 14px', borderRadius: '8px', background: formArea.cor || '#33CCCC', color: '#fff', fontSize: '.75rem', fontWeight: 700, marginBottom: '1px', opacity: 0.9 }}>
+                    <div style={{ padding: '8px 14px', borderRadius: 'var(--radius-sm)', background: formArea.cor || '#33CCCC', color: '#fff', fontSize: '.75rem', fontWeight: 700, marginBottom: '1px', opacity: 0.9 }}>
                       {formArea.nome || 'Prévia'}
                     </div>
                   </div>
@@ -423,7 +423,7 @@ function SettingsModal({
                       const count = colaboradores.filter(c => String(c.nivelHierarquia) === String(h.Id || h.id)).length;
                       return (
                         <tr key={h.Id || h.id}>
-                          <td><span style={{ background: 'rgba(51,204,204,.12)', color: 'var(--primary)', borderRadius: '10px', padding: '2px 8px', fontWeight: 700, fontSize: '.8rem' }}>N{h.Id || h.id}</span></td>
+                          <td><span style={{ background: 'rgba(51,204,204,.12)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '2px 8px', fontWeight: 700, fontSize: '.8rem' }}>N{h.Id || h.id}</span></td>
                           <td style={{ fontWeight: 500 }}>{h.Descricao || h.descricao}</td>
                           <td style={{ fontSize: '.8rem', color: 'var(--muted)' }}>{count} pessoa(s)</td>
                           <td>
@@ -499,7 +499,7 @@ function SettingsModal({
           {/* ===== EVENTOS (moved to sidebar page) ===== */}
           {false && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div className="glass-card" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--line)', borderRadius: '16px' }}>
+              <div className="glass-card" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)' }}>
                 <h4 style={{ margin: '0 0 16px', fontSize: '.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{formEvento.id ? 'edit_calendar' : 'add_event'}</span>
                   {formEvento.id ? 'Editar Evento' : 'Novo Evento'}
@@ -566,7 +566,7 @@ function SettingsModal({
                 </div>
               </div>
 
-              <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid var(--line)' }}>
+              <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
                 <table className="admin-table">
                   <thead><tr><th>Evento</th><th>Tipo</th><th>Responsável</th><th>Início</th><th>Ações</th></tr></thead>
                   <tbody>

@@ -36,11 +36,19 @@ app.use(['/api/colaboradores', '/api/employees'], colaboradoresRouter); // Handl
 app.use('/api/eventos', eventosRouter);
 app.use('/api/status-tipos', statusTiposRouter);
 
-// Static Files — força charset UTF-8 para arquivos JS
+// Static Files — Enforce UTF-8 charset for all text-based assets
 app.use(express.static(path.join(__dirname, '..', 'public'), {
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    const ext = path.extname(filePath).toLowerCase();
+    const utf8Extensions = {
+      '.js': 'application/javascript',
+      '.css': 'text/css',
+      '.html': 'text/html',
+      '.json': 'application/json',
+      '.txt': 'text/plain'
+    };
+    if (utf8Extensions[ext]) {
+      res.setHeader('Content-Type', `${utf8Extensions[ext]}; charset=utf-8`);
     }
   }
 }));

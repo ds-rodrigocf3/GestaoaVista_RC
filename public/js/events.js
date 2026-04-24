@@ -25,7 +25,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   const [saving, setSaving] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState(null);
 
-  const inputStyle = { width: '100%', border: '1px solid var(--line)', borderRadius: '8px', padding: '8px 12px', fontSize: '.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box' };
+  const inputStyle = { width: '100%', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box' };
   const labelStyle = { fontSize: '.78rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' };
 
   const headers = () => apiHeaders(authToken);
@@ -202,8 +202,8 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
       {/* Quick Filters Bar */}
-      <div className="glass-card" style={{ 
-        padding: '12px 20px', borderRadius: '16px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', 
+      <div className="glass-card events-quick-filters" style={{ 
+        padding: '12px 20px', borderRadius: 'var(--radius-lg)', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', 
         background: 'var(--bg-soft)', border: '1px solid var(--line)', 
         position: 'relative', zIndex: 100, boxShadow: 'var(--shadow)' 
       }}>
@@ -212,7 +212,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
           <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filtros Rápidos:</span>
         </div>
         
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="events-filter-buttons" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
             { id: 'upcoming', label: 'Próximos' },
             { id: 'week', label: 'Esta Semana' },
@@ -225,7 +225,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
               key={p.id}
               onClick={() => setFilterPeriodo(p.id)}
               style={{ 
-                padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
                 border: '1px solid',
                 borderColor: filterPeriodo === p.id ? 'var(--primary)' : 'var(--line)',
                 background: filterPeriodo === p.id ? 'var(--primary)15' : 'transparent',
@@ -260,7 +260,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
             style={{ 
               position: 'absolute', top: '50%', right: '20px', transform: 'translateY(-50%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: '36px', height: '36px', borderRadius: '10px',
+              width: '36px', height: '36px', borderRadius: 'var(--radius-sm)',
               background: 'var(--primary)20',
               border: '1.5px solid var(--primary)50',
               boxShadow: '0 0 10px var(--primary)20'
@@ -287,7 +287,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       </div>
 
       {/* Form Card */}
-      <div className="glass-card" style={{ padding: '28px', borderRadius: '24px', border: '1px solid var(--line)' }}>
+      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
         <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
           {form.id ? 'Editar Evento' : 'Novo Evento'}
@@ -375,7 +375,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       </div>
 
       {/* Filters Bar */}
-      <div className="glass-card" style={{ padding: '24px', borderRadius: '24px', border: '1px solid var(--line)', background: 'rgba(255,255,255,0.01)' }}>
+      <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)', background: 'rgba(255,255,255,0.01)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>filter_list</span>
@@ -431,7 +431,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       </div>
 
       {/* List Container */}
-      <div className="glass-card" style={{ padding: '28px', borderRadius: '24px', border: '1px solid var(--line)' }}>
+      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>list_alt</span>
@@ -479,7 +479,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                   className="glass-card"
                   style={{
                     padding: '20px',
-                    borderRadius: '20px',
+                    borderRadius: 'var(--radius-lg)',
                     border: `1px solid var(--line)`,
                     borderLeft: `4px solid ${style.color}`,
                     opacity: isPast ? 0.75 : 1,
@@ -496,7 +496,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                       <div style={{ 
                         width: '36px', 
                         height: '36px', 
-                        borderRadius: '10px', 
+                        borderRadius: 'var(--radius-sm)', 
                         background: tipo === 'Aniversário' ? 'linear-gradient(135deg, rgba(255,51,153,0.2), rgba(255,204,0,0.2))' : style.bg, 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -530,7 +530,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                           color: isPastBadge ? 'var(--muted)' : '#fff', 
                           background: isPastBadge ? 'var(--panel-strong)' : 'var(--primary)', 
                           padding: '3px 10px', 
-                          borderRadius: '8px', 
+                          borderRadius: 'var(--radius-sm)', 
                           textTransform: 'uppercase',
                           letterSpacing: '0.04em',
                           border: isPastBadge ? '1px solid var(--line)' : 'none',

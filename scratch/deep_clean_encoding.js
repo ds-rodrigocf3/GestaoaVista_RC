@@ -1,0 +1,81 @@
+const fs = require('fs');
+const path = require('path');
+
+const jsDir = path.join(__dirname, '..', 'public', 'js');
+const files = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'));
+
+const map = {
+    'ÃƒÂ§': 'ç',
+    'ÃƒÂ£': 'ã',
+    'ÃƒÂ¡': 'á',
+    'ÃƒÂ©': 'é',
+    'ÃƒÂ³': 'ó',
+    'ÃƒÂº': 'ú',
+    'ÃƒÂ*': 'í',
+    'ÃƒÂµ': 'õ',
+    'ÃƒÂª': 'ê',
+    'ÃƒÂ´': 'ô',
+    'Ãƒâ‚¬': 'À',
+    'Ãƒâ€š': 'Â',
+    'Ãƒâ€ž': 'Ä',
+    'ÃƒÂ ': 'à',
+    'Ã§': 'ç',
+    'Ã£': 'ã',
+    'Ã¡': 'á',
+    'Ã©': 'é',
+    'Ã³': 'ó',
+    'Ãº': 'ú',
+    'Ã*': 'í',
+    'Ãµ': 'õ',
+    'Ãª': 'ê',
+    'Ã´': 'ô',
+    'Ã€': 'À',
+    'Ã ': 'à',
+    'Ã ': 'Á',
+    'Ãƒ': 'Ã',
+    'Ã‰': 'É',
+    'Ã“': 'Ó',
+    'Ãš': 'Ú',
+    'Ã‡': 'Ç',
+    'Â°': '°',
+    'Ã¬': 'í'
+};
+
+files.forEach(file => {
+    const filePath = path.join(jsDir, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+    
+    // Sort keys by length descending to avoid partial matches
+    const sortedKeys = Object.keys(map).sort((a, b) => b.length - a.length);
+    
+    sortedKeys.forEach(key => {
+        const regex = new RegExp(key, 'g');
+        content = content.replace(regex, map[key]);
+    });
+    
+    // Final sanity checks for common words
+    content = content.replace(/Solicitação/g, 'Solicitação')
+                     .replace(/Atenção/g, 'Atenção')
+                     .replace(/Crítica/g, 'Crítica')
+                     .replace(/Média/g, 'Média')
+                     .replace(/Histórico/g, 'Histórico')
+                     .replace(/Área/g, 'Área')
+                     .replace(/Gestão/g, 'Gestão')
+                     .replace(/Concluído/g, 'Concluído')
+                     .replace(/Próximas/g, 'Próximas')
+                     .replace(/Férias/g, 'Férias');
+
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`Deep cleaned ${file}`);
+});
+
+// Also clean styles.css
+const cssPath = path.join(__dirname, '..', 'public', 'styles.css');
+let cssContent = fs.readFileSync(cssPath, 'utf8');
+const sortedKeys = Object.keys(map).sort((a, b) => b.length - a.length);
+sortedKeys.forEach(key => {
+    const regex = new RegExp(key, 'g');
+    cssContent = cssContent.replace(regex, map[key]);
+});
+fs.writeFileSync(cssPath, cssContent, 'utf8');
+console.log(`Deep cleaned styles.css`);

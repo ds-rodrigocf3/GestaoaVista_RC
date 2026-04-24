@@ -459,7 +459,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                           color: isPastBadge ? 'var(--muted)' : '#fff', 
                           background: isPastBadge ? 'var(--panel-strong)' : 'var(--primary)', 
                           padding: '3px 10px', 
-                          borderRadius: '8px', 
+                          borderRadius: 'var(--radius-sm)', 
                           textTransform: 'uppercase',
                           letterSpacing: '0.04em',
                           border: isPastBadge ? '1px solid var(--line)' : 'none',
@@ -529,10 +529,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
         </div>
 
 
-        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
+        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: 'var(--radius-xl)' }}>
           <div className="section-title" style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="material-symbols-outlined" style={{ color: '#fff' }}>calendar_view_week</span>
               </div>
               <div>
@@ -545,7 +545,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           {filteredEmployees.length === 0 ? (
             <div className="empty-state">Nenhum colaborador corresponde aos filtros.</div>
           ) : (
-              <div className="requests-table-container glass" style={{ borderRadius: '16px', overflow: 'hidden', border: 'none', background: 'transparent', boxShadow: 'none' }}>
+              <div className="requests-table-container glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: 'none', background: 'transparent', boxShadow: 'none' }}>
                 <table className="custom-table" style={{ margin: 0, borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--table-header-bg)', borderBottom: '2px solid var(--line)' }}>
@@ -584,10 +584,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           )}
         </div>
 
-        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
+        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: 'var(--radius-xl)' }}>
           <div className="section-title" style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="material-symbols-outlined" style={{ color: '#fff' }}>hub</span>
               </div>
               <div>
@@ -602,13 +602,13 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
               if (!w || !w.emp) return null;
               return (
                 <div className="glass-card workload-card-premium" key={w.emp.id} style={{ 
-                  padding: '20px', borderRadius: '20px', 
+                  padding: '20px', borderRadius: 'var(--radius-lg)', 
                   display: 'flex', flexDirection: 'column', gap: '16px',
                   boxShadow: 'none', transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   border: '1px solid var(--line)', position: 'relative', overflow: 'hidden'
                 }}>
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    {w.emp.avatarUrl ? <img src={w.emp.avatarUrl} style={{ width: '52px', height: '52px', borderRadius: '14px' }} /> : <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', color: 'var(--primary-txt)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '1.2rem' }}>{w.emp.name.charAt(0)}</div>}
+                    {w.emp.avatarUrl ? <img src={w.emp.avatarUrl} style={{ width: '52px', height: '52px', borderRadius: 'var(--radius-md)' }} /> : <div style={{ width: '52px', height: '52px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', color: 'var(--primary-txt)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '1.2rem' }}>{w.emp.name.charAt(0)}</div>}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--title)', marginBottom: '4px' }}>{w.emp.name}</div>
                       <div style={{ display: 'flex', gap: '8px' }}>
@@ -635,7 +635,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                       return (
                         <div key={status} className="status-mini-pill" style={{ 
                           display: 'flex', alignItems: 'center', gap: '4px',
-                          padding: '4px 10px', borderRadius: '20px',
+                          padding: '4px 10px', borderRadius: 'var(--radius-lg)',
                           background: `${color}20`, border: `1px solid ${color}40`,
                           fontSize: '0.7rem', fontWeight: 700, color: color
                         }}>
@@ -651,10 +651,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           </div>
         </div>
 
-        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: '24px' }}>
+        <div className="glass-card" style={{ gridColumn: 'span 12', padding: '28px', borderRadius: 'var(--radius-xl)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px', flexWrap: 'wrap', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '24px' }}>analytics</span>
               </div>
               <div>
@@ -664,9 +664,9 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             </div>
 
             {/* Embedded KPIs */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="dash-kpi-wrapper" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px', flex: '1', minWidth: '200px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '18px' }}>inventory_2</span>
                 </div>
                 <div>
@@ -674,8 +674,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   <div style={{ fontSize: '1rem', fontWeight: 800 }}>{kpis.total}</div>
                 </div>
               </div>
-              <div style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px', flex: '1', minWidth: '200px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '18px' }}>task_alt</span>
                 </div>
                 <div>
@@ -683,8 +683,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{kpis.deliveryRate}%</div>
                 </div>
               </div>
-              <div style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: '12px', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px', flex: '1', minWidth: '200px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '18px' }}>verified</span>
                 </div>
                 <div>
@@ -696,7 +696,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           </div>
 
           {/* New Interactive Filters Bar */}
-          <div className="dash-360-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '24px', padding: '12px 20px', background: 'var(--panel-strong)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+          <div className="dash-360-filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '24px', padding: '12px 20px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Visualizar Status</label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -712,7 +712,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                     onClick={() => setSelectedBuckets(prev => prev.includes(b.id) ? prev.filter(x => x !== b.id) : [...prev, b.id])}
                     style={{ 
                       padding: '6px 12px', 
-                      borderRadius: '8px', 
+                      borderRadius: 'var(--radius-sm)', 
                       fontSize: '0.75rem', 
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -738,7 +738,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   value={periodFilter} 
                   onChange={e => setPeriodFilter(e.target.value)}
                   className="glass"
-                  style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', border: '1px solid var(--line)', color: 'var(--title)' }}
+                  style={{ padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', border: '1px solid var(--line)', color: 'var(--title)' }}
                 >
                   <option value="all">Todo o Período</option>
                   <option value="week">Esta Semana</option>
@@ -781,10 +781,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                 <p>Nenhuma tarefa ativa nos filtros selecionados.</p>
               </div>
             ) : grupos360.map(bucket => (
-              <div key={bucket.id} className="dash-360-col" style={{ background: 'var(--panel-strong)', padding: '16px', borderRadius: '24px', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}>
+              <div key={bucket.id} className="dash-360-col" style={{ background: 'var(--panel-strong)', padding: '16px', borderRadius: 'var(--radius-xl)', display: 'flex', flexDirection: 'column', border: '1px solid var(--line)' }}>
                 <div className="dash-360-header" style={{ 
                   padding: '12px 16px', 
-                  borderRadius: '12px', 
+                  borderRadius: 'var(--radius-md)', 
                   marginBottom: '16px', 
                   background: `${bucket.color}15`, 
                   display: 'flex', 
@@ -806,7 +806,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                     <div className="dash-360-card glass" key={bucket.id + t.id} style={{ 
                       borderLeft: `4px solid ${bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade}`, 
                       padding: '16px', 
-                      borderRadius: '16px',
+                      borderRadius: 'var(--radius-lg)',
                       opacity: bucket.id === 'concluidas' || bucket.id === 'canceladas' ? 0.75 : 1,
                       position: 'relative'
                     }}>

@@ -27,14 +27,14 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
               const level = getConflictLevel(relatedConflicts);
 
               return (
-                <div className="queue-card glass-card" key={request.id} style={{ padding: '24px', borderRadius: '20px', marginBottom: '20px' }}>
+                <div className="queue-card glass-card" key={request.id} style={{ padding: '24px', borderRadius: 'var(--radius-lg)', marginBottom: '20px' }}>
                   <div className="queue-meta" style={{ marginBottom: '20px' }}>
                     <div>
                       <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{request.employee?.name || 'Indefinido'}</h4>
                       <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{request.type} · <strong>{formatDate(request.startDate)}</strong> até <strong>{formatDate(request.endDate)}</strong></p>
                     </div>
                     <div>
-                      <span className={`dash-micro-badge glass ${getConflictClass(level)}`} style={{ padding: '8px 16px', borderRadius: '12px' }}>
+                      <span className={`dash-micro-badge glass ${getConflictClass(level)}`} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                           {level === 'Alto' ? 'error' : level === 'Médio' ? 'warning' : 'verified_user'}
                         </span>
@@ -44,18 +44,18 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                    <div className="glass" style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', border: '1px solid var(--glass-border)' }}>
+                    <div className="glass" style={{ padding: '12px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.1)', border: '1px solid var(--glass-border)' }}>
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Cobertura Planejada</label>
                       <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{request.coverage || 'Não informada'}</span>
                     </div>
-                    <div className="glass" style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(0,0,0,0.1)', border: '1px solid var(--glass-border)' }}>
+                    <div className="glass" style={{ padding: '12px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.1)', border: '1px solid var(--glass-border)' }}>
                       <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Duração</label>
                       <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{request.totalDays} dias úteis</span>
                     </div>
                   </div>
 
                   {relatedConflicts.length > 0 && (
-                    <div className="mini-list glass" style={{ margin: '0 0 20px 0', padding: '16px', borderRadius: '12px', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)' }}>
+                    <div className="mini-list glass" style={{ margin: '0 0 20px 0', padding: '16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)' }}>
                        <h5 style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group_off</span>
                          Sobreposições Detectadas
@@ -81,10 +81,10 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
                       if (canAction) {
                         return (
                           <>
-                            <button className="btn btn-primary" onClick={() => handleApproval(request.id, 'Aprovado')} disabled={processingApprovalId === request.id} style={{ flex: 1, height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
+                            <button className="btn btn-primary" onClick={() => handleApproval(request.id, 'Aprovado')} disabled={processingApprovalId === request.id} style={{ flex: 1, height: '48px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
                               {processingApprovalId === request.id ? <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>autorenew</span> : 'Aprovar Agora'}
                             </button>
-                            <button className="btn btn-secondary" onClick={() => handleApproval(request.id, 'Rejeitado')} disabled={processingApprovalId === request.id} style={{ height: '48px', borderRadius: '12px', padding: '0 24px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
+                            <button className="btn btn-secondary" onClick={() => handleApproval(request.id, 'Rejeitado')} disabled={processingApprovalId === request.id} style={{ height: '48px', borderRadius: 'var(--radius-md)', padding: '0 24px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
                               Rejeitar
                             </button>
                           </>

@@ -1,0 +1,24 @@
+const fs = require('fs');
+const path = require('path');
+
+const jsDir = path.join(__dirname, '..', 'public', 'js');
+const files = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'));
+
+files.forEach(file => {
+    const filePath = path.join(jsDir, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+    
+    // Remove literal \ufeff if it was escaped by my previous script
+    if (content.startsWith('\\ufeff')) {
+        content = content.substring(6);
+    }
+    
+    // Also remove the actual BOM character if it exists
+    if (content.charCodeAt(0) === 0xFEFF) {
+        content = content.substring(1);
+    }
+    
+    // Save as clean UTF-8 (No BOM)
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`Cleaned ${file}`);
+});
