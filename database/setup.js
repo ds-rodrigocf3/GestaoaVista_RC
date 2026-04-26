@@ -106,7 +106,7 @@ async function runSetup() {
         CREATE TABLE BI_Eventos (
             Id INT PRIMARY KEY IDENTITY(1,1), Titulo NVARCHAR(200) NOT NULL, Descricao NVARCHAR(2000) NULL,
             DataInicio DATETIME NOT NULL, DataFim DATETIME NULL, Tipo NVARCHAR(100) DEFAULT 'Reunião',
-            AreaId INT NULL, ResponsavelId INT NULL, CriadoPor INT,
+            AreaId NVARCHAR(500) NULL, ResponsavelId INT NULL, CriadoPor INT,
             DataCriacao DATETIME DEFAULT GETDATE(), DataModificacao DATETIME DEFAULT GETDATE()
         );
     `);

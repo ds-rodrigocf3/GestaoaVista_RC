@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f3f6f9; /* Slightly more sophisticated background */
   --bg-soft: #ffffff;
   --surface: #ffffff;
@@ -5548,3 +5548,32 @@ html, body {
   display: flex !important;
 }
 
+
+/* FIXED MOBILE HEADER */
+@media (max-width: 1024px) {
+  .topbar-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 16px !important;
+    height: 60px !important;
+    z-index: 1090 !important;
+    background: var(--surface) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid var(--line) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  .main-content {
+    padding-top: 76px !important; /* 60px header + 16px default padding */
+  }
+  .topbar-mobile-title {
+    display: block !important;
+  }
+}

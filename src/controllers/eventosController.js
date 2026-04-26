@@ -33,7 +33,7 @@ exports.create = async (req, res) => {
       .input('Inicio', sql.DATETIME, dataInicio)
       .input('Fim', sql.DATETIME, dataFim || null)
       .input('Tipo', sql.NVARCHAR(100), tipo || 'Reunião')
-      .input('AreaIds', sql.NVARCHAR(200), areaId ? String(areaId) : null)
+      .input('AreaIds', sql.NVARCHAR(500), areaId ? String(areaId) : null)
       .input('RespId', sql.INT, responsavelId || null)
       .input('CriadoPor', sql.INT, req.user.colaboradorId)
       .query(`INSERT INTO BI_Eventos (Titulo, Descricao, DataInicio, DataFim, Tipo, AreaId, ResponsavelId, CriadoPor, DataCriacao, DataModificacao)
@@ -54,7 +54,7 @@ exports.update = async (req, res) => {
       .input('Inicio', sql.DATETIME, dataInicio)
       .input('Fim', sql.DATETIME, dataFim || null)
       .input('Tipo', sql.NVARCHAR(100), tipo)
-      .input('AreaIds', sql.NVARCHAR(200), areaId ? String(areaId) : null)
+      .input('AreaIds', sql.NVARCHAR(500), areaId ? String(areaId) : null)
       .input('RespId', sql.INT, responsavelId || null)
       .query(`UPDATE BI_Eventos SET Titulo=@Titulo, Descricao=@Desc, DataInicio=@Inicio, DataFim=@Fim, 
               Tipo=@Tipo, AreaId=@AreaIds, ResponsavelId=@RespId, DataModificacao=GETDATE() WHERE Id=@Id`);
