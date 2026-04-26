@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #f3f6f9; /* Slightly more sophisticated background */
   --bg-soft: #ffffff;
   --surface: #ffffff;
@@ -35,7 +35,7 @@
 }
 
 /* =====================================================
-   MODO ESCURO — aplica quando <html data-theme="dark">
+   MODO ESCURO â€” aplica quando <html data-theme="dark">
    ===================================================== */
 [data-theme="dark"] {
   --bg: #0f172a;
@@ -58,12 +58,12 @@
   --glass-border: rgba(255, 255, 255, 0.08);
 }
 
-/* Garante transição suave em todos os elementos */
+/* Garante transiÃ§Ã£o suave em todos os elementos */
 [data-theme="dark"] * {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
 }
 
-/* Ajustes específicos do modo escuro */
+/* Ajustes especÃ­ficos do modo escuro */
 [data-theme="dark"] .login-overlay {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0d2748 100%);
 }
@@ -332,12 +332,12 @@ button {
   border: 1px solid transparent;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  flex-direction: row;     /* Ícone + texto lado a lado */
+  flex-direction: row;     /* Ãcone + texto lado a lado */
   align-items: center;
   gap: 12px;
   position: relative;
   overflow: hidden;
-  white-space: nowrap;     /* Texto não quebra linha */
+  white-space: nowrap;     /* Texto nÃ£o quebra linha */
 }
 
 .nav-button:hover {
@@ -512,7 +512,7 @@ button {
   transition: all 0.3s ease;
 }
 
-/* Título inline no mobile (ao lado do hamburger) */
+/* TÃ­tulo inline no mobile (ao lado do hamburger) */
 .topbar-mobile-title {
   display: none;
   font-size: clamp(0.95rem, 3.5vw, 1.25rem);
@@ -538,14 +538,14 @@ button {
   .sidebar.open {
     left: 0;
   }
-  /* Mostra o header mobile com hamburger + título */
+  /* Mostra o header mobile com hamburger + tÃ­tulo */
   .topbar-header {
     display: flex;
   }
   .topbar-mobile-title {
     display: block;
   }
-  /* Esconde o bloco de título+descrição desktop no mobile */
+  /* Esconde o bloco de tÃ­tulo+descriÃ§Ã£o desktop no mobile */
   .topbar {
     display: none !important;
   }
@@ -665,7 +665,7 @@ button {
   font-weight: 600;
 }
 
-/* Gráfico de Barras Horizontais (Composition Chart) */
+/* GrÃ¡fico de Barras Horizontais (Composition Chart) */
 .composition-chart {
   display: flex;
   flex-direction: column;
@@ -1773,7 +1773,7 @@ button {
 }
 
 /* ============================
-   Gestão de Tarefas (Monday.com style)
+   GestÃ£o de Tarefas (Monday.com style)
    ============================ */
 
 .task-view-container {
@@ -1982,14 +1982,14 @@ button {
   font-size: 0.8rem;
 }
 
-/* Tooltip on "Dias Úteis" header */
+/* Tooltip on "Dias Ãšteis" header */
 .tooltip-target {
   cursor: help;
   text-decoration: underline dotted;
   position: relative;
 }
 
-/* Tooltip on "Dias Úteis" header */
+/* Tooltip on "Dias Ãšteis" header */
 .tooltip-target {
   cursor: help;
   text-decoration: underline dotted;
@@ -2834,7 +2834,7 @@ button {
   font-weight: 800;
 }
 /* =====================================================
-   TOP FILTERS BAR — REESTRUTURADA
+   TOP FILTERS BAR â€” REESTRUTURADA
    ===================================================== */
 .top-filters {
   display: flex;
@@ -2885,7 +2885,7 @@ button {
   display: block !important;
 }
 
-/* Padrão de Cabeçalho de Página */
+/* PadrÃ£o de CabeÃ§alho de PÃ¡gina */
 .page-header {
   padding: 0;
   margin-bottom: 32px;
@@ -2964,7 +2964,7 @@ button {
 }
 
 /* =====================================================
-   APP CONTAINER — wraps sidebar-overlay + app-shell
+   APP CONTAINER â€” wraps sidebar-overlay + app-shell
    ===================================================== */
 .app-container {
   position: relative;
@@ -3031,7 +3031,7 @@ button {
 }
 
 /* =====================================================
-   SIDEBAR — desktop default (fixed column)
+   SIDEBAR â€” desktop default (fixed column)
    ===================================================== */
 .app-shell {
   display: grid;
@@ -3053,7 +3053,7 @@ button {
 }
 
 /* =====================================================
-   TABELAS RESPONSIVAS — overflow horizontal em telas pequenas
+   TABELAS RESPONSIVAS â€” overflow horizontal em telas pequenas
    ===================================================== */
 .table-responsive-wrap {
   width: 100%;
@@ -3090,7 +3090,7 @@ button {
 .admin-table tr:hover td { background: rgba(51, 204, 204, 0.04); }
 
 /* =====================================================
-   HARMONIZAÇÃO DE BOTÕES
+   HARMONIZAÃ‡ÃƒO DE BOTÃ•ES
    ===================================================== */
 .btn {
   display: inline-flex;
@@ -3180,7 +3180,7 @@ button {
 .admin-action-btn.danger:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
 
 /* =====================================================
-   CALENDÁRIO RESPONSIVO
+   CALENDÃRIO RESPONSIVO
    ===================================================== */
 .calendar-grid {
   display: grid;
@@ -3210,7 +3210,7 @@ button {
 }
 
 /* =====================================================
-   BREAKPOINT: tablet (≤1024px) — sidebar deslizante
+   BREAKPOINT: tablet (â‰¤1024px) â€” sidebar deslizante
    ===================================================== */
 @media (max-width: 1024px) {
   .app-shell {
@@ -3265,7 +3265,7 @@ button {
 }
 
 /* =====================================================
-   BREAKPOINT: mobile grande (≤768px) — iPhone Pro Max / Android GG
+   BREAKPOINT: mobile grande (â‰¤768px) â€” iPhone Pro Max / Android GG
    ===================================================== */
 @media (max-width: 768px) {
   .main-content {
@@ -3325,7 +3325,7 @@ select:focus, input:focus, textarea:focus {
   outline: none;
 }
 
-/* Calendário Mini (Requests View) */
+/* CalendÃ¡rio Mini (Requests View) */
 .calendar-grid.small {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -3372,7 +3372,7 @@ select:focus, input:focus, textarea:focus {
   height: 32px;
 }
 
-/* Responsividade de Formulários */
+/* Responsividade de FormulÃ¡rios */
 @media (max-width: 768px) {
   .form-grid-layout {
     grid-template-columns: 1fr !important;
@@ -5354,7 +5354,7 @@ html:not([data-theme="dark"]) .admin-table td {
 }
 
 /* =====================================================
-   ESTILO RESPONSIVO - PADRONIZAÇÃO (SENIOR UX)
+   ESTILO RESPONSIVO - PADRONIZAÃ‡ÃƒO (SENIOR UX)
    ===================================================== */
 @media (max-width: 768px) {
   :root {
@@ -5388,7 +5388,7 @@ html:not([data-theme="dark"]) .admin-table td {
     font-size: 1.1rem !important;
   }
 
-  /* Espaçamentos simétricos entre blocos */
+  /* EspaÃ§amentos simÃ©tricos entre blocos */
   .dashboard-grid, .form-grid, .form-grid-layout, .content-grid, .scale-layout-grid, .scale-layout-grid > div {
     display: flex !important;
     flex-direction: column !important;
@@ -5508,6 +5508,7 @@ html:not([data-theme="dark"]) .admin-table td {
   }
 }
 
+
 /* Global overflow containment */
 html, body {
   max-width: 100vw;
@@ -5542,7 +5543,8 @@ html, body {
   min-width: 0 !important;
 }
 
-. t o p - f i l t e r s  
- . t o p - f i l t e r s . g l a s s - c a r d  
-   o v e r f l o w :   v i s i b l e   ! i m p o r t a n t ;   d i s p l a y :   f l e x   ! i m p o r t a n t ;    
- 
+.top-filters, .top-filters.glass-card {
+  overflow: visible !important;
+  display: flex !important;
+}
+
