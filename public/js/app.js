@@ -29,7 +29,7 @@ function App() {
   const [tasks, setTasks] = useState(initialTasks);
   const [dbEmployees, setDbEmployees] = useState(employees);
   const [areas, setAreas] = useState([]);
-  const [colaboradores, setColaboradores] = useState([]); 
+  const [colaboradores, setColaboradores] = useState([]);
   const [cargos, setCargos] = useState([]);
   const [hierarquia, setHierarquia] = useState([]);
   const [statusTipos, setStatusTipos] = useState([]);
@@ -311,9 +311,9 @@ function App() {
 
   const confirmDeleteRequest = (id) => {
     setLoading(true);
-    fetch(`${API_BASE}/api/requests/${id}`, { 
-      method: 'DELETE', 
-      headers: apiHeaders(authToken) 
+    fetch(`${API_BASE}/api/requests/${id}`, {
+      method: 'DELETE',
+      headers: apiHeaders(authToken)
     })
       .then(async res => {
         const data = await res.json();
@@ -377,14 +377,14 @@ function App() {
     }
 
     setProcessingApprovalId(requestId);
-    fetch(`${API_BASE}/api/requests/${requestId}`, { 
-      method: 'PUT', 
-      headers: apiHeaders(authToken), 
-      body: JSON.stringify({ 
-        status: decision, 
+    fetch(`${API_BASE}/api/requests/${requestId}`, {
+      method: 'PUT',
+      headers: apiHeaders(authToken),
+      body: JSON.stringify({
+        status: decision,
         aprovadorId: currentUser.colaboradorId,
-        note: approvalNote 
-      }) 
+        note: approvalNote
+      })
     })
       .then(async res => {
         const data = await res.json();
@@ -393,14 +393,14 @@ function App() {
       })
       .then(data => {
         setRequests(current => current.map(r => Number(r.id) === Number(requestId) ? { ...r, ...data } : r));
-        
+
         if (decision === 'Aprovado' && (data.type === 'Escala de Trabalho' || data.type === 'Ajuste de Escala') && data.localTrabalho) {
-           setWorkDays(prev => {
-             const next = { ...prev };
-             if (!next[data.employeeId]) next[data.employeeId] = {};
-             next[data.employeeId][data.startDate] = data.localTrabalho;
-             return next;
-           });
+          setWorkDays(prev => {
+            const next = { ...prev };
+            if (!next[data.employeeId]) next[data.employeeId] = {};
+            next[data.employeeId][data.startDate] = data.localTrabalho;
+            return next;
+          });
         }
 
         setToast({ title: decision === 'Aprovado' ? 'SolicitaÃ§Ã£o aprovada' : 'SolicitaÃ§Ã£o rejeitada', message: 'O status foi atualizado.' });
@@ -451,13 +451,13 @@ function App() {
           </button>
           <div className="sidebar-user-area" style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
             <div className="user-badge" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
-               <div className="user-badge-content">
-                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{ (currentUser.name || currentUser.nome || 'A').charAt(0) }</div>}
-                 <div className="user-badge-info"><div className="user-badge-name">{(() => { const n = (currentUser.name || currentUser.nome || "").trim(); const parts = n.split(" ").filter(Boolean); return parts.length > 2 ? `${parts[0]} ${parts[parts.length - 1]}` : n; })()}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.cargoNome || currentUser.cargo || 'Usuário')}</div></div>
-               </div>
+              <div className="user-badge-content">
+                {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{(currentUser.name || currentUser.nome || 'A').charAt(0)}</div>}
+                <div className="user-badge-info"><div className="user-badge-name">{(() => { const n = (currentUser.name || currentUser.nome || "").trim(); const parts = n.split(" ").filter(Boolean); return parts.length > 2 ? `${parts[0]} ${parts[parts.length - 1]}` : n; })()}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.cargoNome || currentUser.cargo || 'Usuário')}</div></div>
+              </div>
             </div>
-            <button 
-              className="logout-btn" 
+            <button
+              className="logout-btn"
               onClick={handleLogout}
             >
               <span className="material-symbols-outlined">logout</span>
@@ -469,12 +469,12 @@ function App() {
         <main className="main-content">
           {(() => {
             const PAGE_META = {
-              dashboard:  { title: 'Visão Executiva 360°',     description: 'Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.' },
-              tasks:      { title: 'Gestão de Demandas',        description: 'Acompanhamento de tarefas, prazos e alocação de recursos da equipe.' },
-              requests:   { title: 'Agendamentos',              description: 'Solicitações de férias, afastamentos e ajustes de escala.' },
-              approvals:  { title: 'Aprovações',                description: 'Central de solicitações pendentes e histórico de decisões hierárquicas.' },
-              scale:      { title: 'Escala Mensal',             description: 'Planejamento de dias presenciais e remotos da equipe.' },
-              eventos:    { title: 'Eventos',                   description: 'Agenda corporativa, reuniões e compromissos da equipe.' },
+              dashboard: { title: 'Visão Executiva 360°', description: 'Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.' },
+              tasks: { title: 'Gestão de Demandas', description: 'Acompanhamento de tarefas, prazos e alocação de recursos da equipe.' },
+              requests: { title: 'Agendamentos', description: 'Solicitações de férias, afastamentos e ajustes de escala.' },
+              approvals: { title: 'Aprovações', description: 'Central de solicitações pendentes e histórico de decisões hierárquicas.' },
+              scale: { title: 'Escala Mensal', description: 'Planejamento de dias presenciais e remotos da equipe.' },
+              eventos: { title: 'Eventos', description: 'Agenda corporativa, reuniões e compromissos da equipe.' },
             };
             const meta = PAGE_META[activeView] || { title: '', description: '' };
             return (
@@ -533,8 +533,8 @@ function App() {
               if (globalFilters.colaboradorId) {
                 const emp = dbEmployees.find(e => String(e.id) === String(globalFilters.colaboradorId));
                 if (emp && emp.gestorId) {
-                   const manager = dbEmployees.find(g => String(g.id) === String(emp.gestorId));
-                   if (manager) list = list.filter(g => String(g.id) === String(manager.id));
+                  const manager = dbEmployees.find(g => String(g.id) === String(emp.gestorId));
+                  if (manager) list = list.filter(g => String(g.id) === String(manager.id));
                 }
               }
               return list;
@@ -601,7 +601,7 @@ function App() {
           <div className="status-modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#f59e0b', marginBottom: '16px' }}>logout</span>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Sair do Sistema</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja encerrar sua sessÃ£o?</p>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja encerrar sua sessão?</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button className="btn btn-secondary" onClick={() => setShowLogoutConfirm(false)}>Cancelar</button>
               <button className="btn btn-primary" onClick={confirmLogout}>Sair</button>

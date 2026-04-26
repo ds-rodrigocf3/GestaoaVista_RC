@@ -2839,9 +2839,9 @@ button {
 .top-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 12px 20px;
+  gap: 24px;
+  margin-bottom: 32px;
+  padding: 24px 32px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -2849,14 +2849,16 @@ button {
   position: relative;
   z-index: 100;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  min-height: 100px;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   flex: 1;
-  min-width: 160px;
+  min-width: 200px;
 }
 
 .top-filters label {
@@ -2869,22 +2871,18 @@ button {
 
 .top-filters select {
   width: 100%;
-  height: 38px;
+  height: 44px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0 32px 0 12px;
-  background: var(--bg-soft);
-  color: var(--title);
+  border-radius: 12px;
+  padding: 0 16px;
+  background: var(--surface) !important;
+  color: var(--text) !important;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   outline: none;
   transition: all 0.2s ease;
   cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 32px;
+  display: block !important;
 }
 
 /* Padrão de Cabeçalho de Página */
@@ -3607,7 +3605,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 /* Ensure SearchableSelect and dropdowns don't get clipped */
-.glass-card, .card, .top-filters, .form-panel { overflow: visible !important; }
+.card, .form-panel { overflow: visible !important; }
 
 /* Calendar Event Enhancements */
 .event-indicator-badge {
@@ -3644,7 +3642,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 @media print {
-  .sidebar, .topbar, .menu-toggle, .toast, .filter-bar, .top-filters, .action-row {
+  .sidebar, .topbar, .menu-toggle, .toast, .filter-bar, .action-row {
     display: none !important;
   }
   .app-shell { display: block; }
@@ -5165,28 +5163,7 @@ html:not([data-theme="dark"]) .admin-table td {
   transition: all 0.2s ease;
 }
 
-.top-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  align-items: flex-end;
-  margin-bottom: 32px;
-  padding: 24px 32px;
-}
 
-.top-filters .filter-group {
-  flex: 1;
-  min-width: 200px;
-}
-
-.top-filters label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
 
 .page-header {
   display: flex;
@@ -5565,3 +5542,7 @@ html, body {
   min-width: 0 !important;
 }
 
+. t o p - f i l t e r s  
+ . t o p - f i l t e r s . g l a s s - c a r d  
+   o v e r f l o w :   v i s i b l e   ! i m p o r t a n t ;   d i s p l a y :   f l e x   ! i m p o r t a n t ;    
+ 
