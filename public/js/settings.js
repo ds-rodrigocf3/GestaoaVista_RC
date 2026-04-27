@@ -16,7 +16,7 @@ function SettingsModal({
   const [previewUrl, setPreviewUrl] = React.useState(currentUser.avatarUrl || '');
 
   // Form state
-  const [formColab, setFormColab] = React.useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
+  const [formColab, setFormColab] = React.useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '' });
   const [formArea, setFormArea] = React.useState({ id: null, nome: '', cor: '#33CCCC' });
   const [formCargo, setFormCargo] = React.useState({ id: null, nome: '' });
   const [formNivel, setFormNivel] = React.useState({ id: null, descricao: '' });
@@ -77,7 +77,7 @@ function SettingsModal({
       const url = formColab.id ? `${API_BASE}/api/colaboradores/${formColab.id}` : `${API_BASE}/api/colaboradores`;
       await apiCall(url, formColab.id ? 'PUT' : 'POST', formColab);
       fetchAll({ silent: true }); if (refreshEmployees) refreshEmployees({ silent: true });
-      setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' });
+      setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '' });
       setMsg('Colaborador salvo!');
     } catch (e) { alert(e.message); }
   };
@@ -277,9 +277,13 @@ function SettingsModal({
                       {colaboradores.filter(c => c.id !== formColab.id).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label style={labelStyle}>Data de Aniversário</label>
+                    <input type="date" style={inputStyle} value={formColab.dataNascimento} onChange={e => setFormColab(p => ({ ...p, dataNascimento: e.target.value }))} />
+                  </div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveColab}>Salvar</button>
-                    {formColab.id && <button className="btn btn-secondary" onClick={() => setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '' })}>Cancelar</button>}
+                    {formColab.id && <button className="btn btn-secondary" onClick={() => setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '' })}>Cancelar</button>}
                   </div>
                 </div>
               </div>
@@ -298,7 +302,22 @@ function SettingsModal({
                           <td><span style={{ fontSize: '.75rem', fontWeight: 600, color: c.ativo !== false ? '#10b981' : '#ef4444' }}>{c.ativo !== false ? 'Ativo' : 'Inativo'}</span></td>
                           <td>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                              <button className="admin-action-btn" onClick={() => setFormColab({ id: c.id, nome: c.name, email: c.email || '', nivelHierarquia: c.nivelHierarquia || '', areaId: c.AreaId || c.areaId || '', cargoId: c.CargoId || c.cargoId || '', gestorId: c.gestorId || c.GestorId || '' })}>Editar</button>
+                              <button className="admin-action-btn" onClick={() => setFormColab({ 
+                                id: c.id, 
+                                nome: c.name, 
+                                email: c.email || '', 
+                                nivelHierarquia: c.nivelHierarquia || '', 
+                                areaId: c.AreaId || c.areaId || '', 
+                                cargoId: c.CargoId || c.cargoId || '', 
+                                gestorId: c.gestorId || c.GestorId || '',
+                                dataNascimento: (() => {
+                                  if (!c.dataNascimento) return '';
+                                  const d = new Date(c.dataNascimento);
+                                  if (isNaN(d.getTime())) return String(c.dataNascimento).slice(0, 10);
+                                  // For HTML5 date input (YYYY-MM-DD), we want the UTC date if it came from SQL DATE
+                                  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                                })()
+                              })}>Editar</button>
                               <button className="admin-action-btn" onClick={() => toggleColabAtivo(c)} style={{ color: c.ativo !== false ? '#f59e0b' : '#10b981', borderColor: c.ativo !== false ? '#f59e0b' : '#10b981' }}>{c.ativo !== false ? 'Inativar' : 'Reativar'}</button>
                             </div>
                           </td>

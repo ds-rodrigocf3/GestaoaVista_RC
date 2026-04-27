@@ -107,7 +107,7 @@ async function runSetup() {
                 Tp_contrato NVARCHAR(20), Color NVARCHAR(20), AvatarUrl NVARCHAR(MAX), Email NVARCHAR(200),
                 NivelHierarquia INT FOREIGN KEY REFERENCES NiveisHierarquia(Id),
                 AreaId INT FOREIGN KEY REFERENCES BI_Areas(Id),
-                CargoId INT NULL, GestorId INT NULL, Ativo BIT DEFAULT 1
+                CargoId INT NULL, GestorId INT NULL, DataNascimento DATE NULL, Ativo BIT DEFAULT 1
             );
 
             CREATE TABLE BI_Usuarios (

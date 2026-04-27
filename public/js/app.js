@@ -179,7 +179,66 @@ function App() {
           endDate: t.endDate ? t.endDate.slice(0, 10) : ''
         })));
       }
-      if (rEventos) setEventos(rEventos);
+      if (rEventos) {
+        let allEvents = [...rEventos];
+        if (rColabs) {
+          const currentYear = new Date().getFullYear();
+          rColabs.filter(c => c.ativo !== false && c.dataNascimento).forEach(c => {
+            let monthDay = '';
+            try {
+              const dateStr = String(c.dataNascimento);
+              if (dateStr.includes('-')) {
+                // Manual split to avoid any browser Date parsing quirks
+                const parts = dateStr.split('T')[0].split('-');
+                if (parts.length >= 3) {
+                  // YYYY-MM-DD -> MM-DD
+                  monthDay = `${parts[1]}-${parts[2]}`;
+                }
+              }
+              
+              // Fallback if manual split failed but we have a valid date
+              if (!monthDay) {
+                const d = new Date(c.dataNascimento);
+                if (!isNaN(d.getTime())) {
+                  monthDay = `${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                }
+              }
+            } catch (e) {
+              console.warn('Error processing birthday for', c.name, e);
+            }
+
+            if (monthDay && monthDay.length === 5) {
+              const now = new Date();
+              now.setHours(0, 0, 0, 0);
+              const limit30 = new Date(now);
+              limit30.setDate(now.getDate() + 30);
+
+              [currentYear, currentYear + 1].forEach(year => {
+                const birthDate = new Date(`${year}-${monthDay}T12:00:00`);
+                
+                // Rule: Show if it's the current year OR within the next 30 days (handles Jan transition)
+                const isCurrentYear = (year === currentYear);
+                const isWithin30Days = (birthDate >= now && birthDate <= limit30);
+
+                if (isCurrentYear || isWithin30Days) {
+                  allEvents.push({
+                    id: `birth-${c.id}-${year}`,
+                    titulo: c.name,
+                    tipo: 'Aniversário',
+                    dataInicio: `${year}-${monthDay}T12:00:00`,
+                    dataFim: `${year}-${monthDay}T13:00:00`,
+                    responsavelId: c.id,
+                    responsavelNome: c.name,
+                    descricao: `Parabéns para ${c.name}!`,
+                    isSynthetic: true
+                  });
+                }
+              });
+            }
+          });
+        }
+        setEventos(allEvents);
+      }
       if (rCargos) setCargos(rCargos);
       if (rHier) setHierarquia(rHier);
       if (rStatus) setStatusTipos(rStatus);

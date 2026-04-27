@@ -272,7 +272,12 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
   }, [filteredEmployees, scopedTasks]);
 
   const timelineAusencias = React.useMemo(() => {
-    const todayStr = formatDateLocal(new Date());
+    const now = new Date();
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const thirtyDaysAhead = new Date(now); thirtyDaysAhead.setDate(now.getDate() + 30);
+    
+    const limitPastStr = formatDateLocal(yesterday);
+    const limitFutureStr = formatDateLocal(thirtyDaysAhead);
     
     const parseDateSafe = (d) => {
       if (!d) return null;
@@ -300,8 +305,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     const absences = (scopedRequests || [])
       .filter(r => r && r.status === 'Aprovado' && absenceTypes.includes(r.type))
       .filter(r => {
-         const dEnd = r.endDateISO || r.endDate;
-         return dEnd && dEnd >= todayStr;
+         const dStart = r.startDate;
+         const dEnd = r.endDateISO || r.endDate || dStart;
+         // Show if it overlaps with [limitPast, limitFuture]
+         return dStart <= limitFutureStr && dEnd >= limitPastStr;
       })
       .map(r => {
          const sIso = r.startDate;
@@ -327,7 +334,9 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     const events = (eventos || [])
       .filter(ev => {
          const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
-         if (!d || formatDateLocal(d) < todayStr) return false;
+         if (!d) return false;
+         const dStr = formatDateLocal(d);
+         if (dStr < limitPastStr || dStr > limitFutureStr) return false;
 
          // Regras de Visibilidade (Atribuição)
          const evAreaId = ev.areaId || ev.AreaId;
@@ -404,7 +413,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             <h3><span className="material-symbols-outlined icon-orange">calendar_month</span> Agenda de Equipe (Próximas Férias e Agendas)</h3>
           </div>
 
-          <div className="workload-list team-agenda-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+          <div className="workload-list team-agenda-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
             {timelineAusencias.map(a => (
               <div className="workload-item glass-card" key={a.id || Math.random()}>
                 {a.isEvent ? (
@@ -435,44 +444,58 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   </div>
                 )}
                 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                  {/* Row 1: Header (Title + Badge) */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ 
-                      fontWeight: 800, 
-                      fontSize: '0.85rem', 
-                      color: 'var(--title)', 
-                      lineHeight: '1.3',
-                      flex: 1,
-                      wordBreak: 'break-word'
-                    }}>
-                      {a.isEvent ? a.title : a.emp?.name}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px', minWidth: 0 }}>
+                  <div>
+                    {/* Row 1: Header (Title + Badge) */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '4px' }}>
+                      <div 
+                        title={a.isEvent ? a.title : a.emp?.name}
+                        style={{ 
+                        fontWeight: 800, 
+                        fontSize: '0.82rem', 
+                        color: 'var(--title)', 
+                        lineHeight: '1.25',
+                        flex: 1,
+                        wordBreak: 'break-word',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        height: '3.1rem' // Fixed height for 3 lines ensuring alignment
+                      }}>
+                        {a.isEvent ? a.title : a.emp?.name}
+                      </div>
+                      {(() => {
+                        const relTime = getRelativeTime(a.sortDate, a.type);
+                        if (!relTime) return null;
+                        const isPastBadge = relTime === 'PASSADO';
+                        const isToday = relTime === 'Hoje';
+                        return (
+                          <span style={{ 
+                            fontSize: '0.6rem', 
+                            fontWeight: 900, 
+                            color: (isPastBadge) ? 'var(--muted)' : '#fff', 
+                            background: isPastBadge ? 'var(--panel-strong)' : (isToday ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--primary)'), 
+                            padding: '3px 10px', 
+                            borderRadius: 'var(--radius-sm)', 
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            border: isPastBadge ? '1px solid var(--line)' : 'none',
+                            boxShadow: isPastBadge ? 'none' : '0 4px 10px rgba(51, 204, 204, 0.15)',
+                            flexShrink: 0,
+                            whiteSpace: 'nowrap',
+                            marginTop: '2px',
+                            minWidth: '70px',
+                            textAlign: 'center'
+                          }}>
+                            {relTime}
+                          </span>
+                        );
+                      })()}
                     </div>
-                    {(() => {
-                      const relTime = getRelativeTime(a.sortDate, a.type);
-                      if (!relTime) return null;
-                      const isPastBadge = relTime === 'PASSADO';
-                      return (
-                        <span style={{ 
-                          fontSize: '0.62rem', 
-                          fontWeight: 900, 
-                          color: isPastBadge ? 'var(--muted)' : '#fff', 
-                          background: isPastBadge ? 'var(--panel-strong)' : 'var(--primary)', 
-                          padding: '3px 10px', 
-                          borderRadius: 'var(--radius-sm)', 
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em',
-                          border: isPastBadge ? '1px solid var(--line)' : 'none',
-                          boxShadow: isPastBadge ? 'none' : '0 4px 12px rgba(51, 204, 204, 0.2)',
-                          flexShrink: 0,
-                          whiteSpace: 'nowrap',
-                          marginTop: '2px'
-                        }}>
-                          {relTime}
-                        </span>
-                      );
-                    })()}
-                  </div>
+  
+                    {/* Row 2: Metadata (Area/Type) */}
+                    <div style={{ fontSize: '.72rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', opacity: 0.8 }}>
 
                   {/* Row 2: Metadata (Area/Type) */}
                   <div style={{ fontSize: '.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -499,14 +522,19 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                     )}
                   </div>
 
+                    </div>
+                  </div>
+
                   {/* Row 3: Temporal Context (Date & Time) */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid var(--line)', paddingTop: '8px', marginTop: '4px' }}>
                     <div style={{ 
                       display: 'flex', alignItems: 'center', gap: '6px', 
-                      fontSize: '.75rem', fontWeight: 700, 
+                      fontSize: '.72rem', fontWeight: 700, 
                       color: a.isEvent ? 'var(--primary)' : '#f59e0b', 
-                      background: a.isEvent ? 'rgba(51,204,204,0.08)' : 'rgba(245,158,11,0.08)', 
-                      padding: '2px 8px', borderRadius: '6px' 
+                      background: a.isEvent ? 'rgba(51,204,204,0.06)' : 'rgba(245,158,11,0.06)', 
+                      padding: '3px 10px', borderRadius: 'var(--radius-sm)',
+                      border: '1px solid transparent',
+                      borderColor: a.isEvent ? 'rgba(51,204,204,0.1)' : 'rgba(245,158,11,0.1)'
                     }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
                       {a.isEvent 
@@ -664,32 +692,32 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             </div>
 
             {/* Embedded KPIs */}
-            <div className="dash-kpi-wrapper" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px', flex: '1', minWidth: '200px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '18px' }}>inventory_2</span>
+            <div className="dash-kpi-wrapper" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '20px' }}>inventory_2</span>
                 </div>
-                <div>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Total de Tarefas</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800 }}>{kpis.total}</div>
-                </div>
-              </div>
-              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px', flex: '1', minWidth: '200px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '18px' }}>task_alt</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Taxa de Conclusão</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary)' }}>{kpis.deliveryRate}%</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Total de Tarefas</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>{kpis.total}</div>
                 </div>
               </div>
-              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: '10px', flex: '1', minWidth: '200px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '18px' }}>verified</span>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>task_alt</span>
                 </div>
-                <div>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Concluídas</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>{kpis.done}</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Taxa de Conclusão</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)' }}>{kpis.deliveryRate}%</div>
+                </div>
+              </div>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Concluídas</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10b981' }}>{kpis.done}</div>
                 </div>
               </div>
             </div>

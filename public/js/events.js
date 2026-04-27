@@ -286,7 +286,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
             <div className="stats-summary-icon" style={{ background: `${kpi.color}15` }}>
               <span className="material-symbols-outlined" style={{ color: kpi.color, fontSize: '24px' }}>{kpi.icon}</span>
             </div>
-            <div>
+            <div style={{ flex: 1, textAlign: 'center' }}>
               <div className="stats-summary-label">{kpi.label}</div>
               <div className="stats-summary-value" style={{ color: kpi.label.includes('Total') ? 'var(--title)' : kpi.color }}>{kpi.value}</div>
             </div>
