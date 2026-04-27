@@ -87,7 +87,11 @@
 [data-theme="dark"] .monday-priority.priority-low { background: #374151; color: #9ca3af; }
 [data-theme="dark"] .calendar-day { background: #1e293b; border-color: rgba(148,163,184,0.15); }
 [data-theme="dark"] .calendar-day.weekend,
-[data-theme="dark"] .calendar-day.holiday { background: #0f172a; }
+[data-theme="dark"] .calendar-day.holiday { 
+  background: #0f172a !important; 
+  border-color: rgba(148,163,184,0.15);
+}
+
 [data-theme="dark"] .toast { background: #1e293b; border-color: rgba(51,204,204,0.3); color: #f1f5f9; }
 [data-theme="dark"] .settings-overlay { background: rgba(0,0,0,0.75); }
 [data-theme="dark"] .settings-modal { background: #1e293b; border-color: rgba(148,163,184,0.2); }
@@ -153,7 +157,7 @@
 /* Premium Hover Effects - Stable Version */
 .workload-card-premium:hover {
   border-color: var(--primary) !important;
-  box-shadow: 0 12px 30px rgba(51, 204, 204, 0.15) !important;
+  box-shadow: 0 10px 30px rgba(51, 204, 204, 0.15) !important;
   background: var(--surface) !important;
 }
 
@@ -177,7 +181,7 @@
 select, input, textarea {
   border: 1px solid var(--line) !important;
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 8px 10px;
   background: var(--surface);
   color: var(--text);
   transition: border-color 0.2s;
@@ -245,7 +249,7 @@ button {
 }
 
 .sidebar.collapsed {
-  padding: 24px 12px;
+  padding: 24px 10px;
   align-items: center;
 }
 
@@ -259,7 +263,7 @@ button {
 
 .sidebar.collapsed .nav-button {
   justify-content: center;
-  padding: 12px;
+  padding: 10px;
 }
 
 .sidebar.collapsed .nav-button span.material-symbols-outlined {
@@ -295,7 +299,7 @@ button {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   color: white;
   font-weight: 800;
-  box-shadow: 0 12px 20px rgba(51, 204, 204, 0.25);
+  box-shadow: 0 10px 20px rgba(51, 204, 204, 0.25);
 }
 
 .brand h1,
@@ -325,16 +329,16 @@ button {
 .nav-button {
   width: 100%;             /* Ocupa toda a largura da sidebar */
   text-align: left;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-radius: 14px;
   background: transparent;
   color: var(--text);
   border: 1px solid transparent;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  flex-direction: row;     /* Ãcone + texto lado a lado */
+  flex-direction: row;     /* Ã cone + texto lado a lado */
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   position: relative;
   overflow: hidden;
   white-space: nowrap;     /* Texto nÃ£o quebra linha */
@@ -400,8 +404,8 @@ button {
 .user-badge-content {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   border-radius: 16px;
   transition: all 0.2s ease;
   background: rgba(255, 255, 255, 0.03);
@@ -424,7 +428,7 @@ button {
   font-weight: 700;
   color: #fff;
   font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .user-badge-info {
@@ -456,7 +460,7 @@ button {
 }
 
 .nav-button .material-symbols-outlined {
-  margin-right: 12px;
+  margin-right: 10px;
   font-size: 22px;
   vertical-align: middle;
 }
@@ -502,13 +506,13 @@ button {
   align-items: center;
   gap: 16px;
   padding: 16px 24px;
-  margin: -12px -12px 20px -12px;
+  margin: -10px -10px 20px -10px;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 900;
   background: var(--surface);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
 
@@ -669,7 +673,7 @@ button {
 .composition-chart {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .chart-row {
@@ -701,7 +705,7 @@ button {
 
 .chart-bar-container {
   flex-grow: 1;
-  height: 12px;
+  height: 10px;
   background: var(--line);
   border-radius: 6px;
   overflow: hidden;
@@ -764,7 +768,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 7px 10px;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
@@ -939,7 +943,7 @@ button {
 .action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .btn {
@@ -959,7 +963,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 7px 10px;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
@@ -1113,7 +1117,7 @@ button {
 .action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .btn {
@@ -1126,7 +1130,7 @@ button {
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   color: #ffffff;
-  box-shadow: 0 12px 20px rgba(51, 204, 204, 0.2);
+  box-shadow: 0 10px 20px rgba(51, 204, 204, 0.2);
 }
 
 .btn-primary:hover {
@@ -1184,9 +1188,9 @@ button {
 }
 
 .calendar-day {
-  padding: 12px 0;
+  padding: 10px 0;
   background: var(--bg);
-  border: 1px solid var(--line);
+  border: 1px solid #cbd5e1;
   min-height: 58px;
   display: grid;
   place-items: center;
@@ -1198,9 +1202,12 @@ button {
   pointer-events: none;
 }
 
-.calendar-day.weekend {
-  background: var(--panel-strong);
+.calendar-day.weekend,
+.calendar-day.holiday {
+  background: #e2e8f0 !important;
   color: var(--muted);
+  border-color: #cbd5e1;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.02);
 }
 
 .calendar-day.booked {
@@ -1272,7 +1279,7 @@ button {
 
 .timeline {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .timeline-item {
@@ -1321,8 +1328,8 @@ button {
 }
 
 .legend i {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
   display: inline-block;
 }
@@ -1438,13 +1445,10 @@ button {
 
 .calendar-day.weekend,
 .calendar-day.holiday {
-  background: var(--panel-strong);
+  background: #e2e8f0 !important;
   border-color: #cbd5e1;
   color: var(--muted);
-}
-.calendar-day.holiday {
-  background: #e2e8f0;
-  border-color: #cbd5e1;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.02);
 }
 
 .calendar-day.absence {
@@ -1490,7 +1494,7 @@ button {
   margin-top: 16px;
   background: var(--line);
   border-radius: 999px;
-  height: 12px;
+  height: 10px;
   overflow: hidden;
   position: relative;
 }
@@ -1567,7 +1571,7 @@ button {
 .dash-calendar-cell {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   min-height: 100px;
   padding: 8px;
   display: flex;
@@ -1577,12 +1581,9 @@ button {
 
 .dash-calendar-cell.weekend,
 .dash-calendar-cell.holiday {
-  background: var(--panel-strong);
+  background: #e2e8f0 !important;
   border-color: #cbd5e1;
-}
-.dash-calendar-cell.holiday {
-  background: #e2e8f0;
-  border-color: #cbd5e1;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.02);
 }
 
 .dash-calendar-cell.empty {
@@ -1690,7 +1691,7 @@ button {
   cursor: pointer;
   color: var(--text);
   background: var(--bg);
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid var(--line);
   transition: all 0.2s ease;
@@ -1759,7 +1760,7 @@ button {
   
   .topbar {
     border-bottom: 2px solid var(--primary);
-    padding-bottom: 12px;
+    padding-bottom: 10px;
     margin-bottom: 20px;
   }
 
@@ -1803,7 +1804,7 @@ button {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 10px 12px;
+  padding: 10px 10px;
   border-right: 1px solid var(--line);
 }
 
@@ -1826,7 +1827,7 @@ button {
 .monday-cell {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-right: 1px solid var(--line);
   position: relative;
   min-height: 52px;
@@ -2005,7 +2006,7 @@ button {
   transform: translateX(-50%);
   background: var(--text);
   color: var(--bg);
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-size: 0.75rem;
   font-weight: 400;
@@ -2074,7 +2075,7 @@ button {
 }
 
 .status-modal h3 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -2084,7 +2085,7 @@ button {
   min-height: 100px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   font-family: inherit;
   font-size: 0.9rem;
   margin-top: 8px;
@@ -2096,7 +2097,7 @@ button {
 .status-modal .action-row {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
   margin-top: 20px;
 }
 
@@ -2104,7 +2105,7 @@ button {
 .fill-progress-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 8px;
 }
 
@@ -2162,7 +2163,7 @@ button {
 }
 
 .demand-col {
-  padding: 8px 12px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
 }
@@ -2284,7 +2285,7 @@ button {
   display: grid;
   grid-template-columns: 32px minmax(200px, 1.5fr) 180px 220px 1fr 140px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 8px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
@@ -2327,7 +2328,7 @@ button {
 .dash-calendar-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
@@ -2359,7 +2360,7 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 12px);
+  max-width: calc(100% - 10px);
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
   pointer-events: none;
 }
@@ -2388,7 +2389,7 @@ button {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1.5px solid var(--surface);
+  border: 1px solid var(--surface);
   margin-left: -6px;
   background: var(--bg);
   object-fit: cover;
@@ -2417,7 +2418,7 @@ button {
   font-size: 8px;
   font-weight: 700;
   margin-left: -6px;
-  border: 1.5px solid var(--surface);
+  border: 1px solid var(--surface);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -2446,7 +2447,7 @@ button {
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -2456,7 +2457,7 @@ button {
 }
 
 .dash-panel:hover {
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(51, 204, 204, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(51, 204, 204, 0.2);
 }
 
 .dash-header {
@@ -2583,7 +2584,7 @@ button {
 .dash-timeline-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   overflow-y: auto;
   flex: 1;
   padding-right: 8px;
@@ -2592,7 +2593,7 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px dashed var(--line);
 }
 .dash-timeline-item:last-child {
@@ -2630,7 +2631,7 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .dash-heat-cell {
   aspect-ratio: 1;
@@ -2647,7 +2648,7 @@ button {
 .dash-heat-cell:hover {
   transform: scale(1.15);
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 .heat-lv0 { background: #e2e8f0; color: #94a3b8; }
 .heat-lv1 { background: #bae6fd; color: #0369a1; }
@@ -2660,7 +2661,7 @@ button {
 /* GESTAO 360 - TABELA */
 .dash-inline-kpis {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
@@ -2688,7 +2689,7 @@ button {
 .dash-360-col {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 240px;
 }
 
@@ -2795,12 +2796,12 @@ button {
 .workload-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .workload-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2829,7 +2830,7 @@ button {
   background: var(--line);
   color: var(--text);
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 0.75rem;
   font-weight: 800;
 }
@@ -2873,7 +2874,7 @@ button {
   width: 100%;
   height: 44px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 0 16px;
   background: var(--surface) !important;
   color: var(--text) !important;
@@ -2926,7 +2927,7 @@ button {
 .top-filters .btn-clear {
   height: 42px;
   padding: 0 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(239, 68, 68, 0.05);
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.1);
@@ -3014,9 +3015,9 @@ button {
 .topbar-header {
   display: none;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: none !important;
   background: transparent !important;
 }
@@ -3147,15 +3148,15 @@ button {
 /* Specific overrides for main action buttons */
 .action-row .btn-primary {
   height: 48px;
-  border-radius: 12px;
+  border-radius: 10px;
   font-weight: 700;
   padding: 0 32px;
-  box-shadow: 0 4px 12px rgba(51, 204, 204, 0.15);
+  box-shadow: 0 4px 10px rgba(51, 204, 204, 0.15);
 }
 
 .action-row .btn-secondary {
   height: 48px;
-  border-radius: 12px;
+  border-radius: 10px;
   font-weight: 600;
   padding: 0 24px;
 }
@@ -3272,7 +3273,7 @@ button {
    ===================================================== */
 @media (max-width: 768px) {
   .main-content {
-    padding: 14px 12px;
+    padding: 14px 10px;
   }
   .topbar h2 {
     font-size: 1.3rem;
@@ -3306,7 +3307,7 @@ button {
 .glass-card:hover,
 .card:hover {
   border-color: var(--primary) !important;
-  box-shadow: 0 12px 35px rgba(51, 204, 204, 0.12) !important;
+  box-shadow: 0 10px 35px rgba(51, 204, 204, 0.12) !important;
   filter: brightness(1.02);
 }
 
@@ -3390,7 +3391,7 @@ select:focus, input:focus, textarea:focus {
   }
   
   .calendar-mini-container {
-    padding: 12px !important;
+    padding: 10px !important;
   }
   
   .calendar-grid.small {
@@ -3416,16 +3417,16 @@ select:focus, input:focus, textarea:focus {
   .gantt-container { padding: 10px !important; }
   /* Toast */
   .toast {
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
     min-width: unset;
     max-width: unset;
   }
   /* Queue cards */
-  .queue-card { padding: 12px; }
+  .queue-card { padding: 10px; }
   .queue-actions { flex-wrap: wrap; }
-  .queue-actions .btn { font-size: 0.8rem; padding: 8px 12px; }
+  .queue-actions .btn { font-size: 0.8rem; padding: 8px 10px; }
 }
 
 /* =====================================================
@@ -3528,7 +3529,7 @@ select:focus, input:focus, textarea:focus {
   }
   
   .top-filters {
-    flex-direction: column !important; align-items: stretch !important; gap: 12px !important;
+    flex-direction: column !important; align-items: stretch !important; gap: 10px !important;
   }
   
   .topbar {
@@ -3538,7 +3539,7 @@ select:focus, input:focus, textarea:focus {
   }
 
   .calendar-mini-container { 
-    padding: 12px !important; 
+    padding: 10px !important; 
     width: 100% !important;
     box-sizing: border-box !important;
   }
@@ -3571,7 +3572,7 @@ select:focus, input:focus, textarea:focus {
 
   .scale-stats-panel { order: 2; margin-top: 24px; }
   .settings-modal { width: 95vw !important; max-height: 90vh !important; }
-  .toast { right: 12px; bottom: 12px; left: 12px; min-width: unset; }
+  .toast { right: 10px; bottom: 10px; left: 10px; min-width: unset; }
 }
 
 @media (max-width: 480px) {
@@ -3580,7 +3581,7 @@ select:focus, input:focus, textarea:focus {
   .badge-row { display: none !important; }
   
   .main-content {
-    padding: 12px !important;
+    padding: 10px !important;
     width: 100% !important;
   }
 
@@ -3630,7 +3631,7 @@ select:focus, input:focus, textarea:focus {
   background: var(--primary);
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(51, 204, 204, 0.6);
-  border: 1.5px solid var(--card);
+  border: 1px solid var(--card);
   z-index: 5;
 }
 
@@ -3648,7 +3649,7 @@ select:focus, input:focus, textarea:focus {
   background: rgba(51, 204, 204, 0.1);
   color: var(--primary);
   border: 1px solid rgba(51, 204, 204, 0.3);
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 0.72rem;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(51, 204, 204, 0.1);
@@ -3665,7 +3666,7 @@ select:focus, input:focus, textarea:focus {
 /* ===== SIDEBAR FOOTER & USER AREA ===== */
 .user-badge {
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
 }
 
@@ -3673,7 +3674,7 @@ select:focus, input:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 10px 10px;
   background: rgba(51, 204, 204, .06);
   border: 1px solid rgba(51, 204, 204, .15);
   border-radius: 10px;
@@ -3686,7 +3687,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 .logout-btn {
-  margin-top: 12px;
+  margin-top: 10px;
   width: 100%;
   padding: 10px;
   background: transparent;
@@ -3732,7 +3733,7 @@ select:focus, input:focus, textarea:focus {
 .custom-modal {
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.25);
   animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
   position: relative;
@@ -3774,7 +3775,7 @@ select:focus, input:focus, textarea:focus {
 .login-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 32px;
   justify-content: center;
 }
@@ -3783,7 +3784,7 @@ select:focus, input:focus, textarea:focus {
   width: 52px;
   height: 52px;
   background: linear-gradient(135deg, #33CCCC, #0ea5e9);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3818,8 +3819,8 @@ select:focus, input:focus, textarea:focus {
       border-bottom: 2px solid var(--line);
     }
     .custom-table td { padding: 16px; background: rgba(255,255,255,0.02); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-    .custom-table tr td:first-child { border-left: 1px solid var(--line); border-radius: 12px 0 0 12px; }
-    .custom-table tr td:last-child { border-right: 1px solid var(--line); border-radius: 0 12px 12px 0; }
+    .custom-table tr td:first-child { border-left: 1px solid var(--line); border-radius: 10px 0 0 10px; }
+    .custom-table tr td:last-child { border-right: 1px solid var(--line); border-radius: 0 10px 10px 0; }
     .custom-table tr:hover td { background: rgba(51, 204, 204, 0.04); border-color: var(--primary); }
 
     /* Kanban 360 & Cards */
@@ -3834,7 +3835,7 @@ select:focus, input:focus, textarea:focus {
       min-height: 500px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .dash-360-card {
@@ -3850,7 +3851,7 @@ select:focus, input:focus, textarea:focus {
 
     .dash-360-card:hover {
       transform:  scale(1.01);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12) !important;
       z-index: 5;
     }
 
@@ -3870,7 +3871,7 @@ select:focus, input:focus, textarea:focus {
       min-width: 24px;
       height: 24px;
       padding: 0 8px;
-      border-radius: 12px;
+      border-radius: 10px;
       font-size: 0.75rem;
       font-weight: 700;
     }
@@ -3904,7 +3905,7 @@ select:focus, input:focus, textarea:focus {
     .dash-360-col {
       transition: box-shadow 0.3s ease;
       background: var(--surface) !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03) !important;
     }
 
     .dash-360-col:hover {
@@ -3940,8 +3941,8 @@ select:focus, input:focus, textarea:focus {
 
 .sidebar.collapsed .nav-button {
   justify-content: center;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 10px;
+  border-radius: 10px;
 }
 
 .sidebar.collapsed .nav-button .nav-text-wrapper {
@@ -3975,13 +3976,13 @@ select:focus, input:focus, textarea:focus {
 
 .sidebar.collapsed .btn-logout {
   justify-content: center;
-  padding: 12px;
+  padding: 10px;
 }
 
 /* Toggle Button */
 .sidebar-toggle {
   position: absolute;
-  right: -12px;
+  right: -10px;
   top: 32px;
   width: 24px;
   height: 24px;
@@ -4004,7 +4005,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 .sidebar.collapsed .sidebar-toggle {
-  right: -12px;
+  right: -10px;
 }
 
 @media (max-width: 768px) {
@@ -4034,7 +4035,7 @@ select:focus, input:focus, textarea:focus {
   justify-content: center;
   padding: 10px;
   width: 100%;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .sidebar.collapsed .logout-btn span:not(.material-symbols-outlined) {
@@ -4069,7 +4070,7 @@ select:focus, input:focus, textarea:focus {
   top: 40px !important;
   background: var(--primary) !important;
   color: var(--primary-txt) !important;
-  box-shadow: 0 4px 12px rgba(51, 204, 204, 0.4) !important;
+  box-shadow: 0 4px 10px rgba(51, 204, 204, 0.4) !important;
   border: 3px solid var(--surface) !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -4171,12 +4172,12 @@ select:focus, input:focus, textarea:focus {
 
 /* Table Optimization for High Density */
 .custom-table td {
-  padding: 8px 12px !important;
+  padding: 8px 10px !important;
   font-size: 0.82rem !important;
 }
 
 .custom-table th {
-  padding: 10px 12px !important;
+  padding: 10px 10px !important;
   font-size: 0.68rem !important;
 }
 
@@ -4184,7 +4185,7 @@ select:focus, input:focus, textarea:focus {
   font-size: 0.7rem !important;
   padding: 4px 8px !important;
   height: 24px !important;
-  border-radius: 12px !important;
+  border-radius: 10px !important;
 }
 
 .table-input-compact {
@@ -4238,7 +4239,7 @@ select:focus, input:focus, textarea:focus {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 0 !important; /* Managed by header */
 }
 
@@ -4280,9 +4281,9 @@ select:focus, input:focus, textarea:focus {
   order: -1;
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(51, 204, 204, 0.08);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .sidebar.collapsed .brand {
@@ -4354,7 +4355,7 @@ select:focus, input:focus, textarea:focus {
 /* Optimized Modal Styles */
 .demand-modal-overlay, .status-modal-overlay {
   background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4421,7 +4422,7 @@ select:focus, input:focus, textarea:focus {
   z-index: 9999;
   animation: toastSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   overflow: hidden;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
 }
 
 @keyframes toastSlideIn {
@@ -4436,7 +4437,7 @@ select:focus, input:focus, textarea:focus {
 .toast-icon {
   width: 36px;
   height: 36px;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4580,7 +4581,7 @@ select:focus, input:focus, textarea:focus {
 
 .login-field input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--bg-soft);
@@ -4613,7 +4614,7 @@ select:focus, input:focus, textarea:focus {
 
 .login-btn:hover {
   filter: brightness(1.1);
-  box-shadow: 0 12px 20px rgba(51, 204, 204, 0.3);
+  box-shadow: 0 10px 20px rgba(51, 204, 204, 0.3);
 }
 
 .login-btn:disabled {
@@ -4669,7 +4670,7 @@ select:focus, input:focus, textarea:focus {
     align-items: center;
   }
   .nav-item {
-    padding: 8px 12px;
+    padding: 8px 10px;
     margin-bottom: 0;
   }
   .main-content {
@@ -4835,7 +4836,7 @@ select:focus, input:focus, textarea:focus {
   
   /* Gantt and dynamic views fixes */
   .gantt-container {
-    padding: 12px;
+    padding: 10px;
   }
 }
 
@@ -5045,8 +5046,8 @@ html:not([data-theme="dark"]) .admin-table td {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  border-radius: 12px;
-  padding-bottom: 12px;
+  border-radius: 10px;
+  padding-bottom: 10px;
 }
 
 .horizontal-scroll-container::-webkit-scrollbar {
@@ -5074,7 +5075,7 @@ html:not([data-theme="dark"]) .admin-table td {
 }
 
 .custom-table th, .custom-table td {
-  padding: 12px;
+  padding: 10px;
   vertical-align: middle;
   transition: background 0.2s ease;
 }
@@ -5144,7 +5145,7 @@ html:not([data-theme="dark"]) .admin-table td {
 
 .dash-panel {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--glass-border);
   border-radius: 24px;
   padding: 24px;
@@ -5280,7 +5281,7 @@ html:not([data-theme="dark"]) .admin-table td {
 .stats-summary-item:not(:last-child)::after {
   content: '';
   position: absolute;
-  right: -12px;
+  right: -10px;
   top: 10%;
   height: 80%;
   width: 1px;
@@ -5331,13 +5332,13 @@ html:not([data-theme="dark"]) .admin-table td {
   .stats-summary-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
     padding: 20px;
   }
   
   .stats-summary-item {
     flex: 1 1 auto;
-    padding: 12px 0;
+    padding: 10px 0;
   }
   
   .stats-summary-item:not(:last-child)::after {
@@ -5372,13 +5373,13 @@ html:not([data-theme="dark"]) .admin-table td {
 @media (max-width: 768px) {
   :root {
     --radius-xl: 16px !important;
-    --radius-lg: 12px !important;
+    --radius-lg: 10px !important;
     --radius-md: 10px !important;
     --radius-sm: 8px !important;
   }
 
   .main-content, .main {
-    padding: 12px !important;
+    padding: 10px !important;
   }
 
   .glass-card {
@@ -5394,7 +5395,7 @@ html:not([data-theme="dark"]) .admin-table td {
 
   .section-title {
     margin-bottom: 16px !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   .section-title h2, .section-title h3 {
@@ -5405,13 +5406,13 @@ html:not([data-theme="dark"]) .admin-table td {
   .dashboard-grid, .form-grid, .form-grid-layout, .content-grid, .scale-layout-grid, .scale-layout-grid > div {
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 10px !important;
     width: 100% !important;
   }
 
   /* Ajuste de inputs para mobile */
   select, input, button {
-    padding: 10px 12px !important;
+    padding: 10px 10px !important;
     font-size: 0.9rem !important;
     border-radius: var(--radius-md) !important;
   }
@@ -5426,7 +5427,7 @@ html:not([data-theme="dark"]) .admin-table td {
 
   .dash-kpi-card {
     flex-direction: row !important;
-    padding: 12px 20px !important;
+    padding: 10px 20px !important;
     min-height: 60px !important;
     gap: 16px !important;
     justify-content: flex-start !important;
@@ -5452,14 +5453,14 @@ html:not([data-theme="dark"]) .admin-table td {
 
   .calendar-stats-strip {
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 10px !important;
     padding: 16px !important;
   }
 
   .calendar-stats-strip > div {
     border-right: none !important;
     border-bottom: 1px solid var(--line);
-    padding-bottom: 12px !important;
+    padding-bottom: 10px !important;
     width: 100% !important;
   }
 
@@ -5574,14 +5575,15 @@ html, body {
     padding: 0 16px !important;
     height: 60px !important;
     z-index: 1090 !important;
+
     background: var(--surface) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
     border-bottom: 1px solid var(--line) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
   .main-content {
     padding-top: 76px !important; /* 60px header + 16px default padding */
@@ -5589,4 +5591,23 @@ html, body {
   .topbar-mobile-title {
     display: block !important;
   }
+}
+
+/* Unificao de Finais de Semana e Feriados - Tom sutilmente mais escuro */
+.calendar-day.weekend,
+.calendar-day.holiday,
+.dash-calendar-cell.weekend,
+.dash-calendar-cell.holiday {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="dark"] .calendar-day.weekend,
+[data-theme="dark"] .calendar-day.holiday,
+[data-theme="dark"] .dash-calendar-cell.weekend,
+[data-theme="dark"] .dash-calendar-cell.holiday {
+  background: #0f172a !important;
+  border-color: rgba(148,163,184,0.15) !important;
+  background-image: none !important;
 }

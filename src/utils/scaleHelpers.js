@@ -1,10 +1,12 @@
 const { sql } = require('../config/database');
+const { toServerDate } = require('./dateFormatters');
 
 async function syncScaleRequest(pool, empId, dateStr, localTrabalho) {
   try {
+    const sDate = toServerDate(dateStr);
     const result = await pool.request()
       .input('EmployeeId', sql.INT, empId)
-      .input('StartDate', sql.DATE, dateStr)
+      .input('StartDate', sql.DATE, sDate)
       .input('Type', sql.NVARCHAR, 'Escala de Trabalho')
       .query(`
         SELECT Id FROM Requests 
@@ -21,8 +23,8 @@ async function syncScaleRequest(pool, empId, dateStr, localTrabalho) {
     } else {
       await pool.request()
         .input('EmployeeId', sql.INT, empId)
-        .input('StartDate', sql.DATE, dateStr)
-        .input('EndDate', sql.DATE, dateStr)
+        .input('StartDate', sql.DATE, sDate)
+        .input('EndDate', sql.DATE, sDate)
         .input('Type', sql.NVARCHAR, 'Escala de Trabalho')
         .input('Status', sql.NVARCHAR, 'Aprovado')
         .input('LocalTrabalho', sql.NVARCHAR, localTrabalho)

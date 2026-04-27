@@ -43,7 +43,14 @@ function RequestView({
   }, [requests, currentUser]);
 
   const updateField = (key, value) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      // Se alterou a data inicial e a final estiver vazia, sugere a mesma data para facilitar
+      if (key === 'startDate' && !current.endDate) {
+        next.endDate = value;
+      }
+      return next;
+    });
     if (key === 'startDate') setRequestMonthOffset(0);
   };
 
@@ -230,7 +237,7 @@ function RequestView({
                 {weekdayLabels.map(l => <div key={l} className="calendar-label">{l[0]}</div>)}
                 {monthDays.map((day, idx) => {
                   if (!day) return <div key={`e-${idx}`} className="calendar-day empty"></div>;
-                  const dateKey = day.toISOString().slice(0, 10);
+                  const dateKey = formatDateLocal(day);
                   const isSelected = isWithinRange(dateKey, form.startDate, form.endDate);
                   const teamBookings = pendingTeamMembers.filter(r => isWithinRange(dateKey, r.startDate, r.endDate));
                   const conflicts = teamBookings.filter(r => r.employeeId !== Number(form.employeeId));

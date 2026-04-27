@@ -42,17 +42,70 @@ function getStatusPillClass(s) {
 const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 function toDate(value) {
-  return new Date(value + 'T00:00:00');
+  if (!value) return new Date(NaN);
+  let d;
+  
+  if (value instanceof Date) {
+    d = new Date(value.getTime());
+  } else {
+    const str = String(value).trim();
+    
+    // 1. Caso especial: DD/MM/YYYY
+    const brMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (brMatch) {
+      d = new Date(parseInt(brMatch[3], 10), parseInt(brMatch[2], 10) - 1, parseInt(brMatch[1], 10));
+    } else {
+      // 2. Caso ISO: YYYY-MM-DD
+      const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        const y = parseInt(isoMatch[1], 10);
+        const m = parseInt(isoMatch[2], 10) - 1;
+        const day = parseInt(isoMatch[3], 10);
+        
+        const tMatch = str.match(/T(\d{2}):(\d{2})/);
+        if (tMatch && (parseInt(tMatch[1], 10) !== 0 || parseInt(tMatch[2], 10) !== 0)) {
+          d = new Date(str);
+        } else {
+          d = new Date(y, m, day);
+        }
+      } else {
+        d = new Date(str);
+      }
+    }
+  }
+  
+  if (!isNaN(d.getTime())) {
+    d.setHours(12, 0, 0, 0);
+  }
+  return d;
+}
+
+function formatDateLocal(d) {
+  if (!d || isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function formatDate(value) {
   if (!value) return '—';
-  return toDate(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const d = toDate(value);
+  if (isNaN(d.getTime())) return String(value); // Retorna o original se falhar o parse
+  
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function diffDays(start, end) {
-  const ms = toDate(end) - toDate(start);
-  return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
+  if (!start) return 0;
+  const s = toDate(start);
+  const e = end ? toDate(end) : s; // Se não houver fim, considera 1 dia (o próprio início)
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+  const ms = e - s;
+  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24))) + 1;
 }
 
 function getBrazilianHolidays(year) {
@@ -103,9 +156,12 @@ function getBrazilianHolidays(year) {
 }
 
 function isWithinRange(day, start, end) {
-  if (!start || !end) return false;
+  if (!start) return false;
   const current = toDate(day);
-  return current >= toDate(start) && current <= toDate(end);
+  const s = toDate(start);
+  const e = end ? toDate(end) : s;
+  if (isNaN(current.getTime()) || isNaN(s.getTime()) || isNaN(e.getTime())) return false;
+  return current.getTime() >= s.getTime() && current.getTime() <= e.getTime();
 }
 
 function rangesOverlap(startA, endA, startB, endB) {

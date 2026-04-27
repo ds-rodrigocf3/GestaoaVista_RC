@@ -99,9 +99,14 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   const formatEventDate = (d, tipo) => {
     const obj = parseDateSafe(d);
     if (!obj) return '—';
-    const dateStr = obj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const day = String(obj.getDate()).padStart(2, '0');
+    const month = String(obj.getMonth() + 1).padStart(2, '0');
+    const year = obj.getFullYear();
+    const dateStr = `${day}/${month}/${year}`;
     if (tipo === 'Aniversário') return dateStr;
-    return dateStr + ' ' + obj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const hours = String(obj.getHours()).padStart(2, '0');
+    const minutes = String(obj.getMinutes()).padStart(2, '0');
+    return `${dateStr} ${hours}:${minutes}`;
   };
 
   const TYPE_STYLE = {

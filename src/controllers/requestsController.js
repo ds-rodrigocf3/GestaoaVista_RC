@@ -1,5 +1,5 @@
 const { poolPromise, sql } = require('../config/database');
-const { formatDateYYYYMMDD } = require('../utils/dateFormatters');
+const { formatDateYYYYMMDD, toServerDate } = require('../utils/dateFormatters');
 const { canApproveFor } = require('../utils/hierarchyHelpers');
 const { syncScaleRequest } = require('../utils/scaleHelpers');
 
@@ -51,29 +51,33 @@ exports.create = async (req, res) => {
       return res.status(403).json({ error: 'Você não tem permissão para esta ação' });
     }
 
+    const sDate = toServerDate(startDate);
+    const eDate = toServerDate(endDate);
+
     // Limpar escalas conflitantes se for um agendamento de ausência
     if (absenceTypes.includes(type)) {
       await pool.request()
         .input('EmpId', sql.INT, empId)
-        .input('Start', sql.DATE, startDate)
-        .input('End', sql.DATE, endDate)
+        .input('Start', sql.DATE, sDate)
+        .input('End', sql.DATE, eDate || sDate)
         .query("DELETE FROM Requests WHERE EmployeeId=@EmpId AND Type='Escala de Trabalho' AND StartDate >= @Start AND StartDate <= @End");
     }
 
     let result;
-    if (type === 'Escala de Trabalho') {
+    if (scaleTypes.includes(type)) {
       const checkResult = await pool.request()
         .input('EmpId', sql.INT, empId)
-        .input('Start', sql.DATE, startDate)
-        .query("SELECT Id FROM Requests WHERE EmployeeId=@EmpId AND Type='Escala de Trabalho' AND StartDate=@Start");
+        .input('Start', sql.DATE, sDate)
+        .query("SELECT Id FROM Requests WHERE EmployeeId=@EmpId AND (Type='Escala de Trabalho' OR Type='Ajuste de Escala') AND StartDate=@Start");
 
       if (checkResult.recordset.length > 0) {
         const existingId = checkResult.recordset[0].Id;
         await pool.request()
           .input('Id', sql.INT, existingId)
+          .input('Type', sql.NVARCHAR(100), type)
           .input('Status', sql.NVARCHAR(50), finalStatus)
           .input('Loc', sql.NVARCHAR(50), localTrabalho || null)
-          .query(`UPDATE Requests SET Status = @Status, LocalTrabalho = @Loc, DataModificacao = GETDATE() WHERE Id = @Id`);
+          .query(`UPDATE Requests SET Type = @Type, Status = @Status, LocalTrabalho = @Loc, DataModificacao = GETDATE() WHERE Id = @Id`);
         result = { recordset: [{ Id: existingId }] };
       }
     }
@@ -83,8 +87,8 @@ exports.create = async (req, res) => {
         .input('EmpId', sql.INT, empId)
         .input('Type', sql.NVARCHAR(100), type)
         .input('Status', sql.NVARCHAR(50), finalStatus)
-        .input('Start', sql.DATE, startDate || null)
-        .input('End', sql.DATE, endDate || null)
+        .input('Start', sql.DATE, sDate)
+        .input('End', sql.DATE, eDate || sDate)
         .input('Note', sql.NVARCHAR(500), note || '')
         .input('Cov', sql.NVARCHAR(100), coverage || '')
         .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')
@@ -123,7 +127,7 @@ exports.update = async (req, res) => {
 
     const current = await pool.request()
       .input('Id', sql.INT, id)
-      .query('SELECT EmployeeId, Type, StartDate, Note, LocalTrabalho, Status FROM Requests WHERE Id = @Id');
+      .query('SELECT EmployeeId, Type, StartDate, EndDate, Note, LocalTrabalho, Status, Coverage, Priority FROM Requests WHERE Id = @Id');
     
     if (!current.recordset.length) return res.status(404).json({ error: 'Solicitação não encontrada' });
     const original = current.recordset[0];
@@ -152,11 +156,14 @@ exports.update = async (req, res) => {
       if (dateKey && loc) await syncScaleRequest(pool, original.EmployeeId, dateKey, loc);
     }
 
+    const sDateUpd = toServerDate(startDate || original.StartDate);
+    const eDateUpd = toServerDate(endDate || original.EndDate);
+
     await pool.request()
       .input('Id', sql.INT, id)
       .input('Status', sql.NVARCHAR(50), finalStatus)
-      .input('Start', sql.DATE, start)
-      .input('End', sql.DATE, endDate || original.EndDate)
+      .input('Start', sql.DATE, sDateUpd)
+      .input('End', sql.DATE, eDateUpd || sDateUpd)
       .input('Note', sql.NVARCHAR(500), note || original.Note || '')
       .input('Cov', sql.NVARCHAR(100), coverage || '')
       .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')

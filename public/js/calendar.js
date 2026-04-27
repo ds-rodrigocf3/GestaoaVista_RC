@@ -15,7 +15,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
 
       sortedRequests.forEach(r => {
         if (!newWorkDays[r.employeeId]) newWorkDays[r.employeeId] = {};
-        newWorkDays[r.employeeId][r.startDate] = r.localTrabalho;
+        
+        // Iterar por todos os dias entre startDate e endDate para preencher a escala corretamente
+        const start = toDate(r.startDate);
+        const end = r.endDate ? toDate(r.endDate) : start;
+        
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          const current = new Date(start);
+          while (current <= end) {
+            const dateKey = formatDateLocal(current);
+            newWorkDays[r.employeeId][dateKey] = r.localTrabalho;
+            current.setDate(current.getDate() + 1);
+          }
+        }
       });
     }
     
@@ -272,7 +284,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     for (const day of displayMonthDays) {
       if (!day) continue;
       if (day.getDay() === 0 || day.getDay() === 6) continue;
-      const dateKey = day.toISOString().slice(0, 10);
+      const dateKey = formatDateLocal(day);
       if (holidays[dateKey]) continue;
       const hasAbsence = requests && requests.some(r => {
         if (r.employeeId !== selectedEmployeeId) return false;
@@ -289,7 +301,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     let count = 0;
     for (const day of displayMonthDays) {
       if (!day) continue;
-      const dateKey = day.toISOString().slice(0, 10);
+      const dateKey = formatDateLocal(day);
       const isWeekend = day.getDay() === 0 || day.getDay() === 6;
       if (!isWeekend && !holidays[dateKey]) count++;
     }
@@ -299,8 +311,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   const presencialCount = React.useMemo(() => {
     return Object.keys(currentEmployeeData).filter(k => {
       if (!isWithinRange(k,
-        new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1).toISOString().slice(0, 10),
-        new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0).toISOString().slice(0, 10)
+        formatDateLocal(new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1)),
+        formatDateLocal(new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0))
       )) return false;
       
       if (currentEmployeeData[k] !== 'Presencial') return false;
@@ -320,7 +332,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     for (const day of displayMonthDays) {
       if (!day) continue;
       if (day.getDay() === 0 || day.getDay() === 6) continue;
-      const dk = day.toISOString().slice(0, 10);
+      const dk = formatDateLocal(day);
       if (holidays[dk]) continue;
       totalBiz++;
     }
@@ -331,7 +343,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
       for (const day of displayMonthDays) {
         if (!day) continue;
         if (day.getDay() === 0 || day.getDay() === 6) continue;
-        const dk = day.toISOString().slice(0, 10);
+        const dk = formatDateLocal(day);
         if (holidays[dk]) continue;
         const hasAbsence = requests && requests.some(r => {
           if (Number(r.employeeId) !== Number(emp.id)) return false;
@@ -548,7 +560,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 {weekdayLabels.map((label) => <div key={label} className="calendar-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', textAlign: 'center', paddingBottom: '12px' }}>{label}</div>)}
                 {displayMonthDays.map((day, index) => {
                   if (!day) return <div key={`empty-${index}`} className="calendar-day empty" style={{ border: 'none', background: 'transparent' }}></div>;
-                  const dateKey = day.toISOString().slice(0, 10);
+                  const dateKey = formatDateLocal(day);
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   const status = currentEmployeeData[dateKey];
                   const holidayInfo = holidays[dateKey];
@@ -626,9 +638,9 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       title={unifiedTooltip}
                       style={{ 
                         position: 'relative',
-                        background: pendingAbsence ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+                        background: pendingAbsence ? 'rgba(245, 158, 11, 0.08)' : '',
                         borderRadius: 'var(--radius-md)',
-                        border: status ? '1.5px solid var(--line)' : (pendingAbsence ? '1.5px dashed rgba(245, 158, 11, 0.4)' : '1.5px dashed var(--line)'),
+                        border: status ? '1.5px solid var(--line)' : (pendingAbsence ? '1.5px dashed rgba(245, 158, 11, 0.4)' : ''),
                         color: 'var(--title)',
                         cursor: isReadOnly || absenceRequest || pendingAbsence ? 'default' : 'pointer',
                         transition: 'all 0.2s ease',
@@ -735,11 +747,11 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
               </div>
             </div>
 
-            <div className="scale-stats-panel">
+            <div className="scale-stats-panel" style={{ maxHeight: '600px', overflowY: 'auto', paddingRight: '8px' }}>
                <div className="glass-card">
                  <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '20px', color: 'var(--title)' }}>Status da Equipe</h4>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {fillStats.slice(0, 12).map(s => (
+                    {fillStats.map(s => (
                       <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--title)' }}>{s.name}</span>
@@ -758,7 +770,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
           {/* Legends Section */}
           <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', borderTop: '1px solid var(--line)', paddingTop: '24px' }}>
             {/* Holiday List */}
-            {Object.keys(holidays).length > 0 && Object.entries(holidays).some(([date]) => date.startsWith(displayMonth.toISOString().slice(0, 7))) && (
+            {Object.keys(holidays).length > 0 && Object.entries(holidays).some(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
               <div>
                 <p style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)' }}>celebration</span>
@@ -766,7 +778,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     {Object.entries(holidays)
-                      .filter(([date]) => date.startsWith(displayMonth.toISOString().slice(0, 7)))
+                      .filter(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7)))
                       .map(([date, name]) => (
                       <span key={date} className="dash-micro-badge" style={{ fontSize: '0.7rem', padding: '6px 12px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
                         {date.split('-').reverse()[0]}/{date.split('-')[1]} - {name}
@@ -777,7 +789,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             )}
 
             {/* Event List */}
-            {(eventos || []).some(ev => (ev.dataInicio || ev.inicio || '').startsWith(displayMonth.toISOString().slice(0, 7))) && (
+            {(eventos || []).some(ev => (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
               <div>
                 <p style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)' }}>event</span>
@@ -786,7 +798,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {(eventos || [])
                     .filter(ev => {
-                      const matchesMonth = (ev.dataInicio || ev.inicio || '').startsWith(displayMonth.toISOString().slice(0, 7));
+                      const matchesMonth = (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7));
                       if (!matchesMonth) return false;
                       
                       // Filter by Area if not Global

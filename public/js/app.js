@@ -281,7 +281,16 @@ function App() {
       setToast({ title: 'Acesso negado', message: 'VocÃª sÃ³ pode criar agendamentos para si mesmo.' });
       return;
     }
-    const payload = { employeeId: empId, startDate: form.startDate, endDate: form.endDate, type: form.type, status: 'Pendente', note: form.note || 'Sem observaÃ§Ãµes adicionais.', coverage: form.coverage || 'A definir', priority: formConflicts.length >= 2 ? 'Alta' : formConflicts.length === 1 ? 'MÃ©dia' : 'Baixa' };
+    const payload = { 
+      employeeId: empId, 
+      startDate: form.startDate, 
+      endDate: form.endDate || form.startDate, 
+      type: form.type, 
+      status: 'Pendente', 
+      note: form.note || 'Sem observações adicionais.', 
+      coverage: form.coverage || 'A definir', 
+      priority: formConflicts.length >= 2 ? 'Alta' : formConflicts.length === 1 ? 'Média' : 'Baixa' 
+    };
     const method = editingRequestId ? 'PUT' : 'POST';
     const url = editingRequestId ? `${API_BASE}/api/requests/${editingRequestId}` : `${API_BASE}/api/requests`;
     fetch(url, { method, headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) }, body: JSON.stringify(payload) })
@@ -341,8 +350,8 @@ function App() {
       ownerId: dbEmployees?.length > 0 ? (currentUser?.colaboradorId || dbEmployees[0].id) : '',
       status: initialStatus,
       priority: 'Baixa',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
+      startDate: formatDateLocal(new Date()),
+      endDate: formatDateLocal(new Date()),
       demandaId: null
     };
     const tempId = -(Date.now());
@@ -398,7 +407,17 @@ function App() {
           setWorkDays(prev => {
             const next = { ...prev };
             if (!next[data.employeeId]) next[data.employeeId] = {};
-            next[data.employeeId][data.startDate] = data.localTrabalho;
+            
+            const start = toDate(data.startDate);
+            const end = data.endDate ? toDate(data.endDate) : start;
+            if (!isNaN(start.getTime())) {
+              const curr = new Date(start);
+              while (curr <= end) {
+                const dk = formatDateLocal(curr);
+                next[data.employeeId][dk] = data.localTrabalho;
+                curr.setDate(curr.getDate() + 1);
+              }
+            }
             return next;
           });
         }
@@ -561,7 +580,7 @@ function App() {
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
           {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} />}
           {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} approvalNote={approvalNote} setApprovalNote={setApprovalNote} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
-          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={requests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} />}
+          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} />}
           {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
         </main>
       </div>

@@ -192,7 +192,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
 
   const getStatusDia = (empId, dateObj) => {
     if (!dateObj || isNaN(dateObj.getTime())) return { type: 'pendente', icon: 'help_outline', color: 'var(--line)', title: 'Indisponível' };
-    const dStr = dateObj.toISOString().split('T')[0];
+    const dStr = formatDateLocal(dateObj);
     
     // Prioridade 1: Ausências (Férias, Saúde, etc)
     const absenceRequest = (scopedRequests || []).find(r => {
@@ -272,7 +272,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
   }, [filteredEmployees, scopedTasks]);
 
   const timelineAusencias = React.useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatDateLocal(new Date());
     
     const parseDateSafe = (d) => {
       if (!d) return null;
@@ -327,7 +327,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     const events = (eventos || [])
       .filter(ev => {
          const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
-         if (!d || d.toISOString().split('T')[0] < todayStr) return false;
+         if (!d || formatDateLocal(d) < todayStr) return false;
 
          // Regras de Visibilidade (Atribuição)
          const evAreaId = ev.areaId || ev.AreaId;

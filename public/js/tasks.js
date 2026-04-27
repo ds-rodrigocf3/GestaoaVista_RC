@@ -279,7 +279,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     const endDateObj = new Date(end + 'T12:00:00');
 
     while (currentDate <= endDateObj) {
-      const dateKey = currentDate.toISOString().slice(0, 10);
+      const dateKey = formatDateLocal(currentDate);
       const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
 
       if (!isWeekend && !holidays[dateKey]) {
