@@ -4,16 +4,46 @@ exports.getAll = async (req, res) => {
   try {
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
-    const result = await pool.request().query(`
-      SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
-             d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
-             d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
-             (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
-             (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
-      FROM Demandas d
-      LEFT JOIN BI_Colaboradores c ON d.ResponsavelId = c.Id
-      ORDER BY d.DataModificacao DESC
-    `);
+    const isAdmin = req.user.isAdmin;
+    const colabId = req.user.colaboradorId;
+
+    let query = '';
+
+    if (isAdmin) {
+      query = `
+        SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
+               d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
+               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
+               (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
+               (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
+        FROM Demandas d
+        LEFT JOIN BI_Colaboradores c ON d.ResponsavelId = c.Id
+        ORDER BY d.DataModificacao DESC
+      `;
+    } else {
+      query = `
+        WITH HierarquiaCTE AS (
+            SELECT Id, AreaId FROM BI_Colaboradores WHERE Id = @ColabId
+            UNION ALL
+            SELECT c.Id, c.AreaId FROM BI_Colaboradores c
+            INNER JOIN HierarquiaCTE h ON c.GestorId = h.Id
+        )
+        SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
+               d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
+               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
+               (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
+               (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
+        FROM Demandas d
+        LEFT JOIN BI_Colaboradores c ON d.ResponsavelId = c.Id
+        WHERE d.ResponsavelId IS NULL 
+           OR c.AreaId IN (SELECT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+        ORDER BY d.DataModificacao DESC
+      `;
+    }
+
+    const result = await pool.request()
+      .input('ColabId', sql.INT, colabId || null)
+      .query(query);
     res.json(result.recordset.map(d => ({
       id: d.Id,
       titulo: d.Titulo,

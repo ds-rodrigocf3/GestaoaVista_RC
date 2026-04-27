@@ -5,15 +5,43 @@ exports.getAll = async (req, res) => {
   try {
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
-    const result = await pool.request().query(`
-      SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
-             t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
-             c.Nome as ResponsavelNome
-      FROM Tarefas t
-      LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
-      WHERE t.Ativo = 1
-      ORDER BY t.DataCriacao DESC
-    `);
+    const isAdmin = req.user.isAdmin;
+    const colabId = req.user.colaboradorId;
+
+    let query = '';
+
+    if (isAdmin) {
+      query = `
+        SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
+               t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
+               c.Nome as ResponsavelNome
+        FROM Tarefas t
+        LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
+        WHERE t.Ativo = 1
+        ORDER BY t.DataCriacao DESC
+      `;
+    } else {
+      query = `
+        WITH HierarquiaCTE AS (
+            SELECT Id, AreaId FROM BI_Colaboradores WHERE Id = @ColabId
+            UNION ALL
+            SELECT c.Id, c.AreaId FROM BI_Colaboradores c
+            INNER JOIN HierarquiaCTE h ON c.GestorId = h.Id
+        )
+        SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
+               t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
+               c.Nome as ResponsavelNome
+        FROM Tarefas t
+        LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
+        WHERE t.Ativo = 1 
+          AND (t.ResponsavelId IS NULL OR c.AreaId IN (SELECT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL))
+        ORDER BY t.DataCriacao DESC
+      `;
+    }
+
+    const result = await pool.request()
+      .input('ColabId', sql.INT, colabId || null)
+      .query(query);
     res.json(result.recordset.map(t => ({
       id: t.Id,
       demandaId: t.DemandaId,
