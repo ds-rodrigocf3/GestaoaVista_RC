@@ -1,0 +1,21 @@
+NOME DO ARQUIVO: .gitignore
+CAMINHO: .gitignore
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+node_modules
+.env
+dist
+build
+.md
+.ps1
+test-login.js
+test-connection.js
+.bat
+.txt
+.env.local
+.env.example
+strach
+migrate.sql
+

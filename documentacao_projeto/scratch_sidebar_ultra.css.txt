@@ -1,0 +1,57 @@
+NOME DO ARQUIVO: sidebar_ultra.css
+CAMINHO: scratch/sidebar_ultra.css
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+
+/* Ultra-Compact & Clean Sidebar */
+.app-shell.collapsed {
+  grid-template-columns: 68px 1fr !important;
+}
+
+.sidebar {
+  overflow-x: hidden !important; /* Kill horizontal scroll */
+}
+
+.sidebar.collapsed {
+  padding: 24px 8px !important;
+}
+
+.sidebar.collapsed .brand-badge {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.9rem !important;
+}
+
+.sidebar.collapsed .nav-button {
+  padding: 10px !important;
+  justify-content: center !important;
+}
+
+.sidebar.collapsed .nav-button span.material-symbols-outlined {
+  margin: 0 !important;
+  font-size: 20px !important;
+}
+
+.sidebar.collapsed .sidebar-header {
+  margin-bottom: 24px !important;
+}
+
+.sidebar.collapsed .user-badge-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.85rem !important;
+}
+
+.sidebar.collapsed .logout-btn,
+.sidebar.collapsed .theme-toggle-btn {
+  padding: 8px !important;
+  justify-content: center !important;
+}
+
+/* Ensure no elements leak width */
+.sidebar * {
+  max-width: 100%;
+}
+

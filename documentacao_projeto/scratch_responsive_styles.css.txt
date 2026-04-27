@@ -1,0 +1,74 @@
+NOME DO ARQUIVO: responsive_styles.css
+CAMINHO: scratch/responsive_styles.css
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+/* Responsive Adjustments for Small Screens */
+@media (max-width: 480px) {
+  .glass-card {
+    padding: 16px !important;
+  }
+  .dash-360-header {
+    gap: 8px !important;
+  }
+  .stats-summary-bar {
+    padding: 16px !important;
+  }
+}
+
+:root {
+  --cal-icon-size: clamp(18px, 4vw, 24px);
+}
+
+/* =====================================================
+   ESTILO RESPONSIVO - PADRONIZAÇÃO (SENIOR UX)
+   ===================================================== */
+@media (max-width: 768px) {
+  :root {
+    --radius-xl: 16px !important;
+    --radius-lg: 12px !important;
+    --radius-md: 10px !important;
+    --radius-sm: 8px !important;
+  }
+
+  .main-content, .main {
+    padding: 12px !important;
+  }
+
+  .glass-card {
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+    border-radius: var(--radius-xl) !important;
+  }
+
+  /* Garante que elementos internos respeitem o novo raio */
+  .glass-card > div {
+    border-radius: inherit;
+  }
+
+  .section-title {
+    margin-bottom: 16px !important;
+    gap: 12px !important;
+  }
+
+  .section-title h2, .section-title h3 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Espaçamentos simétricos entre blocos */
+  .dashboard-grid, .form-grid, .form-grid-layout, .content-grid, .scale-layout-grid, .scale-layout-grid > div {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Ajuste de inputs para mobile */
+  select, input, button {
+    padding: 10px 12px !important;
+    font-size: 0.9rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+}
+

@@ -1,0 +1,53 @@
+NOME DO ARQUIVO: refine_layout.css
+CAMINHO: scratch/refine_layout.css
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+
+/* Refined Collapsible Sidebar & Layout Expansion */
+.main-content {
+  width: 100%;
+  max-width: none !important; /* Allow full expansion */
+  padding: 32px;
+  overflow-x: hidden;
+}
+
+.sidebar.collapsed .theme-toggle-btn {
+  justify-content: center;
+  padding: 10px;
+}
+
+.sidebar.collapsed .theme-toggle-btn span:not(.material-symbols-outlined) {
+  display: none;
+}
+
+.sidebar.collapsed .logout-btn {
+  justify-content: center;
+  padding: 10px;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.sidebar.collapsed .logout-btn span:not(.material-symbols-outlined) {
+  display: none;
+}
+
+/* Ensure transition is applied to main content too */
+.main-content {
+  transition: padding 0.3s ease;
+}
+
+.sidebar.collapsed + .main-content {
+  padding: 32px 48px;
+}
+
+/* Remove hardcoded max-width from dashboard containers */
+.main {
+  max-width: none !important;
+}
+
+.dashboard-grid {
+  max-width: none !important;
+}
+

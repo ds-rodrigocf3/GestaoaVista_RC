@@ -1,0 +1,109 @@
+NOME DO ARQUIVO: sidebar_collapsed.css
+CAMINHO: scratch/sidebar_collapsed.css
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+
+/* Collapsible Sidebar Styles */
+.app-shell {
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-shell.collapsed {
+  grid-template-columns: 80px 1fr;
+}
+
+.sidebar {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+  padding: 24px 10px;
+  align-items: center;
+}
+
+.sidebar.collapsed .brand {
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.sidebar.collapsed .brand div:not(.brand-badge) {
+  display: none;
+}
+
+.sidebar.collapsed .nav-button {
+  justify-content: center;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.sidebar.collapsed .nav-button .nav-text-wrapper {
+  display: none;
+}
+
+.sidebar.collapsed .nav-button span.material-symbols-outlined {
+  margin-right: 0;
+  font-size: 24px;
+}
+
+.sidebar.collapsed .user-badge-info,
+.sidebar.collapsed .user-badge-role,
+.sidebar.collapsed .sidebar-footer {
+  display: none;
+}
+
+.sidebar.collapsed .user-badge {
+  padding: 16px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar.collapsed .user-badge-content {
+  padding: 8px;
+}
+
+.sidebar.collapsed .logout-text {
+  display: none;
+}
+
+.sidebar.collapsed .btn-logout {
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Toggle Button */
+.sidebar-toggle {
+  position: absolute;
+  right: -12px;
+  top: 32px;
+  width: 24px;
+  height: 24px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 4px 10px rgba(51, 204, 204, 0.3);
+  transition: all 0.3s ease;
+  border: 2px solid var(--surface);
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.1);
+  background: var(--primary-2);
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  right: -12px;
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: none;
+  }
+}
+

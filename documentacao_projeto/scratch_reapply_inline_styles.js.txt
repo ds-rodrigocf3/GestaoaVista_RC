@@ -1,0 +1,33 @@
+NOME DO ARQUIVO: reapply_inline_styles.js
+CAMINHO: scratch/reapply_inline_styles.js
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+const fs = require('fs');
+const path = require('path');
+
+const jsDir = path.join(__dirname, '..', 'public', 'js');
+const files = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'));
+
+files.forEach(file => {
+    const filePath = path.join(jsDir, file);
+    let content = fs.readFileSync(filePath, 'utf8');
+    
+    let original = content;
+    
+    // Replace hardcoded border radius in inline styles with CSS variables to enable responsive sizing
+    content = content.replace(/borderRadius:\s*'24px'/g, "borderRadius: 'var(--radius-xl)'");
+    content = content.replace(/borderRadius:\s*'20px'/g, "borderRadius: 'var(--radius-lg)'");
+    content = content.replace(/borderRadius:\s*'16px'/g, "borderRadius: 'var(--radius-lg)'");
+    content = content.replace(/borderRadius:\s*'14px'/g, "borderRadius: 'var(--radius-md)'");
+    content = content.replace(/borderRadius:\s*'12px'/g, "borderRadius: 'var(--radius-md)'");
+    content = content.replace(/borderRadius:\s*'10px'/g, "borderRadius: 'var(--radius-sm)'");
+    content = content.replace(/borderRadius:\s*'8px'/g, "borderRadius: 'var(--radius-sm)'");
+
+    if (content !== original) {
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log(`Updated inline styles in ${file}`);
+    }
+});
+

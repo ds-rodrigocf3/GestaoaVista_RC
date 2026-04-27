@@ -1,0 +1,485 @@
+NOME DO ARQUIVO: DEPLOY.md
+CAMINHO: DEPLOY.md
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+# 🚀 Deploy — Gestão à Vista na Azure
+
+Guia completo para publicar a aplicação no **Azure App Service** com banco **Azure SQL Database**.
+
+---
+
+## 📋 Índice
+
+1. [Pré-requisitos](#1-pré-requisitos)
+2. [Criar o Azure SQL Database](#2-criar-o-azure-sql-database)
+3. [Configurar o Schema do Banco](#3-configurar-o-schema-do-banco)
+4. [Preparar o Projeto para Deploy](#4-preparar-o-projeto-para-deploy)
+5. [Criar o App Service](#5-criar-o-app-service)
+6. [Configurar Variáveis de Ambiente](#6-configurar-variáveis-de-ambiente)
+7. [Deploy via GitHub (CI/CD)](#7-deploy-via-github-cicd)
+8. [Deploy Manual (ZIP Deploy)](#8-deploy-manual-zip-deploy)
+9. [Validação Pós-Deploy](#9-validação-pós-deploy)
+10. [Troubleshooting](#10-troubleshooting)
+
+---
+
+## 1. Pré-requisitos
+
+| Item | Descrição |
+|------|-----------|
+| **Conta Azure** | Assinatura ativa (Pay-As-You-Go ou superior) |
+| **Azure CLI** | Instalado localmente — `winget install Microsoft.AzureCLI` |
+| **Node.js** | v18+ (mesmo que roda localmente) |
+| **Git** | Repositório `GestaoaVista_RC` já no GitHub |
+| **SSMS ou Azure Data Studio** | Para executar o schema SQL no banco Azure |
+
+### Login na Azure CLI
+
+```powershell
+az login
+az account set --subscription "NOME_DA_SUA_ASSINATURA"
+```
+
+---
+
+## 2. Criar o Azure SQL Database
+
+### 2.1 — Criar Resource Group
+
+```powershell
+az group create --name rg-gestaoavista --location brazilsouth
+```
+
+### 2.2 — Criar o SQL Server Lógico
+
+```powershell
+az sql server create `
+  --name srv-gestaoavista `
+  --resource-group rg-gestaoavista `
+  --location brazilsouth `
+  --admin-user adminGestao `
+  --admin-password "SuaSenhaForte@2026!"
+```
+
+> ⚠️ **IMPORTANTE**: A senha deve ter no mínimo 8 caracteres com maiúsculas, minúsculas, números e caractere especial.
+
+### 2.3 — Criar o Banco de Dados
+
+```powershell
+az sql db create `
+  --resource-group rg-gestaoavista `
+  --server srv-gestaoavista `
+  --name gestaointernabi-database `
+  --service-objective Basic `
+  --backup-storage-redundancy Local
+```
+
+**Tiers disponíveis** (escolha conforme necessidade):
+
+| Tier | vCores | Armazenamento | Custo estimado/mês |
+|------|--------|---------------|-------------------|
+| **Basic** | Compartilhado | 2 GB | ~R$ 25 |
+| **S0 (Standard)** | Compartilhado | 250 GB | ~R$ 75 |
+| **S1 (Standard)** | Compartilhado | 250 GB | ~R$ 150 |
+| **GP_S_Gen5_1** (Serverless) | 1 vCore | 32 GB | Variável (auto-pause) |
+
+> 💡 **Recomendação**: Comece com **Basic** ou **Serverless (GP_S_Gen5_1)** para economizar.
+
+### 2.4 — Liberar Acesso de Rede (Firewall)
+
+```powershell
+# Permitir serviços Azure internos (necessário para o App Service conectar)
+az sql server firewall-rule create `
+  --resource-group rg-gestaoavista `
+  --server srv-gestaoavista `
+  --name AllowAzureServices `
+  --start-ip-address 0.0.0.0 `
+  --end-ip-address 0.0.0.0
+
+# Permitir seu IP local (para rodar o schema via SSMS)
+az sql server firewall-rule create `
+  --resource-group rg-gestaoavista `
+  --server srv-gestaoavista `
+  --name MeuIP `
+  --start-ip-address SEU_IP_PUBLICO `
+  --end-ip-address SEU_IP_PUBLICO
+```
+
+> Para descobrir seu IP: `(Invoke-WebRequest -Uri "https://api.ipify.org").Content`
+
+---
+
+## 3. Configurar o Schema do Banco
+
+### 3.1 — Conectar ao Azure SQL
+
+Abra o **SSMS** ou **Azure Data Studio** e conecte com:
+
+| Campo | Valor |
+|-------|-------|
+| **Servidor** | `srv-gestaoavista.database.windows.net` |
+| **Autenticação** | SQL Server Authentication |
+| **Login** | `adminGestao` |
+| **Senha** | `SuaSenhaForte@2026!` |
+| **Banco** | `gestaointernabi-database` |
+| **Encrypt** | Mandatory (True) |
+
+### 3.2 — Executar o Schema
+
+Abra o arquivo `database/schema.sql` e execute no Azure SQL.
+
+> ⚠️ **Ajustes necessários para Azure SQL**: remova os comandos `CREATE DATABASE` e `USE`, pois o banco já foi criado pelo CLI. O script deve começar a partir da criação das tabelas:
+
+```sql
+-- REMOVER estas linhas no topo (já executadas pelo CLI):
+-- IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'gestaointernabi-database')
+-- BEGIN CREATE DATABASE [...] END
+-- GO
+-- USE [gestaointernabi-database];
+-- GO
+
+-- Executar a partir daqui:
+-- 1. NÍVEIS DE HIERARQUIA
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='NiveisHierarquia'...)
+...
+```
+
+### 3.3 — Verificar Tabelas Criadas
+
+```sql
+SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME;
+```
+
+Resultado esperado:
+- `BI_Areas`, `BI_Cargos`, `BI_Colaboradores`, `BI_Eventos`
+- `BI_Status_Tipos`, `BI_Usuarios`, `Demandas`
+- `NiveisHierarquia`, `Requests`, `StatusHistorico`, `Tarefas`
+
+---
+
+## 4. Preparar o Projeto para Deploy
+
+### 4.1 — Remover dependência `msnodesqlv8`
+
+O pacote `msnodesqlv8` usa drivers nativos do Windows e **não funciona no App Service Linux**. O `mssql` puro com TDS já é suficiente para Azure SQL.
+
+```powershell
+npm uninstall msnodesqlv8
+```
+
+### 4.2 — Verificar `package.json`
+
+Certifique-se de que o `start` script está correto:
+
+```json
+{
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+```
+
+> Adicione o campo `engines` caso não exista — o App Service usa essa informação.
+
+### 4.3 — Verificar `database.js`
+
+O arquivo `src/config/database.js` já suporta Azure automaticamente:
+- Detecta Azure via `WEBSITE_SITE_NAME`
+- Usa `encrypt: true` (obrigatório no Azure SQL)
+
+> ⚠️ No Azure SQL, altere `trustServerCertificate` para `false` em produção. O certificado Azure é válido e confiável.
+
+### 4.4 — Arquivo `.gitignore`
+
+Confirme que `.env` está no `.gitignore` (já está). **Nunca commite credenciais**.
+
+---
+
+## 5. Criar o App Service
+
+### 5.1 — Criar o App Service Plan
+
+```powershell
+az appservice plan create `
+  --name plan-gestaoavista `
+  --resource-group rg-gestaoavista `
+  --location brazilsouth `
+  --sku B1 `
+  --is-linux
+```
+
+**Planos disponíveis:**
+
+| SKU | vCPU | RAM | Custo estimado/mês |
+|-----|------|-----|-------------------|
+| **F1** (Free) | Compartilhado | 1 GB | Grátis (60 min/dia) |
+| **B1** (Basic) | 1 | 1.75 GB | ~R$ 65 |
+| **S1** (Standard) | 1 | 1.75 GB | ~R$ 350 (com slots) |
+| **P1v3** (Premium) | 1 | 8 GB | ~R$ 500 |
+
+> 💡 **Recomendação**: **B1** para testes/produção leve. **F1** não suporta `always on`.
+
+### 5.2 — Criar o Web App
+
+```powershell
+az webapp create `
+  --name gestaoavista-app `
+  --resource-group rg-gestaoavista `
+  --plan plan-gestaoavista `
+  --runtime "NODE:20-lts"
+```
+
+> O nome `gestaoavista-app` será a URL: `https://gestaoavista-app.azurewebsites.net`
+
+### 5.3 — Configurar Startup
+
+```powershell
+az webapp config set `
+  --resource-group rg-gestaoavista `
+  --name gestaoavista-app `
+  --startup-file "node src/server.js"
+```
+
+---
+
+## 6. Configurar Variáveis de Ambiente
+
+### 6.1 — Definir Application Settings
+
+```powershell
+az webapp config appsettings set `
+  --resource-group rg-gestaoavista `
+  --name gestaoavista-app `
+  --settings `
+    DB_SERVER="srv-gestaoavista.database.windows.net" `
+    DB_DATABASE="gestaointernabi-database" `
+    DB_USER="adminGestao" `
+    DB_PASSWORD="SuaSenhaForte@2026!" `
+    DB_PORT="1433" `
+    JWT_SECRET="gestaointernabi-secret-prod-2026" `
+    PORT="8080" `
+    NODE_ENV="production" `
+    WEBSITE_NODE_DEFAULT_VERSION="~20"
+```
+
+> ⚠️ **PORT**: O App Service Linux injeta a porta via variável `PORT` (geralmente 8080). O `server.js` já lê `process.env.PORT`, então funcionará automaticamente.
+
+### 6.2 — Verificar no Portal
+
+1. Portal Azure → **App Service** → `gestaoavista-app`
+2. Menu lateral: **Configuração** → **Configurações do aplicativo**
+3. Confirme que todas as variáveis estão listadas
+
+### 6.3 — Ativar Always On (recomendado)
+
+```powershell
+az webapp config set `
+  --resource-group rg-gestaoavista `
+  --name gestaoavista-app `
+  --always-on true
+```
+
+---
+
+## 7. Deploy via GitHub (CI/CD)
+
+### Opção A — Deployment Center (Portal)
+
+1. Portal Azure → **App Service** → `gestaoavista-app`
+2. Menu lateral: **Centro de Implantação**
+3. **Origem**: GitHub
+4. Autorize sua conta GitHub
+5. Selecione:
+   - **Organização**: `ds-rodrigocf3`
+   - **Repositório**: `GestaoaVista_RC`
+   - **Branch**: `main`
+6. **Provedor de compilação**: GitHub Actions
+7. Clique em **Salvar**
+
+O Azure cria automaticamente um workflow em `.github/workflows/`. A cada `git push` na branch `main`, o deploy será automático.
+
+### Opção B — Workflow Manual
+
+Crie `.github/workflows/azure-deploy.yml`:
+
+```yaml
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'gestaoavista-app'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+```
+
+**Para obter o Publish Profile:**
+1. Portal → App Service → **Visão geral** → **Baixar perfil de publicação**
+2. GitHub → Repositório → **Settings** → **Secrets and variables** → **Actions**
+3. Crie secret `AZURE_WEBAPP_PUBLISH_PROFILE` com o conteúdo do arquivo XML
+
+---
+
+## 8. Deploy Manual (ZIP Deploy)
+
+Alternativa rápida sem CI/CD:
+
+```powershell
+# Na raiz do projeto
+npm ci --omit=dev
+
+# Criar ZIP (excluindo arquivos desnecessários)
+Compress-Archive -Path .\src, .\public, .\database, .\package.json, .\package-lock.json, .\node_modules -DestinationPath deploy.zip -Force
+
+# Enviar para Azure
+az webapp deploy `
+  --resource-group rg-gestaoavista `
+  --name gestaoavista-app `
+  --src-path deploy.zip `
+  --type zip
+```
+
+---
+
+## 9. Validação Pós-Deploy
+
+### 9.1 — Verificar Logs
+
+```powershell
+# Ativar logs
+az webapp log config `
+  --resource-group rg-gestaoavista `
+  --name gestaoavista-app `
+  --application-logging filesystem `
+  --level information
+
+# Stream de logs em tempo real
+az webapp log tail `
+  --resource-group rg-gestaoavista `
+  --name gestaoavista-app
+```
+
+Saída esperada:
+```
+✅ Conectado ao SQL Server (Azure) com sucesso!
+Servidor rodando na porta 8080
+Total de routes: 40
+```
+
+### 9.2 — Testar Endpoints
+
+```powershell
+# Página principal
+Invoke-WebRequest -Uri "https://gestaoavista-app.azurewebsites.net" -Method GET
+
+# Health check da API
+Invoke-WebRequest -Uri "https://gestaoavista-app.azurewebsites.net/api/areas" -Method GET
+```
+
+### 9.3 — Checklist Final
+
+- [ ] App abre no navegador sem erros
+- [ ] Login funciona (usuário/senha)
+- [ ] Dashboard carrega dados do banco
+- [ ] Eventos, Tarefas e Demandas listam corretamente
+- [ ] Agendamentos (Requests) salvam e carregam
+- [ ] Console do navegador (F12) sem erros de rede
+
+---
+
+## 10. Troubleshooting
+
+### Erro: `ECONNREFUSED` ou `ETIMEOUT`
+
+- Verifique as regras de firewall do SQL Server (`AllowAzureServices` habilitado)
+- Confirme que `DB_SERVER` termina com `.database.windows.net`
+
+### Erro: `Login failed for user`
+
+- Confirme `DB_USER` e `DB_PASSWORD` nas Application Settings
+- Teste a conexão via SSMS usando as mesmas credenciais
+
+### App retorna `502 Bad Gateway`
+
+- Verifique se `PORT` está configurado (o App Service injeta a porta)
+- Verifique `startup-file` com `az webapp config show`
+- Consulte os logs: `az webapp log tail`
+
+### Erro: `Cannot find module 'msnodesqlv8'`
+
+- Remova o pacote: `npm uninstall msnodesqlv8`
+- Faça novo deploy
+
+### App demora para carregar na primeira vez
+
+- Ative **Always On** (requer plano B1+)
+- O plano Free (F1) desliga a app após inatividade
+
+---
+
+## 📐 Arquitetura Final
+
+```
+┌─────────────────────────────────────────────┐
+│                  INTERNET                   │
+│          gestaoavista-app.azurewebsites.net  │
+└──────────────────┬──────────────────────────┘
+                   │ HTTPS (443)
+┌──────────────────▼──────────────────────────┐
+│           Azure App Service (Linux)         │
+│  ┌────────────────────────────────────────┐ │
+│  │  Node.js 20 LTS                       │ │
+│  │  └─ src/server.js (Express)           │ │
+│  │     ├─ /api/* (REST API)              │ │
+│  │     └─ /public/* (Frontend estático)  │ │
+│  └────────────────────────────────────────┘ │
+│           plan-gestaoavista (B1)            │
+└──────────────────┬──────────────────────────┘
+                   │ TDS/TLS (1433)
+┌──────────────────▼──────────────────────────┐
+│           Azure SQL Database                │
+│  srv-gestaoavista.database.windows.net      │
+│  └─ gestaointernabi-database                │
+│     ├─ BI_Colaboradores, BI_Areas           │
+│     ├─ Tarefas, Demandas, Requests          │
+│     ├─ BI_Eventos, BI_Usuarios              │
+│     └─ NiveisHierarquia, StatusHistorico    │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 💰 Estimativa de Custo Mensal (Produção Leve)
+
+| Recurso | Tier | Custo estimado |
+|---------|------|---------------|
+| App Service | B1 | ~R$ 65/mês |
+| Azure SQL | Basic (5 DTU) | ~R$ 25/mês |
+| **Total** | | **~R$ 90/mês** |
+
+> Valores aproximados para região Brazil South. Consulte a [Calculadora Azure](https://azure.microsoft.com/pt-br/pricing/calculator/) para valores atualizados.
+

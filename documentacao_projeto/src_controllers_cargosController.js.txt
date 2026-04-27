@@ -1,0 +1,57 @@
+NOME DO ARQUIVO: cargosController.js
+CAMINHO: src/controllers/cargosController.js
+PROPÓSITO: Gerenciamento do CRUD de Cargos.
+
+CONTEÚDO COMPLETO:
+========================================================================
+const { poolPromise, sql } = require('../config/database');
+
+exports.getAll = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+    const result = await pool.request().query('SELECT Id, Nome FROM BI_Cargos ORDER BY Nome');
+    res.json(result.recordset);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.create = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+    const result = await pool.request()
+      .input('Nome', sql.NVARCHAR(100), req.body.nome)
+      .query('INSERT INTO BI_Cargos (Nome) OUTPUT Inserted.Id VALUES (@Nome)');
+    res.json({ id: result.recordset[0].Id, nome: req.body.nome });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome } = req.body;
+    const pool = await poolPromise;
+    if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .input('Nome', sql.NVARCHAR(100), nome)
+      .query('UPDATE BI_Cargos SET Nome = @Nome WHERE Id = @Id');
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.delete = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await poolPromise;
+    if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .query('UPDATE BI_Colaboradores SET CargoId = NULL WHERE CargoId = @Id');
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .query('DELETE FROM BI_Cargos WHERE Id = @Id');
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+

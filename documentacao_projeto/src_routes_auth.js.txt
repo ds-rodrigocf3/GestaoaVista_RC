@@ -1,0 +1,37 @@
+NOME DO ARQUIVO: auth.js
+CAMINHO: src/routes/auth.js
+PROPÓSITO: Rotas para login e autenticação.
+
+CONTEÚDO COMPLETO:
+========================================================================
+const express = require('express');
+const multer = require('multer');
+const router = express.Router();
+const { authMiddleware } = require('../middleware/auth');
+const authController = require('../controllers/authController');
+
+const upload = multer({ 
+  storage: multer.memoryStorage(), 
+  limits: { fileSize: 2 * 1024 * 1024 } 
+});
+
+// POST /api/auth/login
+router.post('/login', authController.login);
+
+// POST /api/auth/change-password
+router.post('/change-password', authMiddleware, authController.changePassword);
+
+// PUT /api/auth/profile
+router.put('/profile', authMiddleware, (req, res, next) => {
+  upload.single('avatarFile')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: 'Erro de arquivo: ' + err.message });
+    } else if (err) {
+      return res.status(500).json({ error: 'Falha no upload: ' + err.message });
+    }
+    next();
+  });
+}, authController.updateProfile);
+
+module.exports = router;
+

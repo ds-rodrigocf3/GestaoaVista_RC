@@ -1,0 +1,87 @@
+NOME DO ARQUIVO: sidebar_pro.css
+CAMINHO: scratch/sidebar_pro.css
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+
+/* Professional Sidebar Header & Integrated Toggle */
+.sidebar {
+  padding: 24px 16px !important;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding: 0 8px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0 !important; /* Managed by header */
+}
+
+.sidebar-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(51, 204, 204, 0.1);
+  color: var(--primary);
+}
+
+.sidebar-toggle-btn span {
+  font-size: 22px;
+}
+
+/* Collapsed State Adjustments */
+.sidebar.collapsed .sidebar-header {
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
+  align-items: center;
+}
+
+.sidebar.collapsed .brand-text {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn {
+  order: -1;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(51, 204, 204, 0.08);
+  margin-bottom: 12px;
+}
+
+.sidebar.collapsed .brand {
+  justify-content: center;
+  width: 100%;
+}
+
+/* Remove old floating toggle styles */
+.sidebar-toggle {
+  display: none !important;
+}
+
+/* Polish the nav buttons for the new padding */
+.nav-button {
+  margin: 2px 0;
+}
+

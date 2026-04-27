@@ -1,3 +1,9 @@
+NOME DO ARQUIVO: tasks.js
+CAMINHO: public/js/tasks.js
+PROPÓSITO: Componente React para o módulo de gestão de tarefas/demandas e controle de progresso.
+
+CONTEÚDO COMPLETO:
+========================================================================
 function TaskView({ tasks, setTasks, employees: initialEmployees, requests, demandas, setDemandas, currentUser, authToken, globalFilters, onAddTask, onAddDemanda, requestedModal, setRequestedModal }) {
   const [dbEmployees, setDbEmployees] = React.useState(initialEmployees || []);
   const holidays = React.useMemo(() => getBrazilianHolidays(2026), []);
@@ -19,15 +25,6 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   // Tamanho do modal dinâmico
   const [modalSize, setModalSize] = React.useState({ width: 800, height: 600 });
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
-
-  const getSubordinateIds = React.useCallback((allEmps, managerId) => {
-    const direct = allEmps.filter(e => String(e.gestorId) === String(managerId));
-    let ids = direct.map(e => e.id);
-    direct.forEach(sub => {
-      ids = [...ids, ...getSubordinateIds(allEmps, sub.id)];
-    });
-    return Array.from(new Set(ids));
-  }, []);
 
   const filteredTasks = React.useMemo(() => {
     if (!tasks || !Array.isArray(tasks)) return [];
@@ -150,6 +147,14 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     }
   }, [requestedModal, setRequestedModal]);
 
+  const getSubordinateIds = React.useCallback((allEmps, managerId) => {
+    const direct = allEmps.filter(e => String(e.gestorId) === String(managerId));
+    let ids = direct.map(e => e.id);
+    direct.forEach(sub => {
+      ids = [...ids, ...getSubordinateIds(allEmps, sub.id)];
+    });
+    return Array.from(new Set(ids));
+  }, []);
 
 
 
@@ -1258,3 +1263,4 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     </div>
   );
 }
+

@@ -1,0 +1,65 @@
+NOME DO ARQUIVO: modal_standards.css
+CAMINHO: scratch/modal_standards.css
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+
+/* Global Premium Modal Overlays & Scrollbars */
+.demand-modal-overlay,
+.status-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.resizable-modal {
+  background: var(--surface) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-card-shadow) !important;
+  border-radius: 28px !important;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Scrollbar for Modals */
+.resizable-modal ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.resizable-modal ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.resizable-modal ::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 10px;
+}
+
+.resizable-modal ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.status-modal.glass-card {
+  background: var(--surface) !important;
+  border-radius: 28px !important;
+  border: 1px solid var(--glass-border) !important;
+}
+
+.demand-modal.resizable-modal {
+  background: var(--surface) !important;
+}
+

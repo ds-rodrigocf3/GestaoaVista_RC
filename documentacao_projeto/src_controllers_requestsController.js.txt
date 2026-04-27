@@ -1,0 +1,228 @@
+NOME DO ARQUIVO: requestsController.js
+CAMINHO: src/controllers/requestsController.js
+PROPÓSITO: Lógica de negócio para criação, aprovação e rejeição de Agendamentos.
+
+CONTEÚDO COMPLETO:
+========================================================================
+const { poolPromise, sql } = require('../config/database');
+const { formatDateYYYYMMDD, toServerDate } = require('../utils/dateFormatters');
+const { canApproveFor } = require('../utils/hierarchyHelpers');
+const { syncScaleRequest } = require('../utils/scaleHelpers');
+
+exports.getAll = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+    const result = await pool.request().query(`
+      SELECT r.*, c.Nome as EmployeeName
+      FROM Requests r
+      LEFT JOIN BI_Colaboradores c ON r.EmployeeId = c.Id
+      ORDER BY r.DataCriacao DESC
+    `);
+    res.json(result.recordset.map(r => ({
+      id: r.Id,
+      employeeId: r.EmployeeId,
+      employeeName: r.EmployeeName,
+      type: r.Type,
+      status: r.Status,
+      startDate: formatDateYYYYMMDD(r.StartDate),
+      endDate: formatDateYYYYMMDD(r.EndDate),
+      note: r.Note,
+      coverage: r.Coverage,
+      priority: r.Priority,
+      localTrabalho: r.LocalTrabalho,
+      dataCriacao: r.DataCriacao,
+      dataModificacao: r.DataModificacao
+    })));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.create = async (req, res) => {
+  try {
+    const { employeeId, type, startDate, endDate, note, coverage, priority, status, localTrabalho } = req.body;
+    const empId = Number(employeeId);
+    if (!empId) return res.status(400).json({ error: 'Colaborador inválido' });
+
+    const pool = await poolPromise;
+    const isSuperior = await canApproveFor(pool, req.user, empId);
+    
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)'];
+    const scaleTypes = ['Escala de Trabalho', 'Ajuste de Escala'];
+    let finalStatus = 'Pendente';
+    if (req.user.isAdmin || scaleTypes.includes(type)) {
+      finalStatus = 'Aprovado';
+    }
+
+    if (!req.user.isAdmin && !isSuperior && Number(req.user.colaboradorId) !== Number(empId)) {
+      return res.status(403).json({ error: 'Você não tem permissão para esta ação' });
+    }
+
+    const sDate = toServerDate(startDate);
+    const eDate = toServerDate(endDate);
+
+    // Limpar escalas conflitantes se for um agendamento de ausência
+    if (absenceTypes.includes(type)) {
+      await pool.request()
+        .input('EmpId', sql.INT, empId)
+        .input('Start', sql.DATE, sDate)
+        .input('End', sql.DATE, eDate || sDate)
+        .query("DELETE FROM Requests WHERE EmployeeId=@EmpId AND Type='Escala de Trabalho' AND StartDate >= @Start AND StartDate <= @End");
+    }
+
+    let result;
+    if (scaleTypes.includes(type)) {
+      const checkResult = await pool.request()
+        .input('EmpId', sql.INT, empId)
+        .input('Start', sql.DATE, sDate)
+        .query("SELECT Id FROM Requests WHERE EmployeeId=@EmpId AND (Type='Escala de Trabalho' OR Type='Ajuste de Escala') AND StartDate=@Start");
+
+      if (checkResult.recordset.length > 0) {
+        const existingId = checkResult.recordset[0].Id;
+        await pool.request()
+          .input('Id', sql.INT, existingId)
+          .input('Type', sql.NVARCHAR(100), type)
+          .input('Status', sql.NVARCHAR(50), finalStatus)
+          .input('Loc', sql.NVARCHAR(50), localTrabalho || null)
+          .query(`UPDATE Requests SET Type = @Type, Status = @Status, LocalTrabalho = @Loc, DataModificacao = GETDATE() WHERE Id = @Id`);
+        result = { recordset: [{ Id: existingId }] };
+      }
+    }
+
+    if (!result) {
+      result = await pool.request()
+        .input('EmpId', sql.INT, empId)
+        .input('Type', sql.NVARCHAR(100), type)
+        .input('Status', sql.NVARCHAR(50), finalStatus)
+        .input('Start', sql.DATE, sDate)
+        .input('End', sql.DATE, eDate || sDate)
+        .input('Note', sql.NVARCHAR(500), note || '')
+        .input('Cov', sql.NVARCHAR(100), coverage || '')
+        .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')
+        .input('Loc', sql.NVARCHAR(50), localTrabalho || null)
+        .query(`INSERT INTO Requests (EmployeeId, Type, Status, StartDate, EndDate, Note, Coverage, Priority, LocalTrabalho, DataCriacao, DataModificacao)
+                OUTPUT Inserted.Id VALUES (@EmpId, @Type, @Status, @Start, @End, @Note, @Cov, @Pri, @Loc, GETDATE(), GETDATE())`);
+    }
+    
+    const newId = result.recordset[0].Id;
+
+    if (finalStatus === 'Aprovado' && (type === 'Escala de Trabalho' || type === 'Ajuste de Escala')) {
+      const dateKey = startDate ? formatDateYYYYMMDD(startDate) : null;
+      if (dateKey && localTrabalho) await syncScaleRequest(pool, empId, dateKey, localTrabalho);
+    }
+
+    res.json({ 
+      id: Number(newId), 
+      employeeId: empId, 
+      type, 
+      status: finalStatus, 
+      startDate: formatDateYYYYMMDD(startDate), 
+      endDate: formatDateYYYYMMDD(endDate),
+      localTrabalho: localTrabalho || null,
+      note: note || '',
+      coverage: coverage || '',
+      priority: priority || 'Baixa'
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate, type, note, coverage, priority, status, localTrabalho } = req.body;
+    const pool = await poolPromise;
+
+    const current = await pool.request()
+      .input('Id', sql.INT, id)
+      .query('SELECT EmployeeId, Type, StartDate, EndDate, Note, LocalTrabalho, Status, Coverage, Priority FROM Requests WHERE Id = @Id');
+    
+    if (!current.recordset.length) return res.status(404).json({ error: 'Solicitação não encontrada' });
+    const original = current.recordset[0];
+
+    const canApprove = await canApproveFor(pool, req.user, original.EmployeeId);
+    const isOwner = Number(req.user.colaboradorId) === Number(original.EmployeeId);
+
+    if (!canApprove && !isOwner) {
+      return res.status(403).json({ error: 'Você não tem permissão' });
+    }
+
+    let finalStatus = status || original.Status;
+
+    // Bloqueio de auto-aprovação e validação de hierarquia para mudança de status
+    if (status && status !== original.Status && (status === 'Aprovado' || status === 'Rejeitado')) {
+      if (!canApprove) {
+        return res.status(403).json({ error: 'Você não tem permissão para alterar o status desta solicitação (Aprovação/Rejeição)' });
+      }
+    }
+
+    const start = startDate || original.StartDate;
+    const loc = localTrabalho || original.LocalTrabalho;
+
+    if (finalStatus === 'Aprovado' && (type === 'Escala de Trabalho' || type === 'Ajuste de Escala')) {
+      const dateKey = start ? formatDateYYYYMMDD(start) : null;
+      if (dateKey && loc) await syncScaleRequest(pool, original.EmployeeId, dateKey, loc);
+    }
+
+    const sDateUpd = toServerDate(startDate || original.StartDate);
+    const eDateUpd = toServerDate(endDate || original.EndDate);
+
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .input('Status', sql.NVARCHAR(50), finalStatus)
+      .input('Start', sql.DATE, sDateUpd)
+      .input('End', sql.DATE, eDateUpd || sDateUpd)
+      .input('Note', sql.NVARCHAR(500), note || original.Note || '')
+      .input('Cov', sql.NVARCHAR(100), coverage || '')
+      .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')
+      .input('Loc', sql.NVARCHAR(50), loc)
+      .query(`UPDATE Requests SET Status=@Status, StartDate=@Start, EndDate=@End, Note=@Note, Coverage=@Cov, Priority=@Pri, LocalTrabalho=@Loc, DataModificacao=GETDATE() WHERE Id=@Id`);
+
+    const fullRequest = await pool.request()
+      .input('Id', sql.INT, id)
+      .query('SELECT r.*, c.Nome as EmployeeName FROM Requests r LEFT JOIN BI_Colaboradores c ON r.EmployeeId = c.Id WHERE r.Id = @Id');
+
+    const updated = fullRequest.recordset[0];
+    res.json({
+      id: updated.Id,
+      employeeId: updated.EmployeeId,
+      employeeName: updated.EmployeeName,
+      type: updated.Type,
+      status: updated.Status,
+      startDate: formatDateYYYYMMDD(updated.StartDate),
+      endDate: formatDateYYYYMMDD(updated.EndDate),
+      note: updated.Note,
+      coverage: updated.Coverage,
+      priority: updated.Priority,
+      localTrabalho: updated.LocalTrabalho,
+      dataCriacao: updated.DataCriacao,
+      dataModificacao: updated.DataModificacao
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await poolPromise;
+    
+    const req_data = await pool.request()
+      .input('Id', sql.INT, id)
+      .query('SELECT EmployeeId FROM Requests WHERE Id = @Id');
+    
+    if (!req_data.recordset.length) return res.status(404).json({ error: 'Solicitação não encontrada' });
+    
+    const empId = req_data.recordset[0].EmployeeId;
+    const canApprove = await canApproveFor(pool, req.user, empId);
+    const isOwner = Number(req.user.colaboradorId) === Number(empId);
+
+    if (!canApprove && !isOwner) {
+      return res.status(403).json({ error: 'Você não tem permissão' });
+    }
+
+    await pool.request()
+      .input('Id', sql.INT, id)
+      .query('DELETE FROM Requests WHERE Id = @Id');
+    
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+

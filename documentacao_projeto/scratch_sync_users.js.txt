@@ -1,0 +1,44 @@
+NOME DO ARQUIVO: sync_users.js
+CAMINHO: scratch/sync_users.js
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+require('dotenv').config();
+const { poolPromise, sql } = require('../src/config/database');
+const bcrypt = require('bcryptjs');
+
+async function syncUsers() {
+  try {
+    const pool = await poolPromise;
+    const colabs = await pool.request().query('SELECT Id, Email FROM BI_Colaboradores WHERE Ativo = 1');
+    const users = await pool.request().query('SELECT ColaboradorId FROM BI_Usuarios');
+    
+    const userColabIds = users.recordset.map(u => u.ColaboradorId);
+    const colabsWithoutUser = colabs.recordset.filter(c => !userColabIds.includes(c.Id));
+    
+    console.log(`Found ${colabsWithoutUser.length} collaborators without users.`);
+    
+    for (const colab of colabsWithoutUser) {
+      console.log(`Creating user for ${colab.Email}...`);
+      const salt = await bcrypt.genSalt(12);
+      const hash = await bcrypt.hash('123456', salt);
+      
+      await pool.request()
+        .input('ColabId', sql.INT, colab.Id)
+        .input('Email', sql.NVARCHAR(200), colab.Email.toLowerCase().trim())
+        .input('Hash', sql.NVARCHAR(500), hash)
+        .query(`INSERT INTO BI_Usuarios (ColaboradorId, Email, SenhaHash, IsAdmin, Ativo) 
+                VALUES (@ColabId, @Email, @Hash, 0, 1)`);
+    }
+    
+    console.log('Sync complete.');
+    process.exit(0);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+syncUsers();
+
