@@ -113,6 +113,7 @@ BEGIN
         SenhaHash NVARCHAR(500) NOT NULL,
         IsAdmin BIT DEFAULT 0,
         Ativo BIT DEFAULT 1,
+        DataInativacao DATETIME NULL,
         DataCriacao DATETIME DEFAULT GETDATE(),
         UltimoLogin DATETIME NULL
     );
@@ -146,6 +147,7 @@ BEGIN
     CREATE TABLE Tarefas (
         Id INT PRIMARY KEY IDENTITY(1,1),
         Titulo NVARCHAR(200) NOT NULL,
+        Descricao NVARCHAR(MAX),
         ResponsavelId INT FOREIGN KEY REFERENCES BI_Colaboradores(Id),
         DemandaId INT NULL FOREIGN KEY REFERENCES Demandas(Id),
         Status NVARCHAR(50),
@@ -155,7 +157,9 @@ BEGIN
         ComentarioStatus NVARCHAR(1000) NULL,
         InicioRealizado DATE NULL,
         FimRealizado DATE NULL,
-        Ativo BIT DEFAULT 1  -- soft-delete
+        Ativo BIT DEFAULT 1,  -- soft-delete
+        DataCriacao DATETIME DEFAULT GETDATE(),
+        DataModificacao DATETIME DEFAULT GETDATE()
     );
 
     -- Tarefas iniciais

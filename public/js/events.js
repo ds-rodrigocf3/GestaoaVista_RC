@@ -203,45 +203,48 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
 
       {/* Quick Filters Bar */}
       <div className="glass-card events-quick-filters" style={{ 
-        padding: '12px 20px', borderRadius: 'var(--radius-lg)', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', 
+        padding: '16px 24px', borderRadius: 'var(--radius-lg)', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between',
         background: 'var(--bg-soft)', border: '1px solid var(--line)', 
         position: 'relative', zIndex: 100, boxShadow: 'var(--shadow)' 
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filtros Rápidos:</span>
-        </div>
-        
-        <div className="events-filter-buttons" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { id: 'upcoming', label: 'Próximos' },
-            { id: 'week', label: 'Esta Semana' },
-            { id: 'month', label: 'Este Mês' },
-            { id: 'year', label: 'Este Ano' },
-            { id: 'past', label: 'Passados' },
-            { id: '', label: 'Tudo' }
-          ].map(p => (
-            <button 
-              key={p.id}
-              onClick={() => setFilterPeriodo(p.id)}
-              style={{ 
-                padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                border: '1px solid',
-                borderColor: filterPeriodo === p.id ? 'var(--primary)' : 'var(--line)',
-                background: filterPeriodo === p.id ? 'var(--primary)15' : 'transparent',
-                color: filterPeriodo === p.id ? 'var(--primary)' : 'var(--muted)',
-                transition: '0.2s'
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="events-filters-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: '0 1 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filtros Rápidos:</span>
+          </div>
+          
+          <div className="events-filter-buttons" style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+            {[
+              { id: 'upcoming', label: 'Próximos' },
+              { id: 'week', label: 'Esta Semana' },
+              { id: 'month', label: 'Este Mês' },
+              { id: 'year', label: 'Este Ano' },
+              { id: 'past', label: 'Passados' },
+              { id: '', label: 'Tudo' }
+            ].map(p => (
+              <button 
+                key={p.id}
+                onClick={() => setFilterPeriodo(p.id)}
+                style={{ 
+                  padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor: filterPeriodo === p.id ? 'var(--primary)' : 'var(--line)',
+                  background: filterPeriodo === p.id ? 'var(--primary)15' : 'transparent',
+                  color: filterPeriodo === p.id ? 'var(--primary)' : 'var(--muted)',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div style={{ width: '1px', height: '24px', background: 'var(--line)' }}></div>
+        <div className="events-filters-right" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px', minWidth: '220px', justifyContent: 'flex-end' }}>
+          <div className="events-divider" style={{ width: '1px', height: '24px', background: 'var(--line)' }}></div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, maxWidth: '400px' }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, maxWidth: '280px' }}>
             <MultiSelect
               options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
               value={filterArea}

@@ -3180,12 +3180,14 @@ button {
 .admin-action-btn.danger:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
 
 /* =====================================================
-   CALENDÃRIO RESPONSIVO
+   CALENDÃ RIO RESPONSIVO
    ===================================================== */
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 .calendar-day {
   border-radius: 10px;
@@ -3195,6 +3197,7 @@ button {
   border: 1px solid var(--line);
   aspect-ratio: 1/1;
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3328,8 +3331,10 @@ select:focus, input:focus, textarea:focus {
 /* CalendÃ¡rio Mini (Requests View) */
 .calendar-grid.small {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .calendar-day.mini {
@@ -3345,6 +3350,7 @@ select:focus, input:focus, textarea:focus {
   color: var(--text);
   cursor: default;
   min-height: unset;
+  min-width: 0;
 }
 
 .calendar-day.mini.selected {
@@ -3480,8 +3486,15 @@ select:focus, input:focus, textarea:focus {
 
 .scale-layout-grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 380px;
   gap: 32px;
+}
+
+@media (min-width: 1600px) {
+  .scale-layout-grid {
+    grid-template-columns: 1fr 440px;
+    gap: 40px;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -5485,7 +5498,7 @@ html:not([data-theme="dark"]) .admin-table td {
   .dash-360-filters-bar > div:nth-child(2),
   .tasks-filter-bar > div:nth-child(2),
   .tasks-filter-bar > div:nth-child(4),
-  .events-quick-filters > div:nth-child(3) {
+  .events-divider {
     display: none !important;
   }
 
@@ -5543,7 +5556,7 @@ html, body {
   min-width: 0 !important;
 }
 
-.top-filters, .top-filters.glass-card {
+.top-filters, .top-filters.glass-card, .events-quick-filters.glass-card, .events-quick-filters {
   overflow: visible !important;
   display: flex !important;
 }
