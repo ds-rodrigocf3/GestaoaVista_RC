@@ -83,12 +83,13 @@ function App() {
   }, [currentUser, dbEmployees]);
 
   const today = new Date();
+  const todayStr = formatDateLocal(today);
   const firstDayCurrentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+  const [calendarViewDate, setCalendarViewDate] = useState(firstDayCurrentMonth);
   const [workDays, setWorkDays] = useState({});
-  const [form, setForm] = useState({ ...initialFilters, startDate: firstDayCurrentMonth });
+  const [form, setForm] = useState({ ...initialFilters, startDate: todayStr });
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [toast, setToast] = useState(null);
-  const [approvalNote, setApprovalNote] = useState('');
   const [requestToDelete, setRequestToDelete] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [processingApprovalId, setProcessingApprovalId] = useState(null);
@@ -345,7 +346,7 @@ function App() {
     return { ...request, conflictCount, label: conflictCount > 0 ? `Conflito com ${conflictCount} colaborador(es)` : 'Sem conflito relevante' };
   }), [detailedRequests]);
 
-  const currentMonth = useMemo(() => toDate(form.startDate || firstDayCurrentMonth), [form.startDate]);
+  const currentMonth = useMemo(() => toDate(calendarViewDate), [calendarViewDate]);
   const monthDays = useMemo(() => getMonthMatrix(currentMonth), [currentMonth]);
 
   const submitRequest = () => {
@@ -389,7 +390,12 @@ function App() {
           setRequests(current => [...current, data]);
           setToast({ title: 'SolicitaÃ§Ã£o enviada', message: formConflicts.length ? `Pedido criado com ${formConflicts.length} conflitos detectados.` : 'Pedido criado com sucesso.' });
         }
-        setActiveView('approvals');
+        
+        // Em vez de mudar de tela, apenas scrolla para a tabela de solicitaÃ§Ãµes
+        setTimeout(() => {
+          const el = document.getElementById('minhas-solicitacoes-anchor');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 300);
       })
       .catch(err => setToast({ title: 'Erro no servidor', message: err.message, type: 'error' }));
   };
@@ -424,7 +430,7 @@ function App() {
       .finally(() => setLoading(false));
   };
 
-  const handleAdd = (initialStatus = 'NÃ£o Iniciado') => {
+  const handleAdd = (initialStatus = 'Não Iniciado') => {
     setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' });
     const payload = {
       title: '',
@@ -436,7 +442,7 @@ function App() {
       demandaId: null
     };
     const tempId = -(Date.now());
-    setTasks(prev => [...prev, { id: tempId, ...payload }]);
+    setTasks(prev => [...prev, { id: tempId, localKey: tempId, ...payload }]);
     if (activeView !== 'tasks') setActiveView('tasks');
   };
 
@@ -445,7 +451,7 @@ function App() {
     if (activeView !== 'tasks') setActiveView('tasks');
   };
 
-  const handleApproval = (requestId, decision) => {
+  const handleApproval = (requestId, decision, note) => {
     const req = detailedRequests.find(r => Number(r.id) === Number(requestId));
     if (!req) return;
 
@@ -473,7 +479,7 @@ function App() {
       body: JSON.stringify({
         status: decision,
         aprovadorId: currentUser.colaboradorId,
-        note: approvalNote
+        comentarioAprovacao: note
       })
     })
       .then(async res => {
@@ -503,8 +509,8 @@ function App() {
           });
         }
 
-        setToast({ title: decision === 'Aprovado' ? 'SolicitaÃ§Ã£o aprovada' : 'SolicitaÃ§Ã£o rejeitada', message: 'O status foi atualizado.' });
-        setApprovalNote('');
+        setToast({ title: decision === 'Aprovado' ? 'Solicitação aprovada' : 'Solicitação rejeitada', message: 'O status foi atualizado.' });
+        fetchAll({ silent: true });
       })
       .catch(err => setToast({ title: 'Erro', message: err.message, type: 'error' }))
       .finally(() => setProcessingApprovalId(null));
@@ -672,8 +678,8 @@ function App() {
           {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} authorizedScope={authorizedScope} />}
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
           {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} authorizedScope={authorizedScope} />}
-          {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} approvalNote={approvalNote} setApprovalNote={setApprovalNote} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
-          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} />}
+          {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
+          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} calendarViewDate={calendarViewDate} setCalendarViewDate={setCalendarViewDate} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} />}
           {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
         </main>
       </div>

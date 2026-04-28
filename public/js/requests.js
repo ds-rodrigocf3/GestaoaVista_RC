@@ -311,7 +311,7 @@ function RequestView({
         </div>
       </section>
 
-      <section className="management-section" style={{ marginTop: '12px' }}>
+      <section id="minhas-solicitacoes-anchor" className="management-section" style={{ marginTop: '12px' }}>
           <div className="card glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--line)' }}>
             <div className="section-title" style={{ marginBottom: '20px' }}>
                <div>
@@ -334,7 +334,20 @@ function RequestView({
                   <tbody>
                      {myRequests.map(req => (
                         <tr key={req.id}>
-                           <td style={{ fontWeight: 600 }}>{req.type}</td>
+                           <td style={{ fontWeight: 600 }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {req.type}
+                                  {req.comentarioAprovacao && req.comentarioAprovacao.trim() !== '' && (
+                                     <span 
+                                       className="material-symbols-outlined" 
+                                       title={`Parecer do Gestor: ${req.comentarioAprovacao}`} 
+                                       style={{ fontSize: '16px', color: 'var(--primary)', cursor: 'help', background: 'var(--primary)15', padding: '2px', borderRadius: '4px' }}
+                                     >
+                                        chat_bubble
+                                     </span>
+                                  )}
+                               </div>
+                            </td>
                            <td style={{ fontSize: '0.85rem' }}>{formatDate(req.startDate)} → {formatDate(req.endDate)}</td>
                            <td>{diffDays(req.startDate, req.endDate)} dias</td>
                            <td><span className={`status-pill ${req.status === 'Aprovado' ? 'done' : req.status === 'Rejeitado' ? 'rejected' : 'working'}`}>{req.status}</span></td>

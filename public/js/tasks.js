@@ -3,7 +3,17 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   const holidays = React.useMemo(() => getBrazilianHolidays(2026), []);
   const [statusModal, setStatusModal] = React.useState(null); // {taskId, newStatus, oldStatus}
   const [statusComment, setStatusComment] = React.useState('');
-  const [demandaModal, setDemandaModal] = React.useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado }
+  const [demandaModal, setDemandaModal] = React.useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado, descricao, criadorId }
+  const [taskDescriptionModal, setTaskDescriptionModal] = React.useState(null); // { taskId, description }
+
+  // Ajuste automático de altura das textareas de título
+  React.useLayoutEffect(() => {
+    const textareas = document.querySelectorAll('.title-wrap-cell textarea');
+    textareas.forEach(ta => {
+      ta.style.height = 'auto';
+      ta.style.height = (ta.scrollHeight) + 'px';
+    });
+  }, [tasks]);
 
   // Novos filtros locais
   const [taskStatusFilter, setTaskStatusFilter] = React.useState('');
@@ -189,6 +199,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     try {
       const payload = { 
         titulo: task.title, 
+        descricao: task.description || null,
         responsavelId: task.ownerId, 
         status: task.status, 
         prioridade: task.priority, 
@@ -226,28 +237,27 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   };
 
   const updateTask = (id, field, value) => {
-    let updatedTask = null;
     setTasks(prev => {
-      const next = prev.map(t => {
+      return prev.map(t => {
         if (t.id === id) {
-          updatedTask = { ...t, [field]: value };
-          return updatedTask;
+          return { ...t, [field]: value };
         }
         return t;
       });
-      return next;
     });
 
-    // Use a slight timeout to send the updated state values (especially important for async render)
-    setTimeout(() => {
-      setTasks(current => {
-        const t = current.find(x => x.id === id);
-        if (t && (field === 'status' || field === 'priority' || field === 'startDate' || field === 'endDate' || field === 'title' || field === 'ownerId')) {
-          syncTask(t);
-        }
-        return current;
-      });
-    }, 100);
+    // For fields that are not text inputs, sync immediately
+    if (field !== 'title') {
+      setTimeout(() => {
+        setTasks(current => {
+          const t = current.find(x => x.id === id);
+          if (t && (field === 'status' || field === 'priority' || field === 'startDate' || field === 'endDate' || field === 'ownerId' || field === 'demandaId')) {
+            syncTask(t);
+          }
+          return current;
+        });
+      }, 100);
+    }
   };
 
   const deleteTask = (id) => {
@@ -402,6 +412,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         prioridade: form.prioridade || 'Média',
         inicioPlanjado: form.inicioPlanjado || null,
         fimPlanejado: form.fimPlanejado || null,
+        descricao: form.descricao || null,
         responsavelAnterior: form.responsavelAnterior,
         inicioAnterior: form.inicioAnterior,
         fimAnterior: form.fimAnterior,
@@ -409,15 +420,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       })
     })
     .then(async res => {
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        // Se não for JSON, mostra o começo do HTML retornado para diagnóstico.
-        throw new Error(`Resposta do servidor não é JSON (HTTP ${res.status}): ${text.substring(0, 100)}...`);
-      }
-      
+      const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Falha no servidor');
       return data;
     })
@@ -426,16 +429,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         const newDemanda = { 
           Id: data.id, id: data.id, 
           Titulo: form.titulo, titulo: form.titulo, 
+          Descricao: form.descricao, descricao: form.descricao,
           ResponsavelId: form.responsavelId ? Number(form.responsavelId) : null, 
           Status: form.status || 'Não Iniciado', status: form.status || 'Não Iniciado', 
           Prioridade: form.prioridade || 'Média', prioridade: form.prioridade || 'Média', 
           InicioPlanjado: form.inicioPlanjado || null, inicioPlanjado: form.inicioPlanjado || null, 
           FimPlanejado: form.fimPlanejado || null, fimPlanejado: form.fimPlanejado || null, 
+          CriadoPor: data.criadorId, criadorId: data.criadorId,
           TotalTarefas: 0, TarefasConcluidas: 0 
         };
         setDemandas(prev => [newDemanda, ...prev]);
       } else {
-        setDemandas(prev => prev.map(d => (d.Id || d.id) === form.id ? { ...d, ...form, Titulo: form.titulo, ResponsavelId: Number(form.responsavelId), Status: form.status, Prioridade: form.prioridade, InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado } : d));
+        setDemandas(prev => prev.map(d => (d.Id || d.id) === form.id ? { ...d, ...form, Titulo: form.titulo, ResponsavelId: Number(form.responsavelId), Status: form.status, Prioridade: form.prioridade, InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado, Descricao: form.descricao } : d));
       }
       setDemandaModal(null);
     })
@@ -460,6 +465,8 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       fimPlanejado: pEnd ? pEnd.slice(0, 10) : '',
       status: d.Status || d.status,
       prioridade: d.Prioridade || d.prioridade,
+      descricao: d.Descricao || d.descricao || '',
+      criadorId: d.CriadoPor || d.criadorId,
       // Original values for change detection
       responsavelAnterior: rId,
       inicioAnterior: pStart,
@@ -690,6 +697,16 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   onChange={e => setDemandaModal({ ...demandaModal, titulo: e.target.value })} 
                   placeholder="Ex: Expansão de Infraestrutura Q4" 
                   style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px 14px' }}
+                />
+              </div>
+
+              <div className="field" style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Descrição / Detalhes</label>
+                <textarea 
+                  value={demandaModal.descricao || ''} 
+                  onChange={e => setDemandaModal({ ...demandaModal, descricao: e.target.value })} 
+                  placeholder="Detalhes complementares sobre o objetivo desta demanda..." 
+                  style={{ width: '100%', minHeight: '80px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px 14px', resize: 'vertical', fontSize: '0.9rem' }}
                 />
               </div>
 
@@ -960,11 +977,22 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       </span>
                     </td>
                     <td style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--title)', padding: '12px' }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.Titulo || d.titulo}>
-                        {d.Titulo || d.titulo}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.Titulo || d.titulo}>
+                          {d.Titulo || d.titulo}
+                        </div>
+                        {(d.Descricao || d.descricao) && (
+                          <span 
+                            className="material-symbols-outlined" 
+                            style={{ fontSize: '16px', color: 'var(--primary)', cursor: 'help' }}
+                            title={d.Descricao || d.descricao}
+                          >
+                            info
+                          </span>
+                        )}
                       </div>
                     </td>
-                    <td onClick={(e) => { e.stopPropagation(); handleEditDemanda(d); }} style={{ cursor: 'pointer', padding: '12px' }}>
+                    <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <img 
                           src={owner?.avatarUrl || `https://ui-avatars.com/api/?name=${owner?.name || 'User'}&background=random`} 
@@ -973,7 +1001,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                         <span style={{ fontSize: '.8rem', fontWeight: 600 }}>{owner?.name?.split(' ')[0] || 'Sem resp.'}</span>
                       </div>
                     </td>
-                    <td onClick={(e) => { e.stopPropagation(); handleEditDemanda(d); }} style={{ cursor: 'pointer', textAlign: 'center', padding: '8px' }}>
+                    <td style={{ textAlign: 'center', padding: '8px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '.7rem' }}>
                         <div style={{ fontWeight: 800, color: 'var(--title)' }}>{pStart ? formatDate(pStart) : '—'}</div>
                         <div style={{ fontWeight: 800, color: 'var(--title)', opacity: 0.7 }}>{pEnd ? formatDate(pEnd) : '—'}</div>
@@ -1000,13 +1028,28 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       </select>
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px' }}>
-                      <button 
-                        className="icon-btn danger" 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteDemanda(d); }}
-                        style={{ padding: '6px', color: '#ef4444', background: 'transparent' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        {(currentUser?.isAdmin || String(d.CriadoPor || d.criadorId) === String(currentUser?.colaboradorId)) && (
+                          <>
+                            <button 
+                              className="icon-btn" 
+                              onClick={(e) => { e.stopPropagation(); handleEditDemanda(d); }}
+                              style={{ padding: '4px', color: 'var(--primary)', background: 'transparent' }}
+                              title="Editar Demanda"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                            </button>
+                            <button 
+                              className="icon-btn danger" 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteDemanda(d); }}
+                              style={{ padding: '4px', color: '#ef4444', background: 'transparent' }}
+                              title="Excluir Demanda"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1099,17 +1142,32 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     const emp = dbEmployees?.find(e => e.id === task.ownerId) || dbEmployees?.[0] || {};
   
                     return (
-                      <tr key={task.id}>
+                      <tr key={task.localKey || task.id}>
                         <td className="title-wrap-cell">
-                          <textarea
-                            value={task.title}
-                            onChange={(e) => updateTask(task.id, 'title', e.target.value)}
-                            className="glass"
-                            placeholder="Título da tarefa..."
-                            rows={1}
-                            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                            style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontWeight: 600, padding: '4px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', overflow: 'hidden', minHeight: '24px' }}
-                          />
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <textarea
+                              value={task.title}
+                              onChange={(e) => updateTask(task.id, 'title', e.target.value)}
+                              onBlur={() => {
+                                const t = tasks.find(x => x.id === task.id);
+                                if (t) syncTask(t);
+                              }}
+                              className="glass"
+                              placeholder="Título da tarefa..."
+                              rows={1}
+                              onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                              style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontWeight: 600, padding: '4px 28px 4px 4px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', overflow: 'hidden', minHeight: '24px' }}
+                            />
+                            <button 
+                              onClick={() => setTaskDescriptionModal({ taskId: task.id, description: task.description || '' })}
+                              style={{ position: 'absolute', right: '4px', background: 'transparent', border: 'none', color: task.description ? 'var(--primary)' : 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: task.description ? 1 : 0.5 }}
+                              title={task.description || "Adicionar descrição..."}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                                {task.description ? 'description' : 'add_comment'}
+                              </span>
+                            </button>
+                          </div>
                         </td>
                         <td>
                           <select
@@ -1265,6 +1323,42 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '10px 20px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>Voltar</button>
                 <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '10px 28px', borderRadius: 'var(--radius-sm)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff' }}>Confirmar</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Task Description Modal */}
+      {taskDescriptionModal && (
+        <div className="status-modal-overlay">
+          <div className="status-modal glass" style={{ maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--title)', margin: 0 }}>Descrição da Tarefa</h3>
+              <button onClick={() => setTaskDescriptionModal(null)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '8px', display: 'block' }}>Detalhamento</label>
+              <textarea 
+                value={taskDescriptionModal.description} 
+                onChange={(e) => setTaskDescriptionModal({ ...taskDescriptionModal, description: e.target.value })}
+                placeholder="Insira detalhes sobre esta tarefa..."
+                style={{ width: '100%', minHeight: '150px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '12px', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setTaskDescriptionModal(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={() => {
+                const updatedTask = tasks.find(t => t.id === taskDescriptionModal.taskId);
+                if (updatedTask) {
+                  const taskWithDesc = { ...updatedTask, description: taskDescriptionModal.description };
+                  updateTask(taskDescriptionModal.taskId, 'description', taskDescriptionModal.description);
+                  syncTask(taskWithDesc);
+                }
+                setTaskDescriptionModal(null);
+              }}>Salvar Descrição</button>
             </div>
           </div>
         </div>

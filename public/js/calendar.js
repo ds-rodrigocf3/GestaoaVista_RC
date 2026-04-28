@@ -366,25 +366,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   }, [filteredEmployees, workDays, displayMonthDays, holidays, requests, employees]);
 
   const getComparedPeople = (dateKey) => {
-    if (compareEntity === 'none') return [];
+    if (!compareEntity || compareEntity === 'none') return [];
     if (compareEntity.startsWith('emp_')) {
-      const empId = Number(compareEntity.replace('emp_', ''));
-      if (empId === selectedEmployeeId) return [];
-      const otherData = workDays[empId] || {};
+      const empIdStr = compareEntity.replace('emp_', '');
+      const empIdNum = Number(empIdStr);
+      
+      // Evitar comparar com o prÃ³prio selecionado
+      if (empIdNum === Number(selectedEmployeeId)) return [];
+      
+      const otherData = workDays[empIdNum] || {};
       if (otherData[dateKey] === 'Presencial') {
-        const emp = employees.find(e => e.id === empId);
+        const emp = (employees || []).find(e => Number(e.id) === empIdNum);
         return emp ? [emp] : [];
       }
-      return [];
-    }
-    if (compareEntity.startsWith('team_')) {
-      const teamName = compareEntity.replace('team_', '');
-      const teamMembers = (filteredEmployees || []).filter(e => e && e.areaNome === teamName && e.id !== selectedEmployeeId);
-      return teamMembers.filter(member => {
-        if (!member || !member.id) return false;
-        const memberData = workDays[member.id] || {};
-        return memberData[dateKey] === 'Presencial';
-      });
     }
     return [];
   };
@@ -469,13 +463,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
               <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Comparar com:</label>
               <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ width: '100%' }}>
                 <option value="none">Nenhum</option>
-                <optgroup label="Áreas / Equipes">
-                  {uniqueAreas.map(area => (
-                    <option key={`team_${area}`} value={`team_${area}`}>Área: {area}</option>
-                  ))}
-                </optgroup>
                 <optgroup label="Colaboradores Individuais">
-                  {filteredEmployees.map(employee => (
+                  {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
                     <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
                       {employee.name}
                     </option>
@@ -733,14 +722,22 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                         </div>
                       )}
 
-                      {/* Avatars: Top-Left (Overlaps holiday if both exist, but usually they don't) */}
-                      {isComparedPresent && !isNonWorkingDay && !status && (
-                        <div className="avatar-overlap-group" title={tooltipText} style={{ position: 'absolute', top: '6px', left: '6px', display: 'flex' }}>
+                      {/* Avatars: Bottom-Left (To avoid overlap with markers) */}
+                      {isComparedPresent && !isNonWorkingDay && (
+                        <div className="avatar-overlap-group" title={unifiedTooltip} style={{ position: 'absolute', bottom: '6px', left: '6px', display: 'flex', zIndex: 10 }}>
                           {comparedPeople.slice(0, 2).map((p, idx) => (
                             <img
                               key={p.id}
                               src={p.avatarUrl || `https://ui-avatars.com/api/?name=${p.name}&background=random`}
-                              style={{ zIndex: 10 - idx, width: '16px', height: '16px', borderRadius: '50%', border: '1.5px solid var(--card)', marginLeft: idx > 0 ? '-8px' : 0, boxShadow: 'var(--shadow-sm)' }}
+                              style={{ 
+                                width: '16px', 
+                                height: '16px', 
+                                borderRadius: '50%', 
+                                border: '1.5px solid var(--card)', 
+                                marginLeft: idx > 0 ? '-8px' : 0, 
+                                boxShadow: 'var(--shadow-sm)',
+                                background: 'var(--surface)'
+                              }}
                               alt={p.name}
                             />
                           ))}

@@ -13,7 +13,7 @@ exports.getAll = async (req, res) => {
       query = `
         SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
                d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
-               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
+               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, d.CriadoPor, c.Nome as ResponsavelNome,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
         FROM Demandas d
@@ -30,7 +30,7 @@ exports.getAll = async (req, res) => {
         )
         SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
                d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
-               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
+               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, d.CriadoPor, c.Nome as ResponsavelNome,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
         FROM Demandas d
@@ -58,6 +58,7 @@ exports.getAll = async (req, res) => {
       comentarioStatus: d.ComentarioStatus,
       dataCriacao: d.DataCriacao,
       dataModificacao: d.DataModificacao,
+      criadorId: d.CriadoPor,
       totalTarefas: d.TotalTarefas,
       tarefasConcluidas: d.TarefasConcluidas
     })));
@@ -77,8 +78,9 @@ exports.create = async (req, res) => {
       .input('Prioridade', sql.NVARCHAR(50), prioridade || 'Média')
       .input('InicioPlanjado', sql.DATE, inicioPlanjado || null)
       .input('FimPlanejado', sql.DATE, fimPlanejado || null)
-      .query(`INSERT INTO Demandas (Titulo, Descricao, ResponsavelId, Status, Prioridade, InicioPlanjado, FimPlanejado, DataCriacao, DataModificacao)
-              OUTPUT Inserted.Id VALUES (@Titulo, @Descricao, @ResponsavelId, @Status, @Prioridade, @InicioPlanjado, @FimPlanejado, GETDATE(), GETDATE())`);
+      .input('CriadoPor', sql.INT, req.user.colaboradorId || null)
+      .query(`INSERT INTO Demandas (Titulo, Descricao, ResponsavelId, Status, Prioridade, InicioPlanjado, FimPlanejado, CriadoPor, DataCriacao, DataModificacao)
+              OUTPUT Inserted.Id VALUES (@Titulo, @Descricao, @ResponsavelId, @Status, @Prioridade, @InicioPlanjado, @FimPlanejado, @CriadoPor, GETDATE(), GETDATE())`);
     res.json({ 
       id: result.recordset[0].Id, 
       titulo, 
@@ -88,6 +90,7 @@ exports.create = async (req, res) => {
       prioridade, 
       inicioPlanjado: inicioPlanjado ? new Date(inicioPlanjado).toISOString().slice(0, 10) : null, 
       fimPlanejado: fimPlanejado ? new Date(fimPlanejado).toISOString().slice(0, 10) : null,
+      criadorId: req.user.colaboradorId,
       totalTarefas: 0,
       tarefasConcluidas: 0
     });
@@ -99,6 +102,15 @@ exports.update = async (req, res) => {
     const { id } = req.params;
     const { titulo, descricao, responsavelId, status, prioridade, inicioPlanjado, fimPlanejado, comentarioStatus, statusAnterior, registrarHistorico } = req.body;
     const pool = await poolPromise;
+
+    // Verificar permissão
+    const checkRes = await pool.request().input('Id', sql.INT, id).query('SELECT CriadoPor FROM Demandas WHERE Id = @Id');
+    const demanda = checkRes.recordset[0];
+    if (!demanda) return res.status(404).json({ error: 'Demanda não encontrada' });
+    
+    if (!req.user.isAdmin && demanda.CriadoPor && String(demanda.CriadoPor) !== String(req.user.colaboradorId)) {
+      return res.status(403).json({ error: 'Você não tem permissão para editar esta demanda. Somente o criador ou um administrador podem editá-la.' });
+    }
     
     // Update Demanda
     await pool.request()
@@ -137,6 +149,15 @@ exports.delete = async (req, res) => {
     const { id } = req.params;
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+
+    // Verificar permissão
+    const checkRes = await pool.request().input('Id', sql.INT, id).query('SELECT CriadoPor FROM Demandas WHERE Id = @Id');
+    const demanda = checkRes.recordset[0];
+    if (!demanda) return res.status(404).json({ error: 'Demanda não encontrada' });
+    
+    if (!req.user.isAdmin && demanda.CriadoPor && String(demanda.CriadoPor) !== String(req.user.colaboradorId)) {
+      return res.status(403).json({ error: 'Você não tem permissão para excluir esta demanda. Somente o criador ou um administrador podem excluí-la.' });
+    }
     await pool.request()
       .input('Id', sql.INT, id)
       .query('DELETE FROM Tarefas WHERE DemandaId = @Id');

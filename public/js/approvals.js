@@ -1,4 +1,5 @@
-function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalNote, handleApproval, currentUser, processingApprovalId }) {
+function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUser, processingApprovalId }) {
+  const [localNotes, setLocalNotes] = React.useState({}); // { requestId: comment }
   // Regra Global: Apenas Admin ou Nível 5 (Coordenador) para cima
   const hasMinApprovalLevel = currentUser && (currentUser.isAdmin || (currentUser.nivelHierarquia && currentUser.nivelHierarquia <= 5));
 
@@ -69,6 +70,30 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
                     </div>
                   )}
 
+
+                  {(() => {
+                      const isOwner = Number(request.employeeId) === Number(currentUser.colaboradorId);
+                      const isDirectManager = Number(request.employee?.gestorId) === Number(currentUser.colaboradorId);
+                      const isSuperiorLevel = currentUser.nivelHierarquia < (request.employee?.nivelHierarquia || 7);
+                      const hasNoManager = request.employee?.gestorId === null || !request.employee?.gestorId;
+                      const canAction = currentUser.isAdmin || (isOwner && hasNoManager) || (!isOwner && (isDirectManager || isSuperiorLevel));
+
+                      if (canAction) {
+                        return (
+                          <div style={{ marginBottom: '20px' }}>
+                            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Parecer do Gestor (Opcional)</label>
+                            <textarea 
+                              placeholder="Adicione um comentário para esta decisão..." 
+                              value={localNotes[request.id] || ''} 
+                              onChange={(e) => setLocalNotes({ ...localNotes, [request.id]: e.target.value })}
+                              style={{ width: '100%', minHeight: '80px', background: 'rgba(0,0,0,0.15)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)', padding: '12px', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
+                            />
+                          </div>
+                        );
+                      }
+                      return null;
+                  })()}
+
                   <div className="queue-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
                     {(() => {
                       const isOwner = Number(request.employeeId) === Number(currentUser.colaboradorId);
@@ -81,10 +106,10 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
                       if (canAction) {
                         return (
                           <>
-                            <button className="btn btn-primary" onClick={() => handleApproval(request.id, 'Aprovado')} disabled={processingApprovalId === request.id} style={{ flex: 1, height: '48px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
+                            <button className="btn btn-primary" onClick={() => handleApproval(request.id, 'Aprovado', localNotes[request.id] || '')} disabled={processingApprovalId === request.id} style={{ flex: 1, height: '48px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
                               {processingApprovalId === request.id ? <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>autorenew</span> : 'Aprovar Agora'}
                             </button>
-                            <button className="btn btn-secondary" onClick={() => handleApproval(request.id, 'Rejeitado')} disabled={processingApprovalId === request.id} style={{ height: '48px', borderRadius: 'var(--radius-md)', padding: '0 24px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
+                            <button className="btn btn-secondary" onClick={() => handleApproval(request.id, 'Rejeitado', localNotes[request.id] || '')} disabled={processingApprovalId === request.id} style={{ height: '48px', borderRadius: 'var(--radius-md)', padding: '0 24px', opacity: processingApprovalId === request.id ? 0.7 : 1 }}>
                               Rejeitar
                             </button>
                           </>
@@ -116,42 +141,42 @@ function ApprovalView({ pendingRequests, allRequests, approvalNote, setApprovalN
         <div className="card">
           <div className="section-title">
             <div>
-              <h3>Parecer do gestor</h3>
-              <p>Mensagem única aplicada na próxima decisão tomada.</p>
+              <h3>Histórico de Decisões</h3>
+              <p>Registro das solicitações processadas recentemente.</p>
             </div>
           </div>
 
-          <div className="field">
-            <label>Comentário para aprovação ou rejeição</label>
-            <textarea
-              value={approvalNote}
-              onChange={(e) => setApprovalNote(e.target.value)}
-              placeholder="Ex.: aprovado com cobertura validada, ou rejeitado por conflito em entrega crítica."
-            />
-          </div>
-
-          <div className="mini-list">
-            <div className="mini-item">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="material-symbols-outlined icon-blue" style={{ fontSize: '16px' }}>checklist</span>
-                Critérios sugeridos
-              </h4>
-              <p>Considere capacidade do time, janelas de entrega, cobertura definida e sobreposição com funções críticas.</p>
-            </div>
-            <div className="mini-item">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="material-symbols-outlined icon-orange" style={{ fontSize: '16px' }}>sort</span>
-                Ordem recomendada
-              </h4>
-              <p>Priorize primeiro os pedidos com conflito alto, depois médio e por fim os sem sobreposição.</p>
-            </div>
-            <div className="mini-item">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span className="material-symbols-outlined icon-teal" style={{ fontSize: '16px' }}>history</span>
-                Rastro de decisão
-              </h4>
-              <p>O comentário fica incorporado à observação do pedido para facilitar auditoria e histórico.</p>
-            </div>
+          <div className="history-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {allRequests.filter(r => r.status !== 'Pendente' && r.type !== 'Escala de Trabalho' && r.type !== 'Ajuste de Escala').slice(0, 10).map(req => (
+              <div key={req.id} className="glass" style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>{req.employeeName}</h5>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--muted)' }}>{req.type} · {formatDate(req.startDate)}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {req.comentarioAprovacao && req.comentarioAprovacao.trim() !== '' && (
+                      <span 
+                        className="material-symbols-outlined" 
+                        title={`Parecer: ${req.comentarioAprovacao}`} 
+                        style={{ color: 'var(--primary)', cursor: 'help', fontSize: '20px', background: 'var(--primary)15', padding: '4px', borderRadius: '4px' }}
+                      >
+                        chat_bubble
+                      </span>
+                    )}
+                    <span className={`status-pill ${req.status === 'Aprovado' ? 'done' : 'rejected'}`} style={{ fontSize: '0.7rem', padding: '4px 10px' }}>{req.status}</span>
+                  </div>
+                </div>
+                {req.comentarioAprovacao && req.comentarioAprovacao.trim() !== '' && (
+                  <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--muted)', borderLeft: '2px solid var(--primary)' }}>
+                    "{req.comentarioAprovacao}"
+                  </div>
+                )}
+              </div>
+            ))}
+            {allRequests.filter(r => r.status !== 'Pendente' && r.type !== 'Escala de Trabalho' && r.type !== 'Ajuste de Escala').length === 0 && (
+              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--muted)', fontSize: '0.85rem' }}>Nenhuma decisão tomada recentemente.</div>
+            )}
           </div>
         </div>
       </section>

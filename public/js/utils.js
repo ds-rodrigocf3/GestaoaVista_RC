@@ -443,25 +443,38 @@ function ResizableHeader({ label, width, onResize, className = "", idPrefix = ""
   );
 }
 
-function getRelativeTime(dateValue, type = '') {
+function getRelativeTime(startDateValue, type = '', endDateValue = null) {
   const now = new Date();
-  const eventDate = new Date(dateValue);
-  if (isNaN(eventDate.getTime())) return null;
+  const startDate = new Date(startDateValue);
+  if (isNaN(startDate.getTime())) return null;
 
   const isAnniversary = type === 'Aniversário';
-  const isToday = now.toLocaleDateString('pt-BR') === eventDate.toLocaleDateString('pt-BR');
+  const isAbsence = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga', 'Férias', 'Saúde'].includes(type);
+  const isToday = now.toLocaleDateString('pt-BR') === startDate.toLocaleDateString('pt-BR');
+
+  const endDate = endDateValue ? new Date(endDateValue) : null;
+  const hasValidEnd = endDate && !isNaN(endDate.getTime());
 
   if (isAnniversary) {
     if (isToday) return 'Hoje';
     const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const d2 = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+    const d2 = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
     
     if (diffDays < 0) return 'PASSADO';
     return 'Daqui ' + diffDays + (diffDays === 1 ? ' dia' : ' dias');
   }
 
-  const diffMs = eventDate - now;
+  // Lógica AGORA / PASSADO para eventos com horário
+  if (hasValidEnd) {
+    if (now >= startDate && now <= endDate) return 'AGORA';
+    if (now > endDate) return 'PASSADO';
+  } else if (!isAbsence) {
+    // Se não for ausência (que dura o dia todo), e já passou do início
+    if (now > startDate) return 'PASSADO';
+  }
+
+  const diffMs = startDate - now;
   if (diffMs < 0) {
     if (isToday) return 'Hoje';
     return 'PASSADO';
@@ -474,7 +487,7 @@ function getRelativeTime(dateValue, type = '') {
   }
 
   const d1 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const d2 = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+  const d2 = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
   const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 
   return 'Daqui ' + diffDays + (diffDays === 1 ? ' dia' : ' dias');

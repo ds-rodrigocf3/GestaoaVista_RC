@@ -334,7 +334,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
            formattedDate: formatDateBR(startObj),
            formattedEndDate: isMultiDay ? formatDateBR(endObj) : null,
            isMultiDay,
-           sortDate: startObj
+           sortDate: startObj,
+           endDate: endObj
          };
       });
 
@@ -410,7 +411,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           areaInfo,
           responsavelNome: ev.responsavelNome || ev.ResponsavelNome,
           isMultiDay,
-          sortDate: startObj
+          sortDate: startObj,
+          endDate: endObj
         };
       });
 
@@ -484,10 +486,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                         {a.isEvent ? a.title : a.emp?.name}
                       </div>
                       {(() => {
-                        const relTime = getRelativeTime(a.sortDate, a.type);
+                        const relTime = getRelativeTime(a.sortDate, a.type, a.endDate);
                         if (!relTime) return null;
                         const isPastBadge = relTime === 'PASSADO';
-                        const isToday = relTime === 'Hoje';
+                        const isToday = relTime === 'Hoje' || relTime === 'AGORA';
                         return (
                           <span style={{ 
                             fontSize: '0.6rem', 

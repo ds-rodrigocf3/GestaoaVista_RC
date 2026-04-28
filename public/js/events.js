@@ -49,6 +49,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       await fetchAll({ silent: true });
       setForm(emptyForm);
       setToast && setToast({ title: form.id ? 'Evento atualizado' : 'Evento criado', message: 'Salvo com sucesso.', type: 'success' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setToast && setToast({ title: 'Erro', message: e.message, type: 'error' });
     } finally {
@@ -294,94 +295,6 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         ))}
       </div>
 
-      {/* Form Card */}
-      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
-          {form.id ? 'Editar Evento' : 'Novo Evento'}
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-          {/* Col 1: Identificação */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Título do Evento*</label>
-              <input style={inputStyle} value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal de Resultados" />
-            </div>
-            <div>
-              <label style={labelStyle}>Tipo de Evento</label>
-              <select style={inputStyle} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
-                {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Col 2: Datas */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Data e Hora de Início*</label>
-              <input type="datetime-local" style={inputStyle} value={form.dataInicio} onChange={e => setForm(p => ({ ...p, dataInicio: e.target.value }))} />
-            </div>
-            <div>
-              <label style={labelStyle}>Data e Hora de Término</label>
-              <input type="datetime-local" style={inputStyle} value={form.dataFim} onChange={e => setForm(p => ({ ...p, dataFim: e.target.value }))} />
-            </div>
-          </div>
-
-          {/* Col 3: Participantes e Responsável */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Áreas Participantes</label>
-              <MultiSelect
-                options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
-                value={form.areaId}
-                onChange={val => setForm(p => ({ ...p, areaId: val }))}
-                placeholder="Todas (Global)"
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Responsável pelo Evento</label>
-              <select style={inputStyle} value={form.responsavelId} onChange={e => setForm(p => ({ ...p, responsavelId: e.target.value }))}>
-                <option value="">Nenhum responsável</option>
-                {(colaboradores || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Col 4: Descrição e Botão */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Descrição / Pauta</label>
-              <textarea 
-                style={{ ...inputStyle, height: '82px', resize: 'none' }} 
-                value={form.descricao} 
-                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} 
-                placeholder="Breve pauta ou observações importantes sobre o evento..." 
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="btn btn-primary"
-                onClick={saveEvento}
-                disabled={saving}
-                style={{ flex: 2, height: '44px', fontWeight: 700 }}
-              >
-                {saving ? 'Salvando...' : (form.id ? 'Atualizar Evento' : 'Salvar Evento')}
-              </button>
-              {form.id && (
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => setForm(emptyForm)} 
-                  style={{ flex: 1, height: '44px' }}
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Filters Bar */}
       <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)', background: 'rgba(255,255,255,0.01)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -528,15 +441,16 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                       <span style={{ background: style.bg, color: style.color, padding: '2px 10px', borderRadius: '6px', fontSize: '.7rem', fontWeight: 800, letterSpacing: '0.04em' }}>{tipo}</span>
                     </div>
                     {(() => {
-                      const relTime = getRelativeTime(ev.dataInicio || ev.DataInicio || ev.inicio, tipo);
+                      const relTime = getRelativeTime(ev.dataInicio || ev.DataInicio || ev.inicio, tipo, ev.dataFim || ev.DataFim || ev.fim);
                       if (!relTime) return null;
                       const isPastBadge = relTime === 'PASSADO';
+                      const isToday = relTime === 'Hoje' || relTime === 'AGORA';
                       return (
                         <span style={{ 
                           fontSize: '.62rem', 
                           fontWeight: 900, 
                           color: isPastBadge ? 'var(--muted)' : '#fff', 
-                          background: isPastBadge ? 'var(--panel-strong)' : 'var(--primary)', 
+                          background: isPastBadge ? 'var(--panel-strong)' : (isToday ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--primary)'), 
                           padding: '3px 10px', 
                           borderRadius: 'var(--radius-sm)', 
                           textTransform: 'uppercase',
@@ -630,6 +544,94 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
             })}
           </div>
         )}
+      </div>
+
+      {/* Form Card */}
+      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
+          {form.id ? 'Editar Evento' : 'Novo Evento'}
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          {/* Col 1: Identificação */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Título do Evento*</label>
+              <input style={inputStyle} value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal de Resultados" />
+            </div>
+            <div>
+              <label style={labelStyle}>Tipo de Evento</label>
+              <select style={inputStyle} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
+                {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Col 2: Datas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Data e Hora de Início*</label>
+              <input type="datetime-local" style={inputStyle} value={form.dataInicio} onChange={e => setForm(p => ({ ...p, dataInicio: e.target.value }))} />
+            </div>
+            <div>
+              <label style={labelStyle}>Data e Hora de Término</label>
+              <input type="datetime-local" style={inputStyle} value={form.dataFim} onChange={e => setForm(p => ({ ...p, dataFim: e.target.value }))} />
+            </div>
+          </div>
+
+          {/* Col 3: Participantes e Responsável */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Áreas Participantes</label>
+              <MultiSelect
+                options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
+                value={form.areaId}
+                onChange={val => setForm(p => ({ ...p, areaId: val }))}
+                placeholder="Todas (Global)"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Responsável pelo Evento</label>
+              <select style={inputStyle} value={form.responsavelId} onChange={e => setForm(p => ({ ...p, responsavelId: e.target.value }))}>
+                <option value="">Nenhum responsável</option>
+                {(colaboradores || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Col 4: Descrição e Botão */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Descrição / Pauta</label>
+              <textarea 
+                style={{ ...inputStyle, height: '82px', resize: 'none' }} 
+                value={form.descricao} 
+                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} 
+                placeholder="Breve pauta ou observações importantes sobre o evento..." 
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-primary"
+                onClick={saveEvento}
+                disabled={saving}
+                style={{ flex: 2, height: '44px', fontWeight: 700 }}
+              >
+                {saving ? 'Salvando...' : (form.id ? 'Atualizar Evento' : 'Salvar Evento')}
+              </button>
+              {form.id && (
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setForm(emptyForm)} 
+                  style={{ flex: 1, height: '44px' }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

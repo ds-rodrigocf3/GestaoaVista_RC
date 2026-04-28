@@ -25,6 +25,7 @@ exports.getAll = async (req, res) => {
       coverage: r.Coverage,
       priority: r.Priority,
       localTrabalho: r.LocalTrabalho,
+      comentarioAprovacao: r.ComentarioAprovacao,
       dataCriacao: r.DataCriacao,
       dataModificacao: r.DataModificacao
     })));
@@ -113,6 +114,7 @@ exports.create = async (req, res) => {
       endDate: formatDateYYYYMMDD(endDate),
       localTrabalho: localTrabalho || null,
       note: note || '',
+      comentarioAprovacao: null,
       coverage: coverage || '',
       priority: priority || 'Baixa'
     });
@@ -122,12 +124,12 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { startDate, endDate, type, note, coverage, priority, status, localTrabalho } = req.body;
+    const { startDate, endDate, type, note, coverage, priority, status, localTrabalho, comentarioAprovacao } = req.body;
     const pool = await poolPromise;
 
     const current = await pool.request()
       .input('Id', sql.INT, id)
-      .query('SELECT EmployeeId, Type, StartDate, EndDate, Note, LocalTrabalho, Status, Coverage, Priority FROM Requests WHERE Id = @Id');
+      .query('SELECT EmployeeId, Type, StartDate, EndDate, Note, LocalTrabalho, Status, Coverage, Priority, ComentarioAprovacao FROM Requests WHERE Id = @Id');
     
     if (!current.recordset.length) return res.status(404).json({ error: 'Solicitação não encontrada' });
     const original = current.recordset[0];
@@ -168,7 +170,8 @@ exports.update = async (req, res) => {
       .input('Cov', sql.NVARCHAR(100), coverage || '')
       .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')
       .input('Loc', sql.NVARCHAR(50), loc)
-      .query(`UPDATE Requests SET Status=@Status, StartDate=@Start, EndDate=@End, Note=@Note, Coverage=@Cov, Priority=@Pri, LocalTrabalho=@Loc, DataModificacao=GETDATE() WHERE Id=@Id`);
+      .input('Comentario', sql.NVARCHAR(1000), comentarioAprovacao || original.ComentarioAprovacao || null)
+      .query(`UPDATE Requests SET Status=@Status, StartDate=@Start, EndDate=@End, Note=@Note, Coverage=@Cov, Priority=@Pri, LocalTrabalho=@Loc, ComentarioAprovacao=@Comentario, DataModificacao=GETDATE() WHERE Id=@Id`);
 
     const fullRequest = await pool.request()
       .input('Id', sql.INT, id)
@@ -187,6 +190,7 @@ exports.update = async (req, res) => {
       coverage: updated.Coverage,
       priority: updated.Priority,
       localTrabalho: updated.LocalTrabalho,
+      comentarioAprovacao: updated.ComentarioAprovacao,
       dataCriacao: updated.DataCriacao,
       dataModificacao: updated.DataModificacao
     });
