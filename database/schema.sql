@@ -135,6 +135,7 @@ BEGIN
         InicioRealizado DATE NULL,
         FimRealizado DATE NULL,
         ComentarioStatus NVARCHAR(1000) NULL,
+        CriadoPor INT NULL,
         DataCriacao DATETIME DEFAULT GETDATE(),
         DataModificacao DATETIME DEFAULT GETDATE()
     );
@@ -184,6 +185,7 @@ BEGIN
         Coverage NVARCHAR(100),
         Priority NVARCHAR(50),
         LocalTrabalho NVARCHAR(50), -- 'Presencial', 'Home Office'
+        ComentarioAprovacao NVARCHAR(1000) NULL,
         DataCriacao DATETIME DEFAULT GETDATE(),
         DataModificacao DATETIME DEFAULT GETDATE()
     );

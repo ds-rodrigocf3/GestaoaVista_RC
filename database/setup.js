@@ -122,7 +122,7 @@ async function runSetup() {
                 ResponsavelId INT NULL FOREIGN KEY REFERENCES BI_Colaboradores(Id),
                 Status NVARCHAR(50) DEFAULT 'Não Iniciado', Prioridade NVARCHAR(50) DEFAULT 'Média',
                 InicioPlanjado DATE NULL, FimPlanejado DATE NULL, InicioRealizado DATE NULL, FimRealizado DATE NULL,
-                ComentarioStatus NVARCHAR(1000) NULL, DataCriacao DATETIME DEFAULT GETDATE(), DataModificacao DATETIME DEFAULT GETDATE()
+                ComentarioStatus NVARCHAR(1000) NULL, CriadoPor INT NULL, DataCriacao DATETIME DEFAULT GETDATE(), DataModificacao DATETIME DEFAULT GETDATE()
             );
 
             CREATE TABLE Tarefas (
@@ -138,6 +138,7 @@ async function runSetup() {
                 Id INT PRIMARY KEY IDENTITY(1,1), EmployeeId INT FOREIGN KEY REFERENCES BI_Colaboradores(Id),
                 Type NVARCHAR(100), Status NVARCHAR(50), StartDate DATE, EndDate DATE, Note NVARCHAR(500),
                 Coverage NVARCHAR(100), Priority NVARCHAR(50), LocalTrabalho NVARCHAR(50), 
+                ComentarioAprovacao NVARCHAR(1000) NULL,
                 DataCriacao DATETIME DEFAULT GETDATE(), DataModificacao DATETIME DEFAULT GETDATE()
             );
 
