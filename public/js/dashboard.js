@@ -1,4 +1,4 @@
-function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, areas, globalFilters, currentUser, onAddTask }) {
+function DashboardView({ stats, requests, pendingRequests, rejectedRequests, timelineItems, tasks, workDays, employees, demandas, setDemandas, eventos, areas, globalFilters, currentUser, onAddTask, authorizedScope }) {
   const [, setTick] = React.useState(0);
   React.useEffect(() => {
     const timer = setInterval(() => setTick(t => t + 1), 60000);
@@ -33,6 +33,14 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
 
   const isMatch = (e) => {
     if (!e) return false;
+
+    // Rule: Authorization Scope (if not Admin)
+    if (authorizedScope) {
+       const isAllowed = authorizedScope.colabIds.includes(Number(e.id)) || 
+                         authorizedScope.areaIds.includes(Number(e.areaId));
+       if (!isAllowed) return false;
+    }
+
     const g = globalFilters || {};
     const colabId = g.colaboradorId ? String(g.colaboradorId) : null;
     if (colabId && String(e.id) !== colabId) return false;
@@ -345,12 +353,22 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           // Global (Se não houver áreas específicas selecionadas, o evento é Global)
           if (!evAreaId) return true;
          
-         // Por Área (Usuário pertence a uma das áreas do evento)
+         // Por Área (Usuário pertence a uma das áreas do evento ou tem autorização para a área)
          const areaIds = evAreaId ? String(evAreaId).split(',').filter(x => x !== '') : [];
-         if (areaIds.length > 0 && currentUser?.areaId && areaIds.includes(String(currentUser.areaId))) return true;
+         if (areaIds.length > 0) {
+            const hasAccess = areaIds.some(aid => {
+               if (currentUser?.areaId && String(aid) === String(currentUser.areaId)) return true;
+               if (authorizedScope && authorizedScope.areaIds.includes(Number(aid))) return true;
+               return false;
+            });
+            if (hasAccess) return true;
+         }
          
-         // Por Responsável (Usuário é o responsável direto)
-         if (evRespId && currentUser?.colaboradorId && String(evRespId) === String(currentUser.colaboradorId)) return true;
+         // Por Responsável (Usuário é o responsável direto ou é superior do responsável)
+         if (evRespId) {
+            if (currentUser?.colaboradorId && String(evRespId) === String(currentUser.colaboradorId)) return true;
+            if (authorizedScope && authorizedScope.colabIds.includes(Number(evRespId))) return true;
+         }
          
          // Admin visualiza todos
          if (currentUser?.isAdmin) return true;

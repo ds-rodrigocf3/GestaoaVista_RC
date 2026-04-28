@@ -1,4 +1,4 @@
-function TaskView({ tasks, setTasks, employees: initialEmployees, requests, demandas, setDemandas, currentUser, authToken, globalFilters, onAddTask, onAddDemanda, requestedModal, setRequestedModal }) {
+function TaskView({ tasks, setTasks, employees: initialEmployees, requests, demandas, setDemandas, currentUser, authToken, globalFilters, onAddTask, onAddDemanda, requestedModal, setRequestedModal, authorizedScope }) {
   const [dbEmployees, setDbEmployees] = React.useState(initialEmployees || []);
   const holidays = React.useMemo(() => getBrazilianHolidays(2026), []);
   const [statusModal, setStatusModal] = React.useState(null); // {taskId, newStatus, oldStatus}
@@ -43,6 +43,13 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     return list.filter(task => {
       const emp = dbEmployees?.find(e => String(e.id) === String(task.ownerId));
       if (!emp) return true;
+
+      // Rule: Authorization Scope (if not Admin)
+      if (authorizedScope) {
+        const isAllowed = authorizedScope.colabIds.includes(Number(emp.id)) || 
+                          authorizedScope.areaIds.includes(Number(emp.areaId));
+        if (!isAllowed) return false;
+      }
 
       // Filter by Colaborador
       if (globalFilters.colaboradorId && String(emp.id) !== String(globalFilters.colaboradorId)) return false;
@@ -139,9 +146,16 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   React.useEffect(() => {
     fetch(`${API_BASE}/api/employees`, { headers: apiHeaders(authToken) })
       .then(res => res.json())
-      .then(data => setDbEmployees(data || []))
+      .then(data => {
+        let list = data || [];
+        // Apply scope restriction to the internal list used for dropdowns
+        if (authorizedScope) {
+          list = list.filter(e => authorizedScope.colabIds.includes(Number(e.id)) || authorizedScope.areaIds.includes(Number(e.areaId)));
+        }
+        setDbEmployees(list);
+      })
       .catch(err => console.error('Failed to fetch employees in TaskView', err));
-  }, [authToken]);
+  }, [authToken, authorizedScope]);
 
   React.useEffect(() => {
     if (requestedModal && requestedModal.type === 'demanda') {

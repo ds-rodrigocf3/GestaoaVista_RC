@@ -36,7 +36,8 @@ exports.getAll = async (req, res) => {
         FROM Demandas d
         LEFT JOIN BI_Colaboradores c ON d.ResponsavelId = c.Id
         WHERE d.ResponsavelId IS NULL 
-           OR c.AreaId IN (SELECT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+           OR c.AreaId IN (SELECT DISTINCT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+           OR d.ResponsavelId IN (SELECT Id FROM HierarquiaCTE)
         ORDER BY d.DataModificacao DESC
       `;
     }

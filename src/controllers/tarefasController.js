@@ -34,7 +34,9 @@ exports.getAll = async (req, res) => {
         FROM Tarefas t
         LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
         WHERE t.Ativo = 1 
-          AND (t.ResponsavelId IS NULL OR c.AreaId IN (SELECT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL))
+          AND (t.ResponsavelId IS NULL 
+               OR c.AreaId IN (SELECT DISTINCT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+               OR t.ResponsavelId IN (SELECT Id FROM HierarquiaCTE))
         ORDER BY t.DataCriacao DESC
       `;
     }

@@ -1,4 +1,4 @@
-function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast }) {
+function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast, authorizedScope }) {
   const [selectedMonthOffset, setSelectedMonthOffset] = React.useState(0);
   const [loadingToggle, setLoadingToggle] = React.useState(null); // Rastreia qual dia está sendo processado
 
@@ -89,14 +89,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   const [adjustNewValue, setAdjustNewValue] = React.useState('Presencial');
 
   React.useEffect(() => {
-    if (!currentUser.isAdmin && currentUser.colaboradorId) {
-      setSelectedEmployeeId(currentUser.colaboradorId);
-      return;
-    }
+    // Note: We removed the restriction that forced non-admins to only see themselves.
+    // This allows everyone to consult anyone's scale as requested.
 
     if (filteredEmployees.length > 0) {
-      if (!filteredEmployees.find(e => e.id === selectedEmployeeId)) {
-        setSelectedEmployeeId(filteredEmployees[0].id);
+      if (!selectedEmployeeId || !filteredEmployees.find(e => e.id === selectedEmployeeId)) {
+        // Only auto-select if nothing is selected or selected employee is filtered out
+        // If it's the first load, try to select the current user if they are in the list
+        if (!selectedEmployeeId) {
+           const self = filteredEmployees.find(e => Number(e.id) === Number(currentUser?.colaboradorId));
+           setSelectedEmployeeId(self ? self.id : filteredEmployees[0].id);
+        } else {
+           setSelectedEmployeeId(filteredEmployees[0].id);
+        }
       }
     } else {
       setSelectedEmployeeId('');

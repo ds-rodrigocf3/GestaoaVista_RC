@@ -68,6 +68,20 @@ function App() {
     return Array.from(new Set(allSubordinates));
   };
 
+  const authorizedScope = useMemo(() => {
+    if (!currentUser || currentUser.isAdmin || !dbEmployees) return null;
+    
+    const colabIds = [Number(currentUser.colaboradorId), ...getSubordinateIds(dbEmployees, currentUser.colaboradorId).map(id => Number(id))];
+    const areaIds = Array.from(new Set(
+      dbEmployees.filter(e => colabIds.includes(Number(e.id))).map(e => Number(e.areaId)).filter(Boolean)
+    ));
+    
+    // Include user's own area explicitly in case it's different from subordinates' areas
+    if (currentUser.areaId) areaIds.push(Number(currentUser.areaId));
+
+    return { colabIds, areaIds: Array.from(new Set(areaIds)) };
+  }, [currentUser, dbEmployees]);
+
   const today = new Date();
   const firstDayCurrentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
   const [workDays, setWorkDays] = useState({});
@@ -80,9 +94,17 @@ function App() {
   const [processingApprovalId, setProcessingApprovalId] = useState(null);
 
   const isEmpMatch = (empId) => {
-    if (!globalFilters) return true;
     const emp = dbEmployees.find(e => String(e.id) === String(empId));
     if (!emp) return true;
+
+    // Rule: Authorization Scope (if not Admin and NOT in Scale view)
+    if (authorizedScope && activeView !== 'scale') {
+      const isAllowed = authorizedScope.colabIds.includes(Number(emp.id)) || 
+                        authorizedScope.areaIds.includes(Number(emp.areaId));
+      if (!isAllowed) return false;
+    }
+
+    if (!globalFilters) return true;
     if (globalFilters.colaboradorId && String(emp.id) !== String(globalFilters.colaboradorId)) return false;
     if (globalFilters.gestorId) {
       const subordinateIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
@@ -583,6 +605,10 @@ function App() {
             // Lógica de Filtros Cruzados (Cascateamento)
             const filteredEmpsForSelect = (() => {
               let list = dbEmployees;
+              // Apply authorized scope restriction unless in Scale view
+              if (authorizedScope && activeView !== 'scale') {
+                list = list.filter(e => authorizedScope.colabIds.includes(Number(e.id)) || authorizedScope.areaIds.includes(Number(e.areaId)));
+              }
               if (globalFilters.gestor) list = list.filter(e => e.areaNome === globalFilters.gestor || e.manager === globalFilters.gestor);
               if (globalFilters.gestorId) {
                 const subIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
@@ -593,6 +619,10 @@ function App() {
 
             const filteredAreasForSelect = (() => {
               let list = areas;
+              // Apply authorized scope restriction unless in Scale view
+              if (authorizedScope && activeView !== 'scale') {
+                list = list.filter(a => authorizedScope.areaIds.includes(Number(a.id)));
+              }
               if (globalFilters.gestorId) {
                 const subIds = [parseInt(globalFilters.gestorId), ...getSubordinateIds(dbEmployees, globalFilters.gestorId)];
                 const areaNomes = dbEmployees.filter(e => subIds.includes(parseInt(e.id))).map(e => e.areaNome);
@@ -607,6 +637,10 @@ function App() {
 
             const filteredGestoresForSelect = (() => {
               let list = dbEmployees.filter(e => e.nivelHierarquia <= 4 || dbEmployees.some(sub => String(sub.gestorId) === String(e.id)));
+              // Apply authorized scope restriction unless in Scale view
+              if (authorizedScope && activeView !== 'scale') {
+                list = list.filter(e => authorizedScope.colabIds.includes(Number(e.id)) || authorizedScope.areaIds.includes(Number(e.areaId)));
+              }
               if (globalFilters.gestor) list = list.filter(g => g.areaNome === globalFilters.gestor || g.manager === globalFilters.gestor);
               if (globalFilters.colaboradorId) {
                 const emp = dbEmployees.find(e => String(e.id) === String(globalFilters.colaboradorId));
@@ -635,11 +669,11 @@ function App() {
             );
           })()}
 
-          {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} />}
+          {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} authorizedScope={authorizedScope} />}
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
-          {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} />}
+          {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} authorizedScope={authorizedScope} />}
           {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} approvalNote={approvalNote} setApprovalNote={setApprovalNote} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
-          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} />}
+          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} />}
           {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
         </main>
       </div>
