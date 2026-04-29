@@ -126,6 +126,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     return d < today;
   };
 
+  const todayStr = formatDateLocal(new Date());
+
   const toggleDay = (dateKey) => {
     if (isReadOnly) return;
     if (loadingToggle === dateKey) return; 
@@ -628,7 +630,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                           setToast({ title: 'Informação do Dia', message: unifiedTooltip, type: 'info' });
                         }
                       }}
-                      className={`calendar-day glass ${isWeekend ? 'weekend' : ''} ${holidayInfo ? 'holiday' : ''} ${status === 'Presencial' ? 'active' : status === 'Home Office' ? 'active' : ''} ${isPast ? 'past' : ''}`}
+                      className={`calendar-day glass ${isWeekend ? 'weekend' : ''} ${holidayInfo ? 'holiday' : ''} ${status === 'Presencial' ? 'presencial' : status === 'Home Office' ? 'home-office' : ''} ${isPast ? 'past' : ''} ${dateKey === todayStr ? 'today' : ''}`}
+
                       title={unifiedTooltip}
                       style={{ 
                         position: 'relative',
@@ -689,15 +692,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                             
                             return filteredEvents.slice(0, 3).map((ev, i) => {
                               const type = ev.tipo || ev.Tipo || 'Outro';
-                              const iconMap = {
-                                'Reunião': { icon: 'groups', color: 'var(--primary)' },
-                                'Workshop': { icon: 'school', color: '#8b5cf6' },
-                                'Apresentação': { icon: 'present_to_all', color: '#3b82f6' },
-                                'Treinamento': { icon: 'menu_book', color: '#f59e0b' },
-                                'Evento Corporativo': { icon: 'business', color: 'var(--muted)' },
-                                'Aniversário': { icon: 'celebration', color: '#ff3399' }
-                              };
-                              const config = iconMap[type] || { icon: 'event', color: 'var(--primary)' };
+                              const config = EVENT_TYPE_STYLES[type] || EVENT_TYPE_STYLES['Outro'];
+
                               return (
                                 <span key={i} className="material-symbols-outlined" style={{ fontSize: '15px', color: config.color, opacity: 0.9 }}>
                                   {config.icon}
@@ -819,21 +815,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       const title = ev.titulo || ev.Titulo || ev.name || 'Sem título';
                       const tipo = ev.tipo || ev.Tipo || 'Evento';
                       
-                      // Color Mapping Logic
-                      const getEventStyle = (t) => {
-                        const low = t.toLowerCase();
-                        if (low.includes('reunião') || low.includes('meeting')) 
-                          return { bg: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6', border: 'rgba(139, 92, 246, 0.2)' };
-                        if (low.includes('workshop')) 
-                          return { bg: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', border: 'rgba(245, 158, 11, 0.2)' };
-                        if (low.includes('treinamento') || low.includes('curso')) 
-                          return { bg: 'rgba(16, 185, 129, 0.08)', color: '#10b981', border: 'rgba(16, 185, 129, 0.2)' };
-                        if (low.includes('aniversário')) 
-                          return { bg: 'rgba(236, 72, 153, 0.08)', color: '#ec4899', border: 'rgba(236, 72, 153, 0.2)' };
-                        return { bg: 'rgba(51, 204, 204, 0.08)', color: 'var(--primary)', border: 'rgba(51, 204, 204, 0.2)' };
-                      };
-                      
-                      const style = getEventStyle(title);
+                      const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];
                       
                       return (
                         <span key={i} className="dash-micro-badge" style={{ 
@@ -841,10 +823,14 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                           padding: '6px 14px', 
                           background: style.bg, 
                           color: style.color, 
-                          border: `1px solid ${style.border}`, 
+                          border: `1px solid ${style.color}33`, 
                           borderRadius: 'var(--radius-md)', 
-                          fontWeight: 700 
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
                         }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{style.icon}</span>
                           {date}/{month} - {title}
                         </span>
                       );

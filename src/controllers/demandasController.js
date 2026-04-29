@@ -60,7 +60,8 @@ exports.getAll = async (req, res) => {
       dataModificacao: d.DataModificacao,
       criadorId: d.CriadoPor,
       totalTarefas: d.TotalTarefas,
-      tarefasConcluidas: d.TarefasConcluidas
+      tarefasConcluidas: d.TarefasConcluidas,
+      fimRealizado: d.FimRealizado ? new Date(d.FimRealizado).toISOString().slice(0, 10) : null
     })));
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -125,7 +126,11 @@ exports.update = async (req, res) => {
       .input('ComentarioStatus', sql.NVARCHAR(1000), comentarioStatus || null)
       .query(`UPDATE Demandas SET Titulo=@Titulo, Descricao=@Descricao, ResponsavelId=@ResponsavelId, 
               Status=@Status, Prioridade=@Prioridade, InicioPlanjado=@InicioPlanjado, FimPlanejado=@FimPlanejado, 
-              ComentarioStatus=@ComentarioStatus, DataModificacao=GETDATE() WHERE Id=@Id`);
+              ComentarioStatus=@ComentarioStatus, 
+              FimRealizado = CASE WHEN @Status = 'Concluído' AND FimRealizado IS NULL THEN GETDATE() 
+                                  WHEN @Status <> 'Concluído' THEN NULL 
+                                  ELSE FimRealizado END,
+              DataModificacao=GETDATE() WHERE Id=@Id`);
 
     // Log History if status changed or explicitly requested
     if (registrarHistorico || (statusAnterior && statusAnterior !== status)) {

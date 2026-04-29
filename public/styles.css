@@ -5593,21 +5593,59 @@ html, body {
   }
 }
 
-/* Unificao de Finais de Semana e Feriados - Tom sutilmente mais escuro */
+/* Unificacao de Finais de Semana e Feriados - Tom sutilmente mais escuro */
 .calendar-day.weekend,
 .calendar-day.holiday,
 .dash-calendar-cell.weekend,
 .dash-calendar-cell.holiday {
-  background: #e2e8f0 !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.03) !important;
+  background: #f1f5f9 !important; /* Slightly darker than base bg */
+  border-color: #e2e8f0 !important;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.02) !important;
 }
 
 [data-theme="dark"] .calendar-day.weekend,
 [data-theme="dark"] .calendar-day.holiday,
 [data-theme="dark"] .dash-calendar-cell.weekend,
 [data-theme="dark"] .dash-calendar-cell.holiday {
-  background: #0f172a !important;
+  background: #0f172a !important; /* Darker than card bg */
   border-color: rgba(148,163,184,0.15) !important;
-  background-image: none !important;
+  box-shadow: none !important;
 }
+
+.calendar-day.mini.selected {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 4px 10px rgba(51, 204, 204, 0.3) !important;
+}
+
+
+.calendar-day.today::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+  z-index: 10;
+}
+
+.calendar-day.today {
+  border: 2px solid var(--primary) !important;
+  box-shadow: 0 0 10px rgba(51, 204, 204, 0.2) !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .calendar-day.today {
+  background: rgba(51, 204, 204, 0.05) !important;
+}
+
+[data-theme="light"] .calendar-day.weekend,
+[data-theme="light"] .calendar-day.holiday {
+  background: #f8fafc !important; /* Very subtle slate */
+  border-color: #e2e8f0 !important;
+  color: var(--muted) !important;
+}
+

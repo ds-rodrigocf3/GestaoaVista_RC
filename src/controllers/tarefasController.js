@@ -13,7 +13,7 @@ exports.getAll = async (req, res) => {
     if (isAdmin) {
       query = `
         SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
-               t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
+               t.Status, t.Prioridade, t.Inicio, t.Final, t.FimRealizado, t.DataCriacao, t.Ativo,
                c.Nome as ResponsavelNome
         FROM Tarefas t
         LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
@@ -29,7 +29,7 @@ exports.getAll = async (req, res) => {
             INNER JOIN HierarquiaCTE h ON c.GestorId = h.Id
         )
         SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
-               t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
+               t.Status, t.Prioridade, t.Inicio, t.Final, t.FimRealizado, t.DataCriacao, t.Ativo,
                c.Nome as ResponsavelNome
         FROM Tarefas t
         LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
@@ -54,6 +54,7 @@ exports.getAll = async (req, res) => {
       priority: t.Prioridade,
       startDate: t.Inicio ? formatDateYYYYMMDD(t.Inicio) : '',
       endDate: t.Final ? formatDateYYYYMMDD(t.Final) : '',
+      fimRealizado: t.FimRealizado ? formatDateYYYYMMDD(t.FimRealizado) : null,
       dataCriacao: t.DataCriacao,
       ativo: t.Ativo,
       responsavelNome: t.ResponsavelNome
@@ -111,7 +112,11 @@ exports.update = async (req, res) => {
       .input('Final', sql.DATE, final || null)
       .query(`UPDATE Tarefas SET DemandaId=@DemandaId, Titulo=@Titulo, Descricao=@Descricao, 
               ResponsavelId=@ResponsavelId, Status=@Status, Prioridade=@Prioridade, 
-              Inicio=@Inicio, Final=@Final, DataModificacao=GETDATE() WHERE Id=@Id`);
+              Inicio=@Inicio, Final=@Final, 
+              FimRealizado = CASE WHEN @Status = 'Concluído' AND FimRealizado IS NULL THEN GETDATE() 
+                                  WHEN @Status <> 'Concluído' THEN NULL 
+                                  ELSE FimRealizado END,
+              DataModificacao=GETDATE() WHERE Id=@Id`);
 
     // Log History if status changed
     if (registrarHistorico || (statusAnterior && statusAnterior !== status)) {

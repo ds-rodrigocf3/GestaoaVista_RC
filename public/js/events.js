@@ -110,15 +110,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     return `${dateStr} ${hours}:${minutes}`;
   };
 
-  const TYPE_STYLE = {
-    'Reunião':          { bg: 'rgba(51,204,204,0.12)',   color: 'var(--primary)',  icon: 'groups' },
-    'Workshop':         { bg: 'rgba(139,92,246,0.12)',   color: '#8b5cf6',         icon: 'school' },
-    'Apresentação':     { bg: 'rgba(59,130,246,0.12)',   color: '#3b82f6',         icon: 'present_to_all' },
-    'Treinamento':      { bg: 'rgba(245,158,11,0.12)',   color: '#f59e0b',         icon: 'menu_book' },
-    'Evento Corporativo':{ bg: 'rgba(100,116,139,0.12)', color: 'var(--muted)',    icon: 'business' },
-    'Aniversário':      { bg: 'rgba(255, 51, 153, 0.15)',   color: '#ff3399',         icon: 'celebration' },
-    'Outro':            { bg: 'rgba(51,204,204,0.08)',   color: 'var(--primary)',  icon: 'event' },
-  };
+  const TYPE_STYLE = EVENT_TYPE_STYLES;
 
   const filteredEventos = React.useMemo(() => {
     let list = [...(eventos || [])];
@@ -146,15 +138,29 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     if (filterTipo) list = list.filter(ev => (ev.tipo || ev.Tipo) === filterTipo);
     if (filterPeriodo) {
       const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      
       list = list.filter(ev => {
         const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
         if (!d) return false;
-        if (filterPeriodo === 'upcoming') return d >= startOfToday;
-        if (filterPeriodo === 'past') return d < startOfToday;
+        
+        // Normaliza a data do evento para comparação (meio-dia local para evitar shifts)
+        const dNorm = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+
+        if (filterPeriodo === 'upcoming') return dNorm >= startOfToday;
+        if (filterPeriodo === 'past') return dNorm < startOfToday;
+        
         if (filterPeriodo === 'week') {
-          const end = new Date(startOfToday); end.setDate(end.getDate() + 7);
-          return d >= startOfToday && d <= end;
+          const dayOfWeek = startOfToday.getDay();
+          const startLimit = new Date(startOfToday);
+          startLimit.setDate(startOfToday.getDate() - dayOfWeek);
+          startLimit.setHours(0, 0, 0, 0);
+          
+          const endLimit = new Date(startLimit);
+          endLimit.setDate(startLimit.getDate() + 6);
+          endLimit.setHours(23, 59, 59, 999);
+          
+          return dNorm >= startLimit && dNorm <= endLimit;
         }
         if (filterPeriodo === 'month') {
           return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();

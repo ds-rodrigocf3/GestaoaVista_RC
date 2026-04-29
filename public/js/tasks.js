@@ -15,6 +15,26 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     });
   }, [tasks]);
 
+  // Auto-scroll para novas tarefas
+  React.useEffect(() => {
+    const hasNewTask = tasks.some(t => t.id < 0);
+    if (hasNewTask) {
+      setTimeout(() => {
+        const table = document.querySelector('.tasks-table');
+        if (table) {
+          const rows = table.querySelectorAll('tbody tr');
+          const lastRow = rows[rows.length - 1];
+          if (lastRow) {
+            lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Focar no textarea do título da nova linha
+            const textarea = lastRow.querySelector('textarea');
+            if (textarea) textarea.focus();
+          }
+        }
+      }, 150);
+    }
+  }, [tasks.length]);
+
   // Novos filtros locais
   const [taskStatusFilter, setTaskStatusFilter] = React.useState('');
   const [taskResponsibleFilter, setTaskResponsibleFilter] = React.useState('');
@@ -799,30 +819,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         </div>
       )}
 
-      {statusModal && (
-        <div className="status-modal-overlay">
-          <div className="status-modal glass-card" style={{ padding: '32px', borderRadius: '28px', maxWidth: '540px', width: '90%', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
-            <div className="section-title" style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, background: 'var(--glass-title)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Transição de Status</h3>
-            </div>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>
-              Movendo para: <span className="status-pill working" style={{ fontSize: '0.75rem', padding: '4px 12px', marginLeft: '6px' }}>{statusModal.newStatus}</span>
-            </p>
-            
-            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '10px', display: 'block' }}>Comentário / Justificativa</label>
-            <textarea
-              value={statusComment}
-              onChange={e => setStatusComment(e.target.value)}
-              placeholder="Ex: Aguardando aprovação técnica final ou retorno do cliente..."
-              style={{ width: '100%', minHeight: '120px', marginBottom: '28px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', padding: '16px' }}
-            />
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>Voltar</button>
-              <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '12px 32px', borderRadius: 'var(--radius-md)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff', boxShadow: '0 8px 20px rgba(51, 204, 204, 0.3)' }}>Confirmar Mudança</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="glass-card" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', marginBottom: '32px', padding: '20px 28px', borderRadius: 'var(--radius-xl)', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -978,8 +975,11 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     </td>
                     <td style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--title)', padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.Titulo || d.titulo}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }} title={d.Titulo || d.titulo}>
                           {d.Titulo || d.titulo}
+                          {dStatus !== 'Concluído' && pEnd && toDate(pEnd).getTime() < toDate(new Date()).getTime() && (
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', fontWeight: '900', animation: 'pulse 2s infinite' }} title="PRAZO CRÍTICO: Entrega atrasada!">priority_high</span>
+                          )}
                         </div>
                         {(d.Descricao || d.descricao) && (
                           <span 
@@ -1113,7 +1113,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
               <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>view_list</span>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Lista de Entregas</h3>
             </div>
-            <button className="dash-micro-badge glass" onClick={() => onAddTask('Não Iniciado')} style={{ cursor: 'pointer', background: 'var(--primary)', color: 'var(--primary-txt)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: '0.85rem' }}>
+            <button className="dash-micro-badge glass" onClick={() => onAddTask('Não Iniciado', selectedDemandaId)} style={{ cursor: 'pointer', background: 'var(--primary)', color: 'var(--primary-txt)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: '0.85rem' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_task</span>
               <span style={{ fontWeight: 700 }}>Nova Tarefa</span>
             </button>

@@ -39,6 +39,16 @@ function getStatusPillClass(s) {
   return 'not-started';
 }
 
+const EVENT_TYPE_STYLES = {
+  'Reunião':           { bg: 'rgba(51,204,204,0.12)',   color: 'var(--primary)',  icon: 'groups' },
+  'Workshop':          { bg: 'rgba(139,92,246,0.12)',   color: '#8b5cf6',         icon: 'school' },
+  'Apresentação':      { bg: 'rgba(59,130,246,0.12)',   color: '#3b82f6',         icon: 'present_to_all' },
+  'Treinamento':       { bg: 'rgba(245,158,11,0.12)',   color: '#f59e0b',         icon: 'menu_book' },
+  'Evento Corporativo': { bg: 'rgba(100,116,139,0.12)', color: 'var(--muted)',    icon: 'business' },
+  'Aniversário':       { bg: 'rgba(255, 51, 153, 0.15)', color: '#ff3399',         icon: 'celebration' },
+  'Outro':             { bg: 'rgba(51,204,204,0.08)',   color: 'var(--primary)',  icon: 'event' }
+};
+
 const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 function toDate(value) {

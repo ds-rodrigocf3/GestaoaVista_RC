@@ -13,7 +13,7 @@ exports.getAll = async (req, res) => {
       LEFT JOIN NiveisHierarquia nh ON c.NivelHierarquia = nh.Id
       LEFT JOIN BI_Cargos car ON c.CargoId = car.Id
       LEFT JOIN BI_Colaboradores g ON c.GestorId = g.Id
-      WHERE c.Ativo = 1
+      WHERE c.Ativo = 1 AND c.Nome <> 'Administrador Local'
       ORDER BY c.Nome
     `);
     

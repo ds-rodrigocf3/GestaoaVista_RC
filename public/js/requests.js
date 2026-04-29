@@ -15,6 +15,7 @@ function RequestView({
   setToast
 }) {
   const [requestMonthOffset, setRequestMonthOffset] = React.useState(0);
+  const todayStr = formatDateLocal(new Date());
 
   const displayMonth = React.useMemo(() => {
     const baseDate = form.startDate ? new Date(form.startDate + 'T12:00:00') : new Date(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01T12:00:00`);
@@ -267,7 +268,7 @@ function RequestView({
                   return (
                     <div 
                       key={dateKey} 
-                      className={`calendar-day mini ${isSelected ? 'selected' : ''} ${isWeekend ? 'weekend' : ''} ${isHoliday ? 'holiday' : ''} ${booked ? (hasConflict ? 'conflict' : 'booked') : ''}`}
+                      className={`calendar-day mini ${isSelected ? 'selected' : ''} ${isWeekend ? 'weekend' : ''} ${isHoliday ? 'holiday' : ''} ${booked ? (hasConflict ? 'conflict' : 'booked') : ''} ${dateKey === todayStr ? 'today' : ''}`}
                       title={tooltipText}
                       onClick={() => {
                         if (hasConflict) {

@@ -66,6 +66,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
   const empIds = React.useMemo(() => new Set(filteredEmployees.map(e => Number(e.id))), [filteredEmployees]);
 
   const scopedTasks = React.useMemo(() => tasks ? tasks.filter(t => t && t.ownerId && empIds.has(Number(t.ownerId))) : [], [tasks, empIds]);
+  const scopedDemandas = React.useMemo(() => demandas ? demandas.filter(d => d && (!d.responsavelId || empIds.has(Number(d.responsavelId)))) : [], [demandas, empIds]);
   const scopedRequests = React.useMemo(() => requests ? requests.filter(r => r && r.employeeId && empIds.has(Number(r.employeeId)) && r.status === 'Aprovado') : [], [requests, empIds]);
 
   const scopedWorkDays = React.useMemo(() => {
@@ -85,62 +86,109 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     'Baixa': '#c4c4c4'
   };
 
-  const kpis = React.useMemo(() => {
-    const total = scopedTasks.length;
-    const done = scopedTasks.filter(t => t.status === 'Concluído').length;
-    const deliveryRate = total > 0 ? Math.round((done / total) * 100) : 0;
-    return { total, done, deliveryRate };
-  }, [scopedTasks]);
-
-  // Tabela 360 Groups (Dynamic Buckets)
-  const grupos360 = React.useMemo(() => {
+  const filteredData = React.useMemo(() => {
     let baseTasks = (scopedTasks || []);
+    let baseDemandas = (scopedDemandas || []);
     
-    // Period Filtering
     if (periodFilter !== 'all') {
       const now = new Date();
-      let startLimit, endLimit;
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       
+      let startLimit, endLimit;
       if (periodFilter === 'week') {
-        const d = now.getDay();
-        startLimit = new Date(now); startLimit.setDate(now.getDate() - d);
-        endLimit = new Date(now); endLimit.setDate(now.getDate() + (6 - d));
+        const dayOfWeek = startOfToday.getDay(); 
+        startLimit = new Date(startOfToday);
+        startLimit.setDate(startOfToday.getDate() - dayOfWeek);
+        startLimit.setHours(0, 0, 0, 0);
+        
+        endLimit = new Date(startLimit);
+        endLimit.setDate(startLimit.getDate() + 6);
+        endLimit.setHours(23, 59, 59, 999);
       } else if (periodFilter === 'month') {
-        startLimit = new Date(now.getFullYear(), now.getMonth(), 1);
-        endLimit = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        startLimit = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        endLimit = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
       } else if (periodFilter === 'quarter') {
         const q = Math.floor(now.getMonth() / 3);
-        startLimit = new Date(now.getFullYear(), q * 3, 1);
-        endLimit = new Date(now.getFullYear(), (q + 1) * 3, 0);
+        startLimit = new Date(now.getFullYear(), q * 3, 1, 0, 0, 0);
+        endLimit = new Date(now.getFullYear(), (q + 1) * 3, 0, 23, 59, 59, 999);
       } else if (periodFilter === 'semester') {
         const s = Math.floor(now.getMonth() / 6);
-        startLimit = new Date(now.getFullYear(), s * 6, 1);
-        endLimit = new Date(now.getFullYear(), (s + 1) * 6, 0);
+        startLimit = new Date(now.getFullYear(), s * 6, 1, 0, 0, 0);
+        endLimit = new Date(now.getFullYear(), (s + 1) * 6, 0, 23, 59, 59, 999);
       } else if (periodFilter === 'year') {
-        startLimit = new Date(now.getFullYear(), 0, 1);
-        endLimit = new Date(now.getFullYear(), 12, 0);
+        startLimit = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+        endLimit = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
       } else if (periodFilter === 'custom' && customRange.start && customRange.end) {
-        startLimit = new Date(customRange.start);
-        endLimit = new Date(customRange.end);
+        startLimit = toDate(customRange.start);
+        startLimit.setHours(0, 0, 0, 0);
+        endLimit = toDate(customRange.end);
+        endLimit.setHours(23, 59, 59, 999);
       }
 
       if (startLimit && endLimit) {
         baseTasks = baseTasks.filter(t => {
-          const tStart = t.startDate ? new Date(t.startDate) : null;
-          const tEnd = t.endDate ? new Date(t.endDate) : null;
-          if (!tStart && !tEnd) return true; // Keep if no dates? Or exclude? User preference.
-          return (tStart && tStart <= endLimit) && (tEnd && tEnd >= startLimit);
+          const tStart = toDate(t.startDate);
+          const tEnd = toDate(t.endDate || t.startDate);
+          if (isNaN(tStart.getTime())) return true;
+          return tStart <= endLimit && tEnd >= startLimit;
+        });
+
+        baseDemandas = baseDemandas.filter(d => {
+          const dStart = toDate(d.inicioPlanjado);
+          const dEnd = d.fimPlanejado ? toDate(d.fimPlanejado) : (d.inicioPlanjado ? toDate(d.inicioPlanjado) : null);
+          if (!dStart || isNaN(dStart.getTime())) return true;
+          return dStart <= endLimit && (!dEnd || dEnd >= startLimit);
         });
       }
     }
+    return { tasks: baseTasks, demandas: baseDemandas };
+  }, [scopedTasks, scopedDemandas, periodFilter, customRange]);
 
-    const bucketDefinitions = [
-      { id: 'criticas', title: '⚠️ Críticas / Bloqueios', color: '#ef4444', statuses: ['Bloqueio', 'Crítica'] },
-      { id: 'andamento', title: '⚡ Em Andamento', color: '#3b82f6', statuses: ['Em Andamento'] },
-      { id: 'backlog', title: '⏳ Pausadas / Backlog', color: '#64748b', statuses: ['Não Iniciado', 'Pausado', 'Backlog', 'Aguardando'] },
-      { id: 'concluidas', title: '✅ Concluídas', color: '#10b981', statuses: ['Concluído'] },
-      { id: 'canceladas', title: '🚫 Canceladas', color: '#94a3b8', statuses: ['Cancelado'] }
-    ];
+  const kpis = React.useMemo(() => {
+    const { tasks: baseTasks, demandas: baseDemandas } = filteredData;
+    const total = baseTasks.length;
+    const done = baseTasks.filter(t => t.status === 'Concluído').length;
+    
+    // On-Time Calculation now based on DEMANDAS
+    const demandasConcluidas = baseDemandas.filter(d => d.status === 'Concluído');
+    const onTimeDemandas = demandasConcluidas.filter(d => {
+      if (!d.fimRealizado || !d.fimPlanejado) return false;
+      return new Date(d.fimRealizado) <= new Date(d.fimPlanejado);
+    }).length;
+
+    const deliveryRate = total > 0 ? Math.round((done / total) * 100) : 0;
+    const onTimeRate = demandasConcluidas.length > 0 ? Math.round((onTimeDemandas / demandasConcluidas.length) * 100) : 0;
+    
+    return { total, done, deliveryRate, onTime: onTimeDemandas, onTimeRate };
+  }, [filteredData]);
+
+  // Tabela 360 Groups (Dynamic Buckets)
+  const bucketDefinitions = [
+    { id: 'criticas', title: '⚠️ Críticas / Bloqueios', color: '#ef4444', 
+      filter: (t) => (t.status === 'Bloqueio' || t.status === 'Crítica' || t.priority === 'Crítica') && t.status !== 'Concluído' && t.status !== 'Cancelado'
+    },
+    { id: 'andamento', title: '⚡ Em Andamento', color: '#3b82f6', 
+      filter: (t) => t.status === 'Em Andamento' && t.priority !== 'Crítica' 
+    },
+    { id: 'backlog', title: '⏳ Pausadas / Backlog', color: '#64748b', 
+      filter: (t) => ['Não Iniciado', 'Pausado', 'Backlog', 'Aguardando'].includes(t.status) && t.priority !== 'Crítica' 
+    },
+    { id: 'concluidas', title: '✅ Concluídas', color: '#10b981', statuses: ['Concluído'] },
+    { id: 'canceladas', title: '🚫 Canceladas', color: '#94a3b8', statuses: ['Cancelado'] }
+  ];
+
+  const bucketCounts = React.useMemo(() => {
+    const { tasks: baseTasks } = filteredData;
+    const counts = {};
+    bucketDefinitions.forEach(b => {
+      counts[b.id] = baseTasks.filter(t => b.filter ? b.filter(t) : b.statuses.includes(t.status)).length;
+    });
+    return counts;
+  }, [filteredData]);
+
+  // Tabela 360 Groups (Dynamic Buckets)
+  const grupos360 = React.useMemo(() => {
+    const { tasks: baseTasks } = filteredData;
 
     const statusWeight = { 'Bloqueio': 100, 'Crítica': 90, 'Pausado': 80, 'Aguardando': 75, 'Não Iniciado': 70, 'Backlog': 60, 'Em Andamento': 50, 'Concluído': 10, 'Cancelado': 0 };
     const priorityWeight = { 'Crítica': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1 };
@@ -157,10 +205,15 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
       if (t.status === 'Em Andamento') statusIcon = 'pending';
       if (t.status === 'Concluído') statusIcon = 'check_circle';
 
+      const isOverdue = dem && (dem.Status || dem.status) !== 'Concluído' && 
+                        (dem.FimPlanejado || dem.fimPlanejado) && 
+                        toDate(dem.FimPlanejado || dem.fimPlanejado).getTime() < toDate(new Date()).getTime();
+
       return {
         ...t,
         emp: emp || { name: 'Sem Responsável', team: 'N/A' },
         demandaNome: dem ? (dem.Titulo || dem.titulo || 'Demanda') : 'Demanda não identificada',
+        demandaOverdue: isOverdue,
         corPrioridade: (priorityMap && t.priority) ? (priorityMap[t.priority] || '#c4c4c4') : '#c4c4c4',
         statusIcon
       };
@@ -169,7 +222,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     return bucketDefinitions
       .filter(b => selectedBuckets.includes(b.id))
       .map(b => {
-        const filtered = baseTasks.filter(t => b.statuses.includes(t.status));
+        const filtered = baseTasks.filter(t => b.filter ? b.filter(t) : b.statuses.includes(t.status));
         const detailed = attachDetails(filtered).sort((a, b) => {
           const wa = statusWeight[a.status] || 0;
           const wb = statusWeight[b.status] || 0;
@@ -183,7 +236,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
         });
         return { ...b, tasks: detailed };
       }).filter(b => b.tasks.length > 0 || selectedBuckets.includes(b.id)); // Keep selected buckets even if empty
-  }, [scopedTasks, employees, demandas, selectedBuckets, periodFilter, customRange]);
+  }, [filteredData, employees, demandas, selectedBuckets]);
 
   // Grid 7 Dias (Datas)
   const proximos7Dias = React.useMemo(() => {
@@ -711,9 +764,95 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
               </div>
             </div>
 
-            {/* Embedded KPIs */}
+            {/* New Interactive Filters Bar (MOVED UP) */}
+            <div className="dash-360-filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '24px', padding: '12px 20px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Visualizar Status</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'criticas', label: 'Críticas', color: '#ef4444' },
+                    { id: 'andamento', label: 'Em Andamento', color: '#3b82f6' },
+                    { id: 'backlog', label: 'Backlog', color: '#64748b' },
+                    { id: 'concluidas', label: 'Concluídas', color: '#10b981' },
+                    { id: 'canceladas', label: 'Canceladas', color: '#94a3b8' }
+                  ].map(b => (
+                    <button 
+                      key={b.id}
+                      onClick={() => setSelectedBuckets(prev => prev.includes(b.id) ? prev.filter(x => x !== b.id) : [...prev, b.id])}
+                      style={{ 
+                        padding: '6px 14px', 
+                        borderRadius: 'var(--radius-sm)', 
+                        fontSize: '0.75rem', 
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        border: '1px solid',
+                        borderColor: selectedBuckets.includes(b.id) ? b.color : 'var(--line)',
+                        background: selectedBuckets.includes(b.id) ? `${b.color}15` : 'transparent',
+                        color: selectedBuckets.includes(b.id) ? b.color : 'var(--muted)',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span style={{ 
+                        background: selectedBuckets.includes(b.id) ? b.color : 'var(--line)', 
+                        color: selectedBuckets.includes(b.id) ? '#fff' : 'var(--muted)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.65rem'
+                      }}>
+                        {bucketCounts[b.id] || 0}
+                      </span>
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ width: '1px', height: '32px', background: 'var(--line)' }}></div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Período</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select 
+                    value={periodFilter} 
+                    onChange={e => setPeriodFilter(e.target.value)}
+                    className="glass"
+                    style={{ padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', border: '1px solid var(--line)', color: 'var(--title)' }}
+                  >
+                    <option value="all">Todo o Período</option>
+                    <option value="week">Esta Semana</option>
+                    <option value="month">Este Mês</option>
+                    <option value="quarter">Este Trimestre</option>
+                    <option value="semester">Este Semestre</option>
+                    <option value="year">Este Ano</option>
+                    <option value="custom">Personalizado...</option>
+                  </select>
+                  {periodFilter === 'custom' && (
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <input 
+                        type="date" 
+                        value={customRange.start} 
+                        onChange={e => setCustomRange({ ...customRange, start: e.target.value })}
+                        style={{ padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontSize: '0.7rem' }}
+                      />
+                      <span style={{ color: 'var(--muted)' }}>→</span>
+                      <input 
+                        type="date" 
+                        value={customRange.end} 
+                        onChange={e => setCustomRange({ ...customRange, end: e.target.value })}
+                        style={{ padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontSize: '0.7rem' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Embedded KPIs (UPDATED) */}
             <div className="dash-kpi-wrapper" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '180px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '20px' }}>inventory_2</span>
                 </div>
@@ -722,16 +861,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>{kpis.total}</div>
                 </div>
               </div>
-              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>task_alt</span>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Taxa de Conclusão</div>
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)' }}>{kpis.deliveryRate}%</div>
-                </div>
-              </div>
-              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '200px' }}>
+
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '180px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
                 </div>
@@ -740,79 +871,25 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#10b981' }}>{kpis.done}</div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* New Interactive Filters Bar */}
-          <div className="dash-360-filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '24px', padding: '12px 20px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Visualizar Status</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  { id: 'criticas', label: 'Críticas', color: '#ef4444' },
-                  { id: 'andamento', label: 'Em Andamento', color: '#3b82f6' },
-                  { id: 'backlog', label: 'Backlog', color: '#64748b' },
-                  { id: 'concluidas', label: 'Concluídas', color: '#10b981' },
-                  { id: 'canceladas', label: 'Canceladas', color: '#94a3b8' }
-                ].map(b => (
-                  <button 
-                    key={b.id}
-                    onClick={() => setSelectedBuckets(prev => prev.includes(b.id) ? prev.filter(x => x !== b.id) : [...prev, b.id])}
-                    style={{ 
-                      padding: '6px 12px', 
-                      borderRadius: 'var(--radius-sm)', 
-                      fontSize: '0.75rem', 
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      borderColor: selectedBuckets.includes(b.id) ? b.color : 'var(--line)',
-                      background: selectedBuckets.includes(b.id) ? `${b.color}15` : 'transparent',
-                      color: selectedBuckets.includes(b.id) ? b.color : 'var(--muted)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {b.label}
-                  </button>
-                ))}
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '180px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>task_alt</span>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Taxa de Conclusão</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)' }}>{kpis.deliveryRate}%</div>
+                </div>
               </div>
-            </div>
 
-            <div style={{ width: '1px', height: '32px', background: 'var(--line)' }}></div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Período</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select 
-                  value={periodFilter} 
-                  onChange={e => setPeriodFilter(e.target.value)}
-                  className="glass"
-                  style={{ padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 600, background: 'transparent', border: '1px solid var(--line)', color: 'var(--title)' }}
-                >
-                  <option value="all">Todo o Período</option>
-                  <option value="week">Esta Semana</option>
-                  <option value="month">Este Mês</option>
-                  <option value="quarter">Este Trimestre</option>
-                  <option value="semester">Este Semestre</option>
-                  <option value="year">Este Ano</option>
-                  <option value="custom">Personalizado...</option>
-                </select>
-                {periodFilter === 'custom' && (
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <input 
-                      type="date" 
-                      value={customRange.start} 
-                      onChange={e => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
-                      style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', border: '1px solid var(--line)' }}
-                    />
-                    <span style={{ color: 'var(--muted)' }}>-</span>
-                    <input 
-                      type="date" 
-                      value={customRange.end} 
-                      onChange={e => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
-                      style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', border: '1px solid var(--line)' }}
-                    />
-                  </div>
-                )}
+              <div className="dash-kpi-card" style={{ background: 'var(--panel-strong)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flex: '1', minWidth: '180px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '20px' }}>history</span>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Demandas no Prazo</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f59e0b' }}>{kpis.onTimeRate}%</div>
+                </div>
               </div>
             </div>
           </div>
@@ -859,7 +936,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                       position: 'relative'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <div style={{ fontSize: '.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.demandaNome}</div>
+                        <div style={{ fontSize: '.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {t.demandaNome}
+                          {t.demandaOverdue && <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#ef4444', fontWeight: 'bold' }} title="PRAZO CRÍTICO: Demanda com entrega atrasada">priority_high</span>}
+                        </div>
                         <div style={{ 
                           display: 'flex', 
                           alignItems: 'center', 

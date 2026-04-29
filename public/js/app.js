@@ -430,8 +430,10 @@ function App() {
       .finally(() => setLoading(false));
   };
 
-  const handleAdd = (initialStatus = 'Não Iniciado') => {
-    setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' });
+  const handleAdd = (initialStatus = 'Não Iniciado', demandaId = null) => {
+    if (!demandaId) {
+      setGlobalFilters({ gestor: '', colaboradorId: '', gestorId: '' });
+    }
     const payload = {
       title: '',
       ownerId: dbEmployees?.length > 0 ? (currentUser?.colaboradorId || dbEmployees[0].id) : '',
@@ -439,7 +441,7 @@ function App() {
       priority: 'Baixa',
       startDate: formatDateLocal(new Date()),
       endDate: formatDateLocal(new Date()),
-      demandaId: null
+      demandaId: demandaId || null
     };
     const tempId = -(Date.now());
     setTasks(prev => [...prev, { id: tempId, localKey: tempId, ...payload }]);
