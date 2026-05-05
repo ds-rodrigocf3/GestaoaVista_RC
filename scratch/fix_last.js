@@ -1,6 +1,0 @@
-const fs = require('fs');
-
-let f = fs.readFileSync('public/js/dashboard.js', 'utf8');
-f = f.replace(/ðŸ“\s*\{w\.taskCount\} Tarefas/g, '📋 {w.taskCount} Tarefas');
-fs.writeFileSync('public/js/dashboard.js', f);
-console.log('Fixed last emoji');

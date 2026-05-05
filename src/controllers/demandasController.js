@@ -101,8 +101,11 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { titulo, descricao, responsavelId, status, prioridade, inicioPlanjado, fimPlanejado, comentarioStatus, statusAnterior, registrarHistorico } = req.body;
+    const { titulo, descricao, responsavelId, status, prioridade, inicioPlanjado, fimPlanejado, comentarioStatus, statusAnterior, registrarHistorico, statusDate } = req.body;
     const pool = await poolPromise;
+
+    // Status date definition
+    const resolvedStatusDate = statusDate || new Date().toISOString();
 
     // Verificar permissão
     const checkRes = await pool.request().input('Id', sql.INT, id).query('SELECT CriadoPor FROM Demandas WHERE Id = @Id');
@@ -124,16 +127,26 @@ exports.update = async (req, res) => {
       .input('InicioPlanjado', sql.DATE, inicioPlanjado || null)
       .input('FimPlanejado', sql.DATE, fimPlanejado || null)
       .input('ComentarioStatus', sql.NVARCHAR(1000), comentarioStatus || null)
+      .input('StatusDate', sql.DATETIME, resolvedStatusDate)
       .query(`UPDATE Demandas SET Titulo=@Titulo, Descricao=@Descricao, ResponsavelId=@ResponsavelId, 
               Status=@Status, Prioridade=@Prioridade, InicioPlanjado=@InicioPlanjado, FimPlanejado=@FimPlanejado, 
               ComentarioStatus=@ComentarioStatus, 
-              FimRealizado = CASE WHEN @Status = 'Concluído' AND FimRealizado IS NULL THEN GETDATE() 
+              InicioRealizado = CASE WHEN @Status = 'Em Andamento' AND InicioRealizado IS NULL THEN @StatusDate ELSE InicioRealizado END,
+              FimRealizado = CASE WHEN @Status = 'Concluído' AND FimRealizado IS NULL THEN @StatusDate 
                                   WHEN @Status <> 'Concluído' THEN NULL 
                                   ELSE FimRealizado END,
               DataModificacao=GETDATE() WHERE Id=@Id`);
 
     // Log History if status changed or explicitly requested
     if (registrarHistorico || (statusAnterior && statusAnterior !== status)) {
+      // Fecha o status anterior
+      await pool.request()
+        .input('Id', sql.INT, id)
+        .input('StatusDate', sql.DATETIME, resolvedStatusDate)
+        .query(`UPDATE StatusHistorico SET DataFim = @StatusDate
+                WHERE TipoEntidade = 'Demanda' AND EntidadeId = @Id AND DataFim IS NULL`);
+
+      // Inicia novo status
       await pool.request()
         .input('Tipo', sql.NVARCHAR(20), 'Demanda')
         .input('EntidadeId', sql.INT, id)
@@ -141,8 +154,9 @@ exports.update = async (req, res) => {
         .input('StatusNovo', sql.NVARCHAR(50), status)
         .input('Comentario', sql.NVARCHAR(1000), comentarioStatus || 'Alteração manual')
         .input('UserId', sql.INT, req.user.userId)
+        .input('StatusDate', sql.DATETIME, resolvedStatusDate)
         .query(`INSERT INTO StatusHistorico (TipoEntidade, EntidadeId, StatusAnterior, StatusNovo, Comentario, UsuarioId, DataInicio)
-                VALUES (@Tipo, @EntidadeId, @StatusAnt, @StatusNovo, @Comentario, @UserId, GETDATE())`);
+                VALUES (@Tipo, @EntidadeId, @StatusAnt, @StatusNovo, @Comentario, @UserId, @StatusDate)`);
     }
 
     res.json({ success: true });

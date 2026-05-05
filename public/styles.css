@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #f3f6f9; /* Slightly more sophisticated background */
   --bg-soft: #ffffff;
   --surface: #ffffff;
@@ -35,7 +35,7 @@
 }
 
 /* =====================================================
-   MODO ESCURO â€” aplica quando <html data-theme="dark">
+   MODO ESCURO ├óÔé¼ÔÇØ aplica quando <html data-theme="dark">
    ===================================================== */
 [data-theme="dark"] {
   --bg: #0f172a;
@@ -58,12 +58,12 @@
   --glass-border: rgba(255, 255, 255, 0.08);
 }
 
-/* Garante transiÃ§Ã£o suave em todos os elementos */
+/* Garante transi├â┬º├â┬úo suave em todos os elementos */
 [data-theme="dark"] * {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
 }
 
-/* Ajustes especÃ­ficos do modo escuro */
+/* Ajustes espec├â┬¡ficos do modo escuro */
 [data-theme="dark"] .login-overlay {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0d2748 100%);
 }
@@ -336,12 +336,12 @@ button {
   border: 1px solid transparent;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
-  flex-direction: row;     /* Ã cone + texto lado a lado */
+  flex-direction: row;     /* ├â cone + texto lado a lado */
   align-items: center;
   gap: 10px;
   position: relative;
   overflow: hidden;
-  white-space: nowrap;     /* Texto nÃ£o quebra linha */
+  white-space: nowrap;     /* Texto n├â┬úo quebra linha */
 }
 
 .nav-button:hover {
@@ -516,7 +516,7 @@ button {
   transition: all 0.3s ease;
 }
 
-/* TÃ­tulo inline no mobile (ao lado do hamburger) */
+/* T├â┬¡tulo inline no mobile (ao lado do hamburger) */
 .topbar-mobile-title {
   display: none;
   font-size: clamp(0.95rem, 3.5vw, 1.25rem);
@@ -542,14 +542,14 @@ button {
   .sidebar.open {
     left: 0;
   }
-  /* Mostra o header mobile com hamburger + tÃ­tulo */
+  /* Mostra o header mobile com hamburger + t├â┬¡tulo */
   .topbar-header {
     display: flex;
   }
   .topbar-mobile-title {
     display: block;
   }
-  /* Esconde o bloco de tÃ­tulo+descriÃ§Ã£o desktop no mobile */
+  /* Esconde o bloco de t├â┬¡tulo+descri├â┬º├â┬úo desktop no mobile */
   .topbar {
     display: none !important;
   }
@@ -629,6 +629,7 @@ button {
 
 .stat-card,
 .card {
+  contain: content;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -637,6 +638,7 @@ button {
 }
 
 .stat-card {
+  contain: content;
   padding: 20px;
   position: relative;
   overflow: hidden;
@@ -669,7 +671,7 @@ button {
   font-weight: 600;
 }
 
-/* GrÃ¡fico de Barras Horizontais (Composition Chart) */
+/* Gr├â┬ífico de Barras Horizontais (Composition Chart) */
 .composition-chart {
   display: flex;
   flex-direction: column;
@@ -724,6 +726,7 @@ button {
 }
 
 .card {
+  contain: content;
   padding: 22px;
 }
 
@@ -1774,7 +1777,7 @@ button {
 }
 
 /* ============================
-   GestÃ£o de Tarefas (Monday.com style)
+   Gest├â┬úo de Tarefas (Monday.com style)
    ============================ */
 
 .task-view-container {
@@ -1983,14 +1986,14 @@ button {
   font-size: 0.8rem;
 }
 
-/* Tooltip on "Dias Ãšteis" header */
+/* Tooltip on "Dias ├â┼íteis" header */
 .tooltip-target {
   cursor: help;
   text-decoration: underline dotted;
   position: relative;
 }
 
-/* Tooltip on "Dias Ãšteis" header */
+/* Tooltip on "Dias ├â┼íteis" header */
 .tooltip-target {
   cursor: help;
   text-decoration: underline dotted;
@@ -2835,7 +2838,7 @@ button {
   font-weight: 800;
 }
 /* =====================================================
-   TOP FILTERS BAR â€” REESTRUTURADA
+   TOP FILTERS BAR ├óÔé¼ÔÇØ REESTRUTURADA
    ===================================================== */
 .top-filters {
   display: flex;
@@ -2886,7 +2889,7 @@ button {
   display: block !important;
 }
 
-/* PadrÃ£o de CabeÃ§alho de PÃ¡gina */
+/* Padr├â┬úo de Cabe├â┬ºalho de P├â┬ígina */
 .page-header {
   padding: 0;
   margin-bottom: 32px;
@@ -2965,7 +2968,7 @@ button {
 }
 
 /* =====================================================
-   APP CONTAINER â€” wraps sidebar-overlay + app-shell
+   APP CONTAINER ├óÔé¼ÔÇØ wraps sidebar-overlay + app-shell
    ===================================================== */
 .app-container {
   position: relative;
@@ -3032,7 +3035,7 @@ button {
 }
 
 /* =====================================================
-   SIDEBAR â€” desktop default (fixed column)
+   SIDEBAR ├óÔé¼ÔÇØ desktop default (fixed column)
    ===================================================== */
 .app-shell {
   display: grid;
@@ -3054,7 +3057,7 @@ button {
 }
 
 /* =====================================================
-   TABELAS RESPONSIVAS â€” overflow horizontal em telas pequenas
+   TABELAS RESPONSIVAS ├óÔé¼ÔÇØ overflow horizontal em telas pequenas
    ===================================================== */
 .table-responsive-wrap {
   width: 100%;
@@ -3091,7 +3094,7 @@ button {
 .admin-table tr:hover td { background: rgba(51, 204, 204, 0.04); }
 
 /* =====================================================
-   HARMONIZAÃ‡ÃƒO DE BOTÃ•ES
+   HARMONIZA├âÔÇí├âãÆO DE BOT├âÔÇóES
    ===================================================== */
 .btn {
   display: inline-flex;
@@ -3181,7 +3184,7 @@ button {
 .admin-action-btn.danger:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
 
 /* =====================================================
-   CALENDÃ RIO RESPONSIVO
+   CALEND├â RIO RESPONSIVO
    ===================================================== */
 .calendar-grid {
   display: grid;
@@ -3214,7 +3217,7 @@ button {
 }
 
 /* =====================================================
-   BREAKPOINT: tablet (â‰¤1024px) â€” sidebar deslizante
+   BREAKPOINT: tablet (├óÔÇ░┬ñ1024px) ├óÔé¼ÔÇØ sidebar deslizante
    ===================================================== */
 @media (max-width: 1024px) {
   .app-shell {
@@ -3269,7 +3272,7 @@ button {
 }
 
 /* =====================================================
-   BREAKPOINT: mobile grande (â‰¤768px) â€” iPhone Pro Max / Android GG
+   BREAKPOINT: mobile grande (├óÔÇ░┬ñ768px) ├óÔé¼ÔÇØ iPhone Pro Max / Android GG
    ===================================================== */
 @media (max-width: 768px) {
   .main-content {
@@ -3329,7 +3332,7 @@ select:focus, input:focus, textarea:focus {
   outline: none;
 }
 
-/* CalendÃ¡rio Mini (Requests View) */
+/* Calend├â┬írio Mini (Requests View) */
 .calendar-grid.small {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -3379,7 +3382,7 @@ select:focus, input:focus, textarea:focus {
   height: 32px;
 }
 
-/* Responsividade de FormulÃ¡rios */
+/* Responsividade de Formul├â┬írios */
 @media (max-width: 768px) {
   .form-grid-layout {
     grid-template-columns: 1fr !important;
@@ -3515,7 +3518,8 @@ select:focus, input:focus, textarea:focus {
     min-width: 0 !important;
   }
   
-  .glass-card, .card { 
+  .glass-card, .card {
+  contain: content; 
     padding: 16px !important; 
     width: 100% !important;
     min-width: 0 !important;
@@ -4161,6 +4165,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 .status-modal.glass-card {
+  contain: content;
   background: var(--surface) !important;
   border-radius: 28px !important;
   border: 1px solid var(--glass-border) !important;
@@ -5018,6 +5023,7 @@ html:not([data-theme="dark"]) .calendar-day {
 html:not([data-theme="dark"]) .glass-card, 
 html:not([data-theme="dark"]) .card,
 html:not([data-theme="dark"]) .stat-card {
+  contain: content;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
   background: #ffffff !important;
@@ -5127,6 +5133,7 @@ html:not([data-theme="dark"]) .admin-table td {
 
 /* Missing Layout Classes */
 .glass-card {
+  contain: content;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -5166,6 +5173,7 @@ html:not([data-theme="dark"]) .admin-table td {
 }
 
 .workload-item.glass-card {
+  contain: content;
   position: relative;
   padding: 16px 20px;
   display: flex;
@@ -5353,6 +5361,7 @@ html:not([data-theme="dark"]) .admin-table td {
 /* Responsive Adjustments for Small Screens */
 @media (max-width: 480px) {
   .glass-card {
+  contain: content;
     padding: 16px !important;
   }
   .dash-360-header {
@@ -5368,7 +5377,7 @@ html:not([data-theme="dark"]) .admin-table td {
 }
 
 /* =====================================================
-   ESTILO RESPONSIVO - PADRONIZAÃ‡ÃƒO (SENIOR UX)
+   ESTILO RESPONSIVO - PADRONIZA├âÔÇí├âãÆO (SENIOR UX)
    ===================================================== */
 @media (max-width: 768px) {
   :root {
@@ -5383,6 +5392,7 @@ html:not([data-theme="dark"]) .admin-table td {
   }
 
   .glass-card {
+  contain: content;
     padding: 16px !important;
     margin-bottom: 16px !important;
     border-radius: var(--radius-xl) !important;
@@ -5402,7 +5412,7 @@ html:not([data-theme="dark"]) .admin-table td {
     font-size: 1.1rem !important;
   }
 
-  /* EspaÃ§amentos simÃ©tricos entre blocos */
+  /* Espa├â┬ºamentos sim├â┬®tricos entre blocos */
   .dashboard-grid, .form-grid, .form-grid-layout, .content-grid, .scale-layout-grid, .scale-layout-grid > div {
     display: flex !important;
     flex-direction: column !important;
@@ -5538,6 +5548,7 @@ html, body {
 
 /* Ensure all glass-cards respect their container */
 .glass-card {
+  contain: content;
   max-width: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;

@@ -3,6 +3,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   const holidays = React.useMemo(() => getBrazilianHolidays(2026), []);
   const [statusModal, setStatusModal] = React.useState(null); // {taskId, newStatus, oldStatus}
   const [statusComment, setStatusComment] = React.useState('');
+  const [statusDate, setStatusDate] = React.useState('');
   const [demandaModal, setDemandaModal] = React.useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado, descricao, criadorId }
   const [taskDescriptionModal, setTaskDescriptionModal] = React.useState(null); // { taskId, description }
 
@@ -40,6 +41,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   const [taskResponsibleFilter, setTaskResponsibleFilter] = React.useState('');
   const [localDemandaStatusFilter, setLocalDemandaStatusFilter] = React.useState('');
   const [demandaResponsibleFilter, setDemandaResponsibleFilter] = React.useState('');
+  const [selectedDemandaId, setSelectedDemandaId] = React.useState(null);
 
   // Largura das colunas (não persistente conforme solicitado)
   // Largura das colunas (otimizadas para 100% da tela sem scroll)
@@ -67,6 +69,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     // Filtros locais (Avançados)
     if (taskStatusFilter) list = list.filter(t => t.status === taskStatusFilter);
     if (taskResponsibleFilter) list = list.filter(t => String(t.ownerId) === String(taskResponsibleFilter));
+    if (selectedDemandaId) list = list.filter(t => t.demandaId === selectedDemandaId);
 
     if (!globalFilters) return list;
 
@@ -97,7 +100,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
 
       return true;
     });
-  }, [tasks, dbEmployees, globalFilters, getSubordinateIds, taskStatusFilter, taskResponsibleFilter]);
+  }, [tasks, dbEmployees, globalFilters, getSubordinateIds, taskStatusFilter, taskResponsibleFilter, selectedDemandaId]);
 
   const filteredDemandas = React.useMemo(() => {
     if (!demandas || !Array.isArray(demandas)) return [];
@@ -215,7 +218,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     return array[(idx + 1) % array.length];
   };
 
-  const syncTask = async (task, oldStatus = null, comment = '') => {
+  const syncTask = async (task, oldStatus = null, comment = '', sDate = null) => {
     try {
       const payload = { 
         titulo: task.title, 
@@ -228,6 +231,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         demandaId: task.demandaId || null,
         statusAnterior: oldStatus,
         comentarioStatus: comment,
+        statusDate: sDate,
         registrarHistorico: !!oldStatus
       };
 
@@ -347,7 +351,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
-  const [selectedDemandaId, setSelectedDemandaId] = React.useState(null);
+  const [ganttHoverX, setGanttHoverX] = React.useState(null);
   const [demandaStatusFilter, setDemandaStatusFilter] = React.useState('');
 
 
@@ -358,18 +362,39 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     if (newStatus === task.status) return;
     setStatusModal({ taskId: task.id, newStatus, oldStatus: task.status });
     setStatusComment('');
+    setStatusDate(new Date().toISOString().slice(0, 10));
   };
 
   const confirmStatusChange = () => {
     if (!statusModal) return;
     const { taskId, newStatus, oldStatus } = statusModal;
     
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
-    
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      let newHistory = t.statusHistory ? [...t.statusHistory] : [];
+      if (newHistory.length > 0) {
+        newHistory[newHistory.length - 1] = { ...newHistory[newHistory.length - 1], endDate: statusDate + 'T12:00:00' };
+      } else if (t.startDate) {
+        // Se não tinha histórico ainda, cria o bloco do status anterior desde o início
+        newHistory.push({
+          startDate: t.startDate + 'T12:00:00',
+          endDate: statusDate + 'T12:00:00',
+          status: oldStatus,
+          comment: 'Status inicial'
+        });
+      }
+      newHistory.push({
+        startDate: statusDate + 'T12:00:00',
+        endDate: null,
+        status: newStatus,
+        comment: statusComment
+      });
+      return { ...t, status: newStatus, statusHistory: newHistory };
+    }));
     setTimeout(() => {
       const t = tasks.find(x => x.id === taskId);
       if (t) {
-        syncTask({ ...t, status: newStatus }, oldStatus, statusComment);
+        syncTask({ ...t, status: newStatus }, oldStatus, statusComment, statusDate);
 
         // Business rule: Auto-start demand when a task becomes active
         const activeStatuses = ['Em Andamento', 'Pausado', 'Bloqueio'];
@@ -436,7 +461,9 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         responsavelAnterior: form.responsavelAnterior,
         inicioAnterior: form.inicioAnterior,
         fimAnterior: form.fimAnterior,
-        justificativa: form.justificativa
+        justificativa: form.justificativa,
+        statusAnterior: form.statusAnterior,
+        statusDate: form.statusDate
       })
     })
     .then(async res => {
@@ -491,6 +518,8 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       responsavelAnterior: rId,
       inicioAnterior: pStart,
       fimAnterior: pEnd,
+      statusAnterior: d.Status || d.status,
+      statusDate: new Date().toISOString().slice(0, 10),
       justificativa: ''
     });
   };
@@ -558,7 +587,19 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         </div>
 
         <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', width: '100%' }}>
-          <div style={{ minWidth: 'min-content' }}>
+          <div 
+            style={{ minWidth: 'min-content', position: 'relative' }}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              if (x > 240) {
+                setGanttHoverX(x);
+              } else {
+                setGanttHoverX(null);
+              }
+            }}
+            onMouseLeave={() => setGanttHoverX(null)}
+          >
             <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '12px 0', background: 'var(--panel-strong)' }}>
               <div style={{ minWidth: '240px', width: '240px', fontWeight: 800, position: 'sticky', left: 0, background: 'var(--panel-strong)', zIndex: 10, paddingLeft: '16px', color: 'var(--title)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tarefas</div>
               {days.map((d, i) => (
@@ -571,24 +612,80 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
             <div style={{ padding: '8px 0' }}>
               {filteredTasks.map(t => {
                 const employee = dbEmployees?.find(e => e.id === t.ownerId) || dbEmployees?.[0] || {};
-                let offsetDays = 0;
-                let lengthDays = 0;
-                let isVisible = false;
+                const linkedDemanda = t.demandaId ? demandas.find(d => (d.Id || d.id) === t.demandaId) : null;
+                let demandaGhost = null;
+                if (linkedDemanda && (linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado) && (linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado)) {
+                  const dStartStr = linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado;
+                  const dEndStr = linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado;
+                  const dStart = new Date(dStartStr.slice(0, 10) + 'T12:00:00');
+                  const dEnd = new Date(dEndStr.slice(0, 10) + 'T12:00:00');
+                  const dOffset = Math.floor((dStart - baseDateObj) / (1000 * 60 * 60 * 24));
+                  const dLength = Math.floor((dEnd - dStart) / (1000 * 60 * 60 * 24)) + 1;
+                  
+                  const dLeft = Math.max(0, dOffset) * colWidth;
+                  const dEndOffset = dOffset + dLength;
+                  const dWidth = Math.max(0, (Math.min(daysCount, dEndOffset) - Math.max(0, dOffset)) * colWidth);
+                  
+                  if (dWidth > 0 && dOffset < daysCount && dEndOffset > 0) {
+                    demandaGhost = { left: dLeft, width: dWidth, title: linkedDemanda.Titulo || linkedDemanda.titulo };
+                  }
+                }
 
-                if (t.startDate && t.endDate) {
+                let isOutOfBounds = false;
+                if (linkedDemanda && (linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado) && (linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado)) {
+                  const dStart = new Date((linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado).slice(0, 10) + 'T12:00:00');
+                  const dEnd = new Date((linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado).slice(0, 10) + 'T12:00:00');
+                  
+                  if (t.statusHistory && t.statusHistory.length > 0) {
+                    t.statusHistory.forEach(hist => {
+                      const isMilestone = hist.status === 'Concluído' || hist.status === 'Cancelado';
+                      const hStart = new Date(hist.startDate.slice(0, 10) + 'T12:00:00');
+                      const endStr = isMilestone ? hist.startDate : (hist.endDate || new Date().toISOString());
+                      const hEnd = new Date(endStr.slice(0, 10) + 'T12:00:00');
+                      if (hStart < dStart || hEnd > dEnd) isOutOfBounds = true;
+                    });
+                  } else if (t.startDate && t.endDate) {
+                    const tStart = new Date(t.startDate + 'T12:00:00');
+                    const tEnd = new Date(t.endDate + 'T12:00:00');
+                    if (tStart < dStart || tEnd > dEnd) isOutOfBounds = true;
+                  }
+                }
+
+                let segments = [];
+                if (t.statusHistory && t.statusHistory.length > 0) {
+                  t.statusHistory.forEach(hist => {
+                    const isMilestone = hist.status === 'Concluído' || hist.status === 'Cancelado';
+                    const hStart = new Date(hist.startDate.slice(0, 10) + 'T12:00:00');
+                    const hEndStr = isMilestone ? hist.startDate : (hist.endDate || new Date().toISOString());
+                    const hEnd = new Date(hEndStr.slice(0, 10) + 'T12:00:00');
+                    
+                    const hOffset = Math.floor((hStart - baseDateObj) / (1000 * 60 * 60 * 24));
+                    const hLength = Math.floor((hEnd - hStart) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    const hLeft = Math.max(0, hOffset) * colWidth;
+                    const hEndOffset = hOffset + hLength;
+                    const hWidth = Math.max(0, (Math.min(daysCount, hEndOffset) - Math.max(0, hOffset)) * colWidth);
+                    
+                    if (hWidth > 0 && hOffset < daysCount && hEndOffset > 0) {
+                      const fStart = hist.startDate.slice(0, 10).split('-').reverse().join('/');
+                      const fEnd = hist.endDate ? hist.endDate.slice(0, 10).split('-').reverse().join('/') : 'Atual';
+                      segments.push({ left: hLeft, width: hWidth, status: hist.status, comment: hist.comment, fStart, fEnd, isCurrent: !hist.endDate });
+                    }
+                  });
+                } else if (t.startDate && t.endDate) {
                   const startObj = new Date(t.startDate + 'T12:00:00');
                   const endObj = new Date(t.endDate + 'T12:00:00');
-                  offsetDays = Math.floor((startObj - baseDateObj) / (1000 * 60 * 60 * 24));
-                  lengthDays = Math.floor((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
+                  const offsetDays = Math.floor((startObj - baseDateObj) / (1000 * 60 * 60 * 24));
+                  const lengthDays = Math.floor((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
 
                   const visualLeft = Math.max(0, offsetDays) * colWidth;
                   const endOffset = offsetDays + lengthDays;
-                  const visualEnd = Math.min(daysCount, endOffset);
-                  const visualStart = Math.max(0, offsetDays);
-                  const visualWidth = Math.max(0, (visualEnd - visualStart) * colWidth);
+                  const visualWidth = Math.max(0, (Math.min(daysCount, endOffset) - Math.max(0, offsetDays)) * colWidth);
 
                   if (visualWidth > 0 && offsetDays < daysCount && endOffset > 0) {
-                    isVisible = { left: visualLeft, width: visualWidth };
+                    const fStart = t.startDate.slice(0, 10).split('-').reverse().join('/');
+                    const fEnd = t.endDate.slice(0, 10).split('-').reverse().join('/');
+                    segments.push({ left: visualLeft, width: visualWidth, status: t.status, comment: 'Plano base', fStart, fEnd, isCurrent: true });
                   }
                 }
 
@@ -614,30 +711,122 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       borderRight: '1px solid var(--line)'
                     }}>
                       {employee.AvatarUrl || employee.avatarUrl ? <img src={employee.AvatarUrl || employee.avatarUrl} loading="lazy" style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', flexShrink: 0, objectFit: 'cover', border: '1px solid var(--line)' }} alt="Avatar" /> : <div style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', flexShrink: 0, background: employee.color || '#ccc', border: '1px solid var(--line)' }} />}
-                      <span style={{ flex: 1 }}>{t.title || 'Sem título'}</span>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <span>
+                          {t.title || 'Sem título'}
+                          {isOutOfBounds && <span title="Tarefa estrapola o período planejado da Demanda" style={{ marginLeft: '6px', fontSize: '12px' }}>⚠️</span>}
+                        </span>
+                        {!selectedDemandaId && linkedDemanda && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--muted)', background: 'var(--panel-strong)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block', width: 'fit-content', border: '1px solid var(--line)' }}>
+                            📁 {linkedDemanda.Titulo || linkedDemanda.titulo}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', position: 'relative', height: '24px', flex: 1, minWidth: `${daysCount * colWidth}px` }}>
-                      {isVisible && (
+                      {demandaGhost && (
                         <div style={{
                           position: 'absolute',
-                          left: `${isVisible.left}px`,
-                          width: `${isVisible.width}px`,
-                          height: '14px',
-                          background: STATUS_COLORS[t.status] || 'var(--primary)',
+                          left: `${demandaGhost.left}px`,
+                          width: `${demandaGhost.width}px`,
+                          height: '20px',
+                          border: '1px dashed var(--primary)',
+                          background: 'rgba(51, 204, 204, 0.05)',
                           borderRadius: 'var(--radius-sm)',
-                          top: '5px',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }} title={`${t.title} (${t.status}): ${t.startDate} a ${t.endDate}`}>
+                          top: '2px',
+                          pointerEvents: 'none'
+                        }} title={`Planejado Demanda: ${demandaGhost.title}`}>
                         </div>
                       )}
+                      {segments.map((seg, idx) => {
+                        const baseColor = STATUS_COLORS[seg.status] || 'var(--primary)';
+                        const isFinished = seg.status === 'Concluído' || seg.status === 'Cancelado';
+                        const showActiveGlow = seg.isCurrent && !isFinished;
+                        const bgStyle = showActiveGlow ? `repeating-linear-gradient(45deg, ${baseColor}, ${baseColor} 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)` : baseColor;
+                        
+                        if (isFinished) {
+                          const iconName = seg.status === 'Concluído' ? 'check_circle' : 'cancel';
+                          return (
+                            <div key={idx} style={{
+                              position: 'absolute',
+                              left: `${seg.left}px`,
+                              width: `${Math.max(seg.width, 24)}px`,
+                              height: '14px',
+                              top: '5px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 6
+                            }} title={`Status: ${seg.status}\nData: ${seg.fStart}\nObservação: ${seg.comment || '-'}`}>
+                              <span className="material-symbols-outlined" style={{ 
+                                color: baseColor, 
+                                fontSize: '18px', 
+                                background: 'var(--surface)', 
+                                borderRadius: '50%', 
+                                boxShadow: `0 0 0 2px var(--surface), 0 0 8px ${baseColor}`,
+                                zIndex: 6
+                              }}>
+                                {iconName}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={idx} style={{
+                            position: 'absolute',
+                            left: `${seg.left}px`,
+                            width: `${seg.width}px`,
+                            height: '14px',
+                            background: bgStyle,
+                            borderRadius: 'var(--radius-sm)',
+                            top: '5px',
+                            boxShadow: showActiveGlow ? `0 0 6px ${baseColor}` : '0 1px 3px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(255,255,255,0.2)'
+                          }} title={`Status: ${seg.status}\nInício: ${seg.fStart}\nFim: ${seg.fEnd}\nObservação: ${seg.comment || '-'}`}>
+                            {showActiveGlow && (
+                              <div style={{
+                                position: 'absolute',
+                                left: '100%',
+                                top: '50%',
+                                transform: 'translate(4px, -50%)',
+                                background: baseColor,
+                                color: '#fff',
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                zIndex: 5
+                              }}>
+                                {seg.status}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
               })}
             </div>
+            {ganttHoverX !== null && (
+              <div style={{
+                position: 'absolute',
+                left: `${ganttHoverX}px`,
+                top: 0,
+                bottom: 0,
+                width: '1px',
+                backgroundColor: 'rgba(51, 204, 204, 0.5)',
+                pointerEvents: 'none',
+                zIndex: 20,
+                borderLeft: '1px dashed rgba(51, 204, 204, 0.8)'
+              }} />
+            )}
           </div>
         </div>
       </div>
@@ -743,7 +932,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   </select>
                   {demandaModal.responsavelId && (
                     <img
-                      src={dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.name}&background=random`}
+                      src={dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.name}&background=random`}
                       style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}
                     />
                   )}
@@ -780,17 +969,25 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 </div>
               </div>
               {demandaModal.id && (
-                (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
-                (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
-                (demandaModal.fimPlanejado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''))
+                (String(demandaModal.responsavelId) !== String(demandaModal.responsavelAnterior)) ||
+                (demandaModal.inicioPlanjado !== (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
+                (demandaModal.fimPlanejado !== (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : '')) ||
+                (demandaModal.status !== demandaModal.statusAnterior)
               ) && (
                   <div className="field" style={{ marginBottom: '20px', animation: 'fadeIn 0.3s ease' }}>
                     <label style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Justificativa da Alteração (Obrigatório)</label>
                     <textarea
                       style={{ minHeight: '60px', borderColor: 'var(--warning)', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', width: '100%', padding: '10px 14px', fontSize: '0.9rem' }}
-                      placeholder="Descreva o motivo da mudança estratégica de responsável ou prazos..."
+                      placeholder="Descreva o motivo da mudança estratégica de responsável, status ou prazos..."
                       value={demandaModal.justificativa}
                       onChange={e => setDemandaModal({ ...demandaModal, justificativa: e.target.value })}
+                    />
+                    <label style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', margin: '16px 0 8px 0', display: 'block' }}>Data da Alteração</label>
+                    <input 
+                      type="date" 
+                      value={demandaModal.statusDate || ''} 
+                      onChange={e => setDemandaModal({ ...demandaModal, statusDate: e.target.value })} 
+                      style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--warning)', padding: '10px 14px', color: 'var(--title)' }} 
                     />
                   </div>
                 )}
@@ -800,11 +997,12 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 <button
                   className="btn-primary"
                   onClick={() => {
-                    const hasChanges = (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
-                      (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
-                      (demandaModal.fimPlanejado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''));
+                    const hasChanges = (String(demandaModal.responsavelId) !== String(demandaModal.responsavelAnterior)) ||
+                      (demandaModal.inicioPlanjado !== (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
+                      (demandaModal.fimPlanejado !== (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : '')) ||
+                      (demandaModal.status !== demandaModal.statusAnterior);
                     if (demandaModal.id && hasChanges && !demandaModal.justificativa?.trim()) {
-                      alert('Por favor, preencha a justificativa para as alterações de responsável ou prazos.');
+                      alert('Por favor, preencha a justificativa para as alterações realizadas.');
                       return;
                     }
                     saveDemanda(demandaModal);
@@ -951,7 +1149,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
                 const isSelected = selectedDemandaId === demandaId;
                 const dStatus = d.Status || d.status || 'Não Iniciado';
-                const owner = dbEmployees?.find(e => e.id == (d.ResponsavelId || d.responsavelId));
+                const owner = dbEmployees?.find(e => String(e.id) === String(d.ResponsavelId || d.responsavelId));
 
                 const taskStarts = dTasks.filter(t => t.startDate).map(t => t.startDate).sort();
                 const taskEnds = dTasks.filter(t => t.endDate).map(t => t.endDate).sort();
@@ -1134,9 +1332,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks
-                  .filter(task => !selectedDemandaId || task.demandaId === selectedDemandaId)
-                  .map(task => {
+                {filteredTasks.map(task => {
                     const availableDays = calculateAvailableDays(task.ownerId, task.startDate, task.endDate);
                     const isOverloaded = task.startDate && task.endDate && availableDays === 0;
                     const emp = dbEmployees?.find(e => e.id === task.ownerId) || dbEmployees?.[0] || {};
@@ -1316,6 +1512,16 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   onChange={e => setStatusComment(e.target.value)}
                   placeholder="Ex: Aguardando aprovação técnica final..."
                   style={{ width: '100%', minHeight: '100px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '12px', fontSize: '0.9rem' }}
+                />
+              </div>
+
+              <div className="field" style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Data da Transição</label>
+                <input
+                  type="date"
+                  value={statusDate}
+                  onChange={e => setStatusDate(e.target.value)}
+                  style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '12px', fontSize: '0.9rem', color: 'var(--title)' }}
                 />
               </div>
 

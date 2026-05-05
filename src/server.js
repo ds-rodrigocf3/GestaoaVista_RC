@@ -2,7 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('node:path');
 const { poolPromise } = require('./config/database');
 const { loggerMiddleware } = require('./middleware/logger');
 
