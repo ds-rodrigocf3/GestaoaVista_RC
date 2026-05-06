@@ -441,100 +441,101 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         </div>
       )}
 
-      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-        <div className="glass-card">
-          {/* Selection Filters */}
-          <div className="field-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Colaborador:</label>
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                style={{ width: '100%' }}
-              >
-                {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
-                {filteredEmployees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name} · {employee.team}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Comparar com:</label>
-              <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ width: '100%' }}>
-                <option value="none">Nenhum</option>
-                <optgroup label="Colaboradores Individuais">
-                  {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
-                    <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-          </div>
-
+      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+        <div style={{ width: '100%' }}>
           {/* Numeric Indicators Bar */}
-          <div className="calendar-stats-strip" style={{ 
-            display: 'flex', gap: '24px', marginBottom: '8px', 
-            background: 'var(--panel-strong)', padding: '24px 32px', 
+          <div className="calendar-stats-strip glass" style={{ 
+            display: 'flex', gap: '16px', 
+            padding: '16px 24px', 
             borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)',
             boxShadow: 'var(--shadow-sm)',
             alignItems: 'center',
-            flexWrap: 'wrap'
+            justifyContent: 'flex-start',
+            flexWrap: 'wrap',
+            width: '100%'
           }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '24px' }}>calendar_month</span>
+            <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)', minWidth: '200px' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '20px' }}>calendar_month</span>
                </div>
                <div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Dias Disponíveis</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.1 }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>
                     {businessDaysCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {totalBusinessDays}</span>
                   </div>
                </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px' }}>analytics</span>
+            <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)', minWidth: '200px', paddingLeft: '8px' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>analytics</span>
                </div>
                <div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Meta (Mínimo 50%)</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.1 }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>
                     {Math.floor(businessDaysCount / 2)} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {businessDaysCount}</span>
                   </div>
                </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px' }}>verified</span>
+            <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', minWidth: '200px', paddingLeft: '8px' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
                </div>
                <div>
                   <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Realizado (Presencial)</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1.1 }}>{presencialCount}</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{presencialCount}</div>
                </div>
             </div>
           </div>
-
         </div>
 
         <div className="glass-card">
-          <div className="section-title" style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal — <span style={{ textTransform: 'capitalize' }}>{displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></h3>
-               <p style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 500 }}>Toque nos dias para alternar entre Presencial e Home Office.</p>
+          <div className="section-title" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'var(--bg)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '1 1 200px' }}>
+               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal — <span style={{ textTransform: 'capitalize' }}>{displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></h3>
+               <p style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 500 }}>Toque nos dias para alternar Presencial/Home Office.</p>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o - 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                 <span className="material-symbols-outlined" style={{ color: 'var(--title)' }}>chevron_left</span>
-               </button>
-               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o + 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                 <span className="material-symbols-outlined" style={{ color: 'var(--title)' }}>chevron_right</span>
-               </button>
+            
+            <div className="calendar-inline-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', flex: '2 1 400px', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)', whiteSpace: 'nowrap' }}>Colaborador:</label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
+                  style={{ minWidth: '180px', padding: '6px 12px', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--surface)' }}
+                >
+                  {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
+                  {filteredEmployees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.name.split(' ')[0]} {employee.name.split(' ').pop()} · {employee.team}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)', whiteSpace: 'nowrap' }}>Comparar com:</label>
+                <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ minWidth: '160px', padding: '6px 12px', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--surface)' }}>
+                  <option value="none">Nenhum</option>
+                  <optgroup label="Colaboradores">
+                    {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
+                      <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
+                        {employee.name.split(' ')[0]} {employee.name.split(' ').pop()}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+                 <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o - 1)} style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px' }}>
+                   <span className="material-symbols-outlined" style={{ color: 'var(--title)', fontSize: '18px' }}>chevron_left</span>
+                 </button>
+                 <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o + 1)} style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px' }}>
+                   <span className="material-symbols-outlined" style={{ color: 'var(--title)', fontSize: '18px' }}>chevron_right</span>
+                 </button>
+              </div>
             </div>
           </div>
 
