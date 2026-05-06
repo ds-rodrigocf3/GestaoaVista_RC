@@ -445,7 +445,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           id: ev.id || ev.Id,
           type: ev.tipo || ev.Tipo || 'Reunião',
           startDate: formatDateBR(startObj),
-          endDate: formatDateBR(endObj),
+          formattedDate: formatDateBR(startObj),
+          formattedEndDate: isMultiDay ? formatDateBR(endObj) : null,
           startTime: formatTime24h(startObj),
           endTime: formatTime24h(endObj),
           title: ev.titulo || ev.Titulo || 'Sem título',
@@ -608,9 +609,9 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                       borderColor: a.isEvent ? 'rgba(51,204,204,0.1)' : 'rgba(245,158,11,0.1)'
                     }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
-                      {a.isEvent 
-                        ? (a.isMultiDay && a.type !== 'Aniversário' ? `${a.startDate} até ${a.endDate}` : a.startDate) 
-                        : (a.isMultiDay ? `${a.formattedDate} até ${a.formattedEndDate}` : a.formattedDate)
+                      {a.isMultiDay && a.type !== 'Aniversário' 
+                        ? `${a.formattedDate} até ${a.formattedEndDate}` 
+                        : a.formattedDate
                       }
                     </div>
                     {a.isEvent && a.type !== 'Aniversário' && (a.startTime || a.endTime) && (
