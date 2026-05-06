@@ -1,0 +1,25 @@
+# 🚀 Atualizações e Melhorias - Maio de 2026
+
+Este documento lista todas as melhorias de performance, estabilização de UI/UX e correções de bugs aplicadas no sistema Gestão à Vista durante o último ciclo de manutenção.
+
+## 🛠️ Backend e Arquitetura
+1. **Modernização para Node.js 24**: O backend foi atualizado para tirar proveito dos recursos nativos do Node 24 (como `fetch` nativo e suporte nativo a `--env-file`), removendo dependências desnecessárias e melhorando a performance.
+2. **Limpeza do Projeto (Tech Debt)**: Foi realizada uma exclusão de arquivos de backup legados, scripts temporários da pasta `scratch/` e padronização dos estilos CSS base.
+
+## 📅 Módulo de Eventos e Calendário
+1. **Sincronização de Fuso Horário (Timezone Drift)**: Corrigido o desvio de 3 horas que ocorria na gravação e exibição de eventos. A lógica agora utiliza processamento nativo via `toISOString()` e garante que os eventos sejam mostrados corretamente no Gráfico de Gantt e no Resumo Geral.
+2. **Filtros Responsivos**: O layout dos filtros do dashboard foi condensado e redesenhado para garantir total responsividade, ocupando uma única linha no desktop e ajustando-se de forma flexível no mobile.
+3. **Efeito Border Beam**: Adicionado um efeito visual pulsante sutil e dinâmico (no contorno dos cartões) para dar destaque imediato aos eventos que estão acontecendo "Agora" ou "Em breve".
+
+## 📋 Módulo de Tarefas (Quadro Operacional)
+1. **Correção de Visibilidade (Textarea)**: Resolvido o problema onde os títulos de tarefas longos eram ocultados. Agora o textarea possui redimensionamento dinâmico automático com a altura baseada no conteúdo real (sem scrollbars ou cortes).
+2. **Layout Fila 360**: Ajuste nos cartões de tarefas e indicadores para que fiquem corretamente alinhados em resoluções menores, garantindo fácil leitura dos buckets e status.
+
+## 🎨 UI/UX Geral
+1. **Responsividade Mobile**: Foram feitos rigorosos ajustes em media-queries para sanar inconsistências visuais em telas menores, como desalinhamentos no Dashboard Principal e em tabelas.
+2. **KPIs Centralizados**: Os indicadores de "Fila Operacional" tiveram sua estrutura visual centralizada, removendo os alinhamentos à esquerda para uma apresentação mais simétrica e profissional.
+3. **Sintaxe CSS Corrigida**: Limpeza no `styles.css` eliminando blocos de estilo órfãos e seletores duplicados que quebravam a renderização de componentes específicos (como os cartões de eventos em modo escuro).
+
+---
+**Status:** ✅ Homologado e Atualizado
+**Data da Revisão:** 06 de Maio de 2026

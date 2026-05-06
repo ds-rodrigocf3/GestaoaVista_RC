@@ -231,7 +231,7 @@ az webapp create `
   --name gestaoavista-app `
   --resource-group rg-gestaoavista `
   --plan plan-gestaoavista `
-  --runtime "NODE:20-lts"
+  --runtime "NODE:24-lts"
 ```
 
 > O nome `gestaoavista-app` será a URL: `https://gestaoavista-app.azurewebsites.net`
@@ -264,7 +264,7 @@ az webapp config appsettings set `
     JWT_SECRET="gestaointernabi-secret-prod-2026" `
     PORT="8080" `
     NODE_ENV="production" `
-    WEBSITE_NODE_DEFAULT_VERSION="~20"
+    WEBSITE_NODE_DEFAULT_VERSION="~24"
 ```
 
 > ⚠️ **PORT**: O App Service Linux injeta a porta via variável `PORT` (geralmente 8080). O `server.js` já lê `process.env.PORT`, então funcionará automaticamente.
@@ -324,7 +324,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -452,7 +452,7 @@ Invoke-WebRequest -Uri "https://gestaoavista-app.azurewebsites.net/api/areas" -M
 ┌──────────────────▼──────────────────────────┐
 │           Azure App Service (Linux)         │
 │  ┌────────────────────────────────────────┐ │
-│  │  Node.js 20 LTS                       │ │
+│  │  Node.js 24 LTS                       │ │
 │  │  └─ src/server.js (Express)           │ │
 │  │     ├─ /api/* (REST API)              │ │
 │  │     └─ /public/* (Frontend estático)  │ │

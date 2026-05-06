@@ -11,7 +11,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   React.useLayoutEffect(() => {
     const textareas = document.querySelectorAll('.title-wrap-cell textarea');
     textareas.forEach(ta => {
-      ta.style.height = 'auto';
+      ta.style.height = '0'; // Reset first to get correct scrollHeight
       ta.style.height = (ta.scrollHeight) + 'px';
     });
   }, [tasks]);
@@ -1351,8 +1351,25 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                               className="glass"
                               placeholder="Título da tarefa..."
                               rows={1}
-                              onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                              style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontWeight: 600, padding: '4px 28px 4px 4px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', overflow: 'hidden', minHeight: '24px' }}
+                              onInput={(e) => { 
+                                e.target.style.height = '0'; 
+                                e.target.style.height = e.target.scrollHeight + 'px'; 
+                              }}
+                              style={{ 
+                                width: '100%', 
+                                border: 'none', 
+                                background: 'transparent', 
+                                outline: 'none', 
+                                fontWeight: 600, 
+                                padding: '4px 28px 4px 4px', 
+                                borderRadius: '4px', 
+                                fontSize: '0.8rem', 
+                                resize: 'none', 
+                                overflow: 'hidden', 
+                                minHeight: '28px',
+                                lineHeight: '1.4',
+                                display: 'block'
+                              }}
                             />
                             <button 
                               onClick={() => setTaskDescriptionModal({ taskId: task.id, description: task.description || '' })}

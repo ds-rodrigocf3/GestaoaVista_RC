@@ -340,15 +340,6 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     const limitPastStr = formatDateLocal(yesterday);
     const limitFutureStr = formatDateLocal(thirtyDaysAhead);
     
-    const parseDateSafe = (d) => {
-      if (!d) return null;
-      let dateObj = new Date(d);
-      // Se falhou e for string, talvez seja formato "Apr 23 2026..."
-      if (isNaN(dateObj.getTime()) && typeof d === 'string') {
-        dateObj = new Date(d.replace(/-/g, '/')); 
-      }
-      return isNaN(dateObj.getTime()) ? null : dateObj;
-    };
 
     const formatTime24h = (dateObj) => {
       if (!dateObj) return null;
@@ -487,8 +478,16 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           </div>
 
           <div className="workload-list team-agenda-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
-            {timelineAusencias.map(a => (
-              <div className="workload-item glass-card" key={a.id || Math.random()}>
+            {timelineAusencias.map(a => {
+              const relTime = getRelativeTime(a.sortDate, a.type, a.endDate);
+              const isHappeningSoon = relTime === 'AGORA' || relTime === 'Em breve';
+              return (
+              <div className={`workload-item glass-card ${isHappeningSoon ? 'pulse-emphasis' : ''}`} key={a.id || Math.random()} style={{ position: 'relative', overflow: 'hidden' }}>
+                {isHappeningSoon && (
+                  <div className="border-beam-container">
+                    <div className="border-beam"></div>
+                  </div>
+                )}
                 {a.isEvent ? (
                   <div className="workload-avatar" style={{ 
                     background: a.type === 'Aniversário' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'var(--primary)', 
@@ -539,7 +538,6 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                         {a.isEvent ? a.title : a.emp?.name}
                       </div>
                       {(() => {
-                        const relTime = getRelativeTime(a.sortDate, a.type, a.endDate);
                         if (!relTime) return null;
                         const isPastBadge = relTime === 'PASSADO';
                         const isToday = relTime === 'Hoje' || relTime === 'AGORA';
@@ -624,7 +622,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
             {timelineAusencias.length === 0 && <div className="empty-state" style={{ gridColumn: 'span 12', textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>Sem eventos ou ausências agendadas para o período.</div>}
           </div>
         </div>

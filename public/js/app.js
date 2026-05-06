@@ -5,7 +5,7 @@ function App() {
     const saved = sessionStorage.getItem('gbi_user');
     try {
       if (!saved) {
-        sessionStorage.removeItem('gbi_token'); // Garante que nÃ£o haja token sem usuÃ¡rio
+        sessionStorage.removeItem('gbi_token'); // Garante que não haja token sem usuário
         return null;
       }
       return JSON.parse(saved);
@@ -42,9 +42,9 @@ function App() {
   }, [dbEmployees]);
 
   const buildRequestDetails = useCallback((request) => {
-    if (!request) return { id: 0, employee: { name: 'InvÃ¡lido', team: '-', id: 0 }, startDate: '', endDate: '', status: 'Erro' };
+    if (!request) return { id: 0, employee: { name: 'Inválido', team: '-', id: 0 }, startDate: '', endDate: '', status: 'Erro' };
     const employee = getEmployeeById(request.employeeId);
-    const safeEmp = employee || { name: 'Colaborador nÃ£o identificado', team: 'Sem Ãrea', id: Number(request.employeeId || 0), avatarUrl: null };
+    const safeEmp = employee || { name: 'Colaborador não identificado', team: 'Sem Área', id: Number(request.employeeId || 0), avatarUrl: null };
     return {
       ...request,
       employee: safeEmp,
@@ -351,16 +351,16 @@ function App() {
 
   const submitRequest = () => {
     if (!form.employeeId || !form.startDate || !form.endDate || !form.type) {
-      setToast({ title: 'Campos obrigatÃ³rios', message: 'Preencha colaborador, tipo e perÃ­odo antes de enviar.' });
+      setToast({ title: 'Campos obrigatórios', message: 'Preencha colaborador, tipo e período antes de enviar.' });
       return;
     }
     if (toDate(form.endDate) < toDate(form.startDate)) {
-      setToast({ title: 'PerÃ­odo invÃ¡lido', message: 'A data final precisa ser igual ou posterior Ã  data inicial.' });
+      setToast({ title: 'Período inválido', message: 'A data final precisa ser igual ou posterior à data inicial.' });
       return;
     }
     const empId = Number(form.employeeId);
     if (!currentUser.isAdmin && currentUser.colaboradorId !== empId) {
-      setToast({ title: 'Acesso negado', message: 'VocÃª sÃ³ pode criar agendamentos para si mesmo.' });
+      setToast({ title: 'Acesso negado', message: 'Você só pode criar agendamentos para si mesmo.' });
       return;
     }
     const payload = { 
@@ -378,20 +378,20 @@ function App() {
     fetch(url, { method, headers: { 'Content-Type': 'application/json', ...apiHeaders(authToken) }, body: JSON.stringify(payload) })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Falha ao processar solicitaÃ§Ã£o');
+        if (!res.ok) throw new Error(data.error || 'Falha ao processar solicitação');
         return data;
       })
       .then(data => {
         if (editingRequestId) {
           setRequests(prev => prev.map(r => Number(r.id) === Number(editingRequestId) ? { ...r, ...data } : r));
-          setToast({ title: 'AlteraÃ§Ã£o salva', message: 'O agendamento foi atualizado com sucesso.' });
+          setToast({ title: 'Alteração salva', message: 'O agendamento foi atualizado com sucesso.' });
           setEditingRequestId(null);
         } else {
           setRequests(current => [...current, data]);
-          setToast({ title: 'SolicitaÃ§Ã£o enviada', message: formConflicts.length ? `Pedido criado com ${formConflicts.length} conflitos detectados.` : 'Pedido criado com sucesso.' });
+          setToast({ title: 'Solicitação enviada', message: formConflicts.length ? `Pedido criado com ${formConflicts.length} conflitos detectados.` : 'Pedido criado com sucesso.' });
         }
         
-        // Em vez de mudar de tela, apenas scrolla para a tabela de solicitaÃ§Ãµes
+        // Em vez de mudar de tela, apenas scrolla para a tabela de solicitações
         setTimeout(() => {
           const el = document.getElementById('minhas-solicitacoes-anchor');
           if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -449,7 +449,7 @@ function App() {
   };
 
   const handleNewDemanda = () => {
-    setRequestedModal({ type: 'demanda', data: { titulo: '', responsavelId: currentUser?.colaboradorId || null, inicioPlanjado: '', fimPlanejado: '', status: 'NÃ£o Iniciado', prioridade: 'MÃ©dia' } });
+    setRequestedModal({ type: 'demanda', data: { titulo: '', responsavelId: currentUser?.colaboradorId || null, inicioPlanjado: '', fimPlanejado: '', status: 'Não Iniciado', prioridade: 'Média' } });
     if (activeView !== 'tasks') setActiveView('tasks');
   };
 
@@ -464,12 +464,12 @@ function App() {
       const hasNoManager = req.employee.gestorId === null || !req.employee.gestorId;
 
       if (isOwner && !hasNoManager) {
-        setToast({ title: 'AÃ§Ã£o bloqueada', message: 'VocÃª nÃ£o pode aprovar ou rejeitar sua prÃ³pria solicitaÃ§Ã£o.' });
+        setToast({ title: 'Ação bloqueada', message: 'Você não pode aprovar ou rejeitar sua própria solicitação.' });
         return;
       }
 
       if (!isOwner && !isDirectManager && !isSuperiorLevel) {
-        setToast({ title: 'PermissÃ£o negada', message: 'VocÃª precisa ser o gestor direto ou possuir nÃ­vel hierÃ¡rquico superior para realizar aprovaÃ§Ãµes.', type: 'error' });
+        setToast({ title: 'Permissão negada', message: 'Você precisa ser o gestor direto ou possuir nível hierárquico superior para realizar aprovações.', type: 'error' });
         return;
       }
     }
@@ -486,7 +486,7 @@ function App() {
     })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Falha ao processar a aprovaÃ§Ã£o');
+        if (!res.ok) throw new Error(data.error || 'Falha ao processar a aprovação');
         return data;
       })
       .then(data => {
@@ -705,8 +705,8 @@ function App() {
         <div className="status-modal-overlay">
           <div className="status-modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#ef4444', marginBottom: '16px' }}>warning</span>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Excluir SolicitaÃ§Ã£o</h3>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja excluir esta solicitaÃ§Ã£o? Esta aÃ§Ã£o nÃ£o pode ser desfeita.</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)' }}>Excluir Solicitação</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>Tem certeza que deseja excluir esta solicitação? Esta ação não pode ser desfeita.</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button className="btn btn-secondary" onClick={() => setRequestToDelete(null)}>Cancelar</button>
               <button className="btn btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444' }} onClick={() => confirmDeleteRequest(requestToDelete)}>Excluir</button>

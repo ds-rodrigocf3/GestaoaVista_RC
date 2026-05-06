@@ -85,10 +85,33 @@ function toDate(value) {
   }
   
   if (!isNaN(d.getTime())) {
-    d.setHours(12, 0, 0, 0);
+    // Se não tiver hora/minuto na string original, forçamos meio-dia para evitar problemas de fuso
+    const rawStr = String(value);
+    if (!rawStr.includes('T') && !rawStr.includes(':')) {
+      d.setHours(12, 0, 0, 0);
+    }
   }
   return d;
 }
+
+function parseDateSafe(d) {
+  const obj = toDate(d);
+  return isNaN(obj.getTime()) ? null : obj;
+}
+
+function formatEventDate(d, tipo) {
+  const obj = parseDateSafe(d);
+  if (!obj) return '—';
+  const day = String(obj.getDate()).padStart(2, '0');
+  const month = String(obj.getMonth() + 1).padStart(2, '0');
+  const year = obj.getFullYear();
+  const dateStr = `${day}/${month}/${year}`;
+  if (tipo === 'Aniversário') return dateStr;
+  const hours = String(obj.getHours()).padStart(2, '0');
+  const minutes = String(obj.getMinutes()).padStart(2, '0');
+  return `${dateStr} ${hours}:${minutes}`;
+}
+
 
 function formatDateLocal(d) {
   if (!d || isNaN(d.getTime())) return '';

@@ -45,7 +45,12 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     setSaving(true);
     try {
       const url = form.id ? `${API_BASE}/api/eventos/${form.id}` : `${API_BASE}/api/eventos`;
-      await apiCall(url, form.id ? 'PUT' : 'POST', form);
+      const payload = {
+        ...form,
+        dataInicio: form.dataInicio ? new Date(form.dataInicio).toISOString() : null,
+        dataFim: form.dataFim ? new Date(form.dataFim).toISOString() : null
+      };
+      await apiCall(url, form.id ? 'PUT' : 'POST', payload);
       await fetchAll({ silent: true });
       setForm(emptyForm);
       setToast && setToast({ title: form.id ? 'Evento atualizado' : 'Evento criado', message: 'Salvo com sucesso.', type: 'success' });
@@ -91,24 +96,6 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const parseDateSafe = (d) => {
-    if (!d) return null;
-    const obj = new Date(d);
-    return isNaN(obj.getTime()) ? null : obj;
-  };
-
-  const formatEventDate = (d, tipo) => {
-    const obj = parseDateSafe(d);
-    if (!obj) return '—';
-    const day = String(obj.getDate()).padStart(2, '0');
-    const month = String(obj.getMonth() + 1).padStart(2, '0');
-    const year = obj.getFullYear();
-    const dateStr = `${day}/${month}/${year}`;
-    if (tipo === 'Aniversário') return dateStr;
-    const hours = String(obj.getHours()).padStart(2, '0');
-    const minutes = String(obj.getMinutes()).padStart(2, '0');
-    return `${dateStr} ${hours}:${minutes}`;
-  };
 
   const TYPE_STYLE = EVENT_TYPE_STYLES;
 
@@ -123,14 +110,14 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
 
         // Global (Se não houver áreas específicas selecionadas, o evento é Global)
         if (!evAreaId) return true;
-        
+
         // Por Área (Usuário pertence a uma das áreas do evento)
         const areaIds = evAreaId ? String(evAreaId).split(',').filter(x => x !== '') : [];
         if (areaIds.length > 0 && currentUser?.areaId && areaIds.includes(String(currentUser.areaId))) return true;
-        
+
         // Por Responsável (Usuário é o responsável direto)
         if (evRespId && currentUser?.colaboradorId && String(evRespId) === String(currentUser.colaboradorId)) return true;
-        
+
         return false;
       });
     }
@@ -139,27 +126,27 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     if (filterPeriodo) {
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      
+
       list = list.filter(ev => {
         const d = parseDateSafe(ev.dataInicio || ev.DataInicio || ev.inicio);
         if (!d) return false;
-        
+
         // Normaliza a data do evento para comparação (meio-dia local para evitar shifts)
         const dNorm = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
 
         if (filterPeriodo === 'upcoming') return dNorm >= startOfToday;
         if (filterPeriodo === 'past') return dNorm < startOfToday;
-        
+
         if (filterPeriodo === 'week') {
           const dayOfWeek = startOfToday.getDay();
           const startLimit = new Date(startOfToday);
           startLimit.setDate(startOfToday.getDate() - dayOfWeek);
           startLimit.setHours(0, 0, 0, 0);
-          
+
           const endLimit = new Date(startLimit);
           endLimit.setDate(startLimit.getDate() + 6);
           endLimit.setHours(23, 59, 59, 999);
-          
+
           return dNorm >= startLimit && dNorm <= endLimit;
         }
         if (filterPeriodo === 'month') {
@@ -178,7 +165,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
           const evAreaId = String(ev.areaId || ev.AreaId || '');
           // Eventos sem área definida são considerados "Globais" e devem sempre aparecer
           if (!evAreaId || evAreaId.trim() === '') return true;
-          
+
           const evAreas = evAreaId.split(',').filter(Boolean);
           return evAreas.some(a => selectedAreas.includes(a));
         });
@@ -214,17 +201,17 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
       {/* Quick Filters Bar */}
-      <div className="glass-card events-quick-filters" style={{ 
+      <div className="glass-card events-quick-filters" style={{
         padding: '16px 24px', borderRadius: 'var(--radius-lg)', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between',
-        background: 'var(--bg-soft)', border: '1px solid var(--line)', 
-        position: 'relative', zIndex: 100, boxShadow: 'var(--shadow)' 
+        background: 'var(--bg-soft)', border: '1px solid var(--line)',
+        position: 'relative', zIndex: 100, boxShadow: 'var(--shadow)'
       }}>
         <div className="events-filters-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: '0 1 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filtros Rápidos:</span>
           </div>
-          
+
           <div className="events-filter-buttons" style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
             {[
               { id: 'upcoming', label: 'Próximos' },
@@ -234,10 +221,10 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
               { id: 'past', label: 'Passados' },
               { id: '', label: 'Tudo' }
             ].map(p => (
-              <button 
+              <button
                 key={p.id}
                 onClick={() => setFilterPeriodo(p.id)}
-                style={{ 
+                style={{
                   padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
                   border: '1px solid',
                   borderColor: filterPeriodo === p.id ? 'var(--primary)' : 'var(--line)',
@@ -272,7 +259,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         {(filterArea !== '' || filterTipo !== '' || (filterPeriodo !== '' && filterPeriodo !== 'all')) && (
           <div
             title="Filtro aplicado"
-            style={{ 
+            style={{
               position: 'absolute', top: '50%', right: '20px', transform: 'translateY(-50%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: '36px', height: '36px', borderRadius: 'var(--radius-sm)',
@@ -302,17 +289,42 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       </div>
 
       {/* Filters Bar */}
-      <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)', background: 'rgba(255,255,255,0.01)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>filter_list</span>
-            Filtros e Busca
-          </h3>
-          <span style={{ fontSize: '.75rem', color: 'var(--muted)', fontWeight: 600 }}>{filteredEventos.length} eventos encontrados</span>
+      <div className="glass-card" style={{ 
+        padding: '20px 24px', 
+        borderRadius: 'var(--radius-xl)', 
+        border: '1px solid var(--line)', 
+        background: 'rgba(255,255,255,0.02)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '24px',
+        marginBottom: '16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: 'var(--radius-sm)', 
+            background: 'var(--primary)15', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '22px', color: 'var(--primary)' }}>filter_list</span>
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--title)' }}>Filtros e Busca</h3>
+            <div style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>{filteredEventos.length} eventos encontrados</div>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
-
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+          gap: '16px', 
+          flexGrow: 1,
+          alignItems: 'flex-end'
+        }}>
           {/* Type */}
           <div>
             <label style={labelStyle}>Tipo de Evento</label>
@@ -345,12 +357,23 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
           {/* Clear Filters */}
           {(filterTipo || filterPeriodo || filterArea) && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
+              <button
                 onClick={() => { setFilterTipo(''); setFilterPeriodo(''); setFilterArea(''); }}
-                style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: '10px' }}
+                style={{ 
+                  background: 'transparent', 
+                  border: 'none', 
+                  color: 'var(--primary)', 
+                  fontSize: '.75rem', 
+                  fontWeight: 700, 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px', 
+                  padding: '8px 0' 
+                }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
-                Limpar Filtros
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                Limpar
               </button>
             </div>
           )}
@@ -381,6 +404,8 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
               const endObj = parseDateSafe(ev.dataFim || ev.DataFim || ev.fim);
               const isPast = startObj && startObj < new Date();
               const respNome = ev.responsavelNome || ev.ResponsavelNome;
+              const relTime = getRelativeTime(ev.dataInicio || ev.DataInicio || ev.inicio, tipo, ev.dataFim || ev.DataFim || ev.fim);
+              const isHappeningSoon = relTime === 'Em breve' || relTime === 'AGORA';
               const isDeleting = deletingId === (ev.id || ev.Id);
 
               // Resolver nomes de áreas (pode ser múltiplo)
@@ -389,12 +414,12 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                 if (!aid) return { text: 'Global', full: 'Todas as áreas do sistema', count: 0, isGlobal: true };
                 const ids = String(aid).split(',').filter(x => x !== '');
                 if (ids.length === 0) return { text: 'Global', full: 'Todas as áreas do sistema', count: 0, isGlobal: true };
-                
+
                 const names = ids.map(id => {
                   const a = (areas || []).find(x => String(x.id) === String(id));
                   return a ? a.nome : null;
                 }).filter(Boolean);
-                
+
                 if (names.length === 0) return { text: 'Áreas Selecionadas', full: 'Áreas não identificadas', count: ids.length, isGlobal: false };
                 if (names.length === 1) return { text: names[0], full: names[0], count: 1, isGlobal: false };
                 return { text: `${names.length} Áreas`, full: names.join(', '), count: names.length, isGlobal: false };
@@ -403,7 +428,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
               return (
                 <div
                   key={ev.id || ev.Id}
-                  className="glass-card"
+                  className={`glass-card ${isHappeningSoon ? 'pulse-emphasis' : ''}`}
                   style={{
                     padding: '20px',
                     borderRadius: 'var(--radius-lg)',
@@ -413,27 +438,33 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    position: 'relative'
+                    transition: isHappeningSoon ? 'transform 0.2s ease' : 'transform 0.2s ease, box-shadow 0.2s ease',
+                    position: 'relative',
+                    overflow: 'hidden' // Garante que o beam não escape
                   }}
                 >
+                  {isHappeningSoon && (
+                    <div className="border-beam-container">
+                      <div className="border-beam"></div>
+                    </div>
+                  )}
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ 
-                        width: '36px', 
-                        height: '36px', 
-                        borderRadius: 'var(--radius-sm)', 
-                        background: tipo === 'Aniversário' ? 'linear-gradient(135deg, rgba(255,51,153,0.2), rgba(255,204,0,0.2))' : style.bg, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: tipo === 'Aniversário' ? 'linear-gradient(135deg, rgba(255,51,153,0.2), rgba(255,204,0,0.2))' : style.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         flexShrink: 0,
                         boxShadow: tipo === 'Aniversário' ? '0 0 12px rgba(255,51,153,0.3)' : 'none'
                       }}>
-                        <span 
-                          className="material-symbols-outlined" 
-                          style={{ 
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
                             fontSize: '18px',
                             background: tipo === 'Aniversário' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'none',
                             WebkitBackgroundClip: tipo === 'Aniversário' ? 'text' : 'none',
@@ -452,13 +483,13 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                       const isPastBadge = relTime === 'PASSADO';
                       const isToday = relTime === 'Hoje' || relTime === 'AGORA';
                       return (
-                        <span style={{ 
-                          fontSize: '.62rem', 
-                          fontWeight: 900, 
-                          color: isPastBadge ? 'var(--muted)' : '#fff', 
-                          background: isPastBadge ? 'var(--panel-strong)' : (isToday ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--primary)'), 
-                          padding: '3px 10px', 
-                          borderRadius: 'var(--radius-sm)', 
+                        <span style={{
+                          fontSize: '.62rem',
+                          fontWeight: 900,
+                          color: isPastBadge ? 'var(--muted)' : '#fff',
+                          background: isPastBadge ? 'var(--panel-strong)' : (isToday ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--primary)'),
+                          padding: '3px 10px',
+                          borderRadius: 'var(--radius-sm)',
                           textTransform: 'uppercase',
                           letterSpacing: '0.04em',
                           border: isPastBadge ? '1px solid var(--line)' : 'none',
@@ -499,14 +530,14 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                         {respNome}
                       </div>
                     )}
-                    
-                    <div 
+
+                    <div
                       title={areaInfo.full}
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '6px', 
-                        fontSize: '.78rem', 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '.78rem',
                         color: areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)',
                         background: areaInfo.isGlobal ? 'transparent' : 'rgba(51,204,204,0.08)',
                         padding: areaInfo.isGlobal ? '0' : '4px 8px',
@@ -610,11 +641,11 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Descrição / Pauta</label>
-              <textarea 
-                style={{ ...inputStyle, height: '82px', resize: 'none' }} 
-                value={form.descricao} 
-                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} 
-                placeholder="Breve pauta ou observações importantes sobre o evento..." 
+              <textarea
+                style={{ ...inputStyle, height: '82px', resize: 'none' }}
+                value={form.descricao}
+                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))}
+                placeholder="Breve pauta ou observações importantes sobre o evento..."
               />
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -627,9 +658,9 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                 {saving ? 'Salvando...' : (form.id ? 'Atualizar Evento' : 'Salvar Evento')}
               </button>
               {form.id && (
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => setForm(emptyForm)} 
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setForm(emptyForm)}
                   style={{ flex: 1, height: '44px' }}
                 >
                   Cancelar

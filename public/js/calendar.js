@@ -373,7 +373,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
       const empIdStr = compareEntity.replace('emp_', '');
       const empIdNum = Number(empIdStr);
       
-      // Evitar comparar com o prÃ³prio selecionado
+      // Evitar comparar com o próprio selecionado
       if (empIdNum === Number(selectedEmployeeId)) return [];
       
       const otherData = workDays[empIdNum] || {};

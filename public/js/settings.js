@@ -590,23 +590,6 @@ function SettingsModal({
                   <thead><tr><th>Evento</th><th>Tipo</th><th>Responsável</th><th>Início</th><th>Ações</th></tr></thead>
                   <tbody>
                     {eventos.map(ev => {
-                      const parseDateSafe = (d) => {
-                        if (!d) return null;
-                        if (d instanceof Date) return isNaN(d.getTime()) ? null : d;
-                        let dateObj = new Date(d);
-                        if (isNaN(dateObj.getTime()) && typeof d === 'string') {
-                          dateObj = new Date(d.replace(/-/g, '/').replace('T', ' ')); 
-                        }
-                        return isNaN(dateObj.getTime()) ? null : dateObj;
-                      };
-
-                      const formatEventDate = (d, tipo) => {
-                        const dateObj = parseDateSafe(d);
-                        if (!dateObj) return '—';
-                        const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                        if (tipo === 'Aniversário') return dateStr;
-                        return dateStr + ' ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                      };
 
                       const getTypeBadgeColor = (type) => {
                         switch(type) {
