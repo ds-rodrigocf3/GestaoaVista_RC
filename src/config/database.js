@@ -3,16 +3,20 @@ const sql = require('mssql');
 // Identifica se está no Azure (WEBSITE_SITE_NAME é injetado pelo App Service) ou via flag manual
 const isAzure = !!(process.env.WEBSITE_SITE_NAME || process.env.DB_ENVIRONMENT === 'azure');
 
-// Tratamento para instâncias nomeadas (Ex: localhost\SQLEXPRESS)
-const serverRaw = process.env.DB_SERVER || process.env.LOCAL_DB_SERVER || 'localhost';
-const [serverAddress, instanceName] = serverRaw.split('\\');
+// Mapeamento flexível para aceitar padrões do Azure (AZURE_SQL_...) ou padrões customizados (DB_...)
+const dbUser = process.env.AZURE_SQL_USERNAME || process.env.DB_USER;
+const dbPassword = process.env.AZURE_SQL_PASSWORD || process.env.DB_PASSWORD;
+const dbDatabase = process.env.AZURE_SQL_DATABASE || process.env.DB_DATABASE || process.env.LOCAL_DB_NAME;
+const dbServerRaw = process.env.AZURE_SQL_SERVER || process.env.DB_SERVER || process.env.LOCAL_DB_SERVER || 'localhost';
+
+const [serverAddress, instanceName] = dbServerRaw.split('\\');
 
 const config = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE || process.env.LOCAL_DB_NAME,
+  user: dbUser,
+  password: dbPassword,
+  database: dbDatabase,
   server: serverAddress,
-  port: parseInt(process.env.DB_PORT || 1433),
+  port: parseInt(process.env.AZURE_SQL_PORT || process.env.DB_PORT || 1433),
   options: {
     encrypt: true,
     // No Azure, o certificado é confiável. No Local (SQLEXPRESS), geralmente precisamos forçar o trust.

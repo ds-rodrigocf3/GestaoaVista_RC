@@ -11,10 +11,10 @@ async function runMigration() {
     let sqlConfig;
     if (isAzure) {
         sqlConfig = {
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: databaseName,
-            server: process.env.DB_SERVER,
+            user: process.env.AZURE_SQL_USERNAME || process.env.DB_USER,
+            password: process.env.AZURE_SQL_PASSWORD || process.env.DB_PASSWORD,
+            database: process.env.AZURE_SQL_DATABASE || process.env.DB_DATABASE || 'DB_TESTE',
+            server: process.env.AZURE_SQL_SERVER || process.env.DB_SERVER,
             options: {
                 encrypt: true,
                 trustServerCertificate: false,
@@ -24,8 +24,9 @@ async function runMigration() {
     } else {
         const driver = "ODBC Driver 18 for SQL Server";
         const server = process.env.DB_SERVER || 'localhost\\SQLEXPRESS01';
+        const database = process.env.DB_DATABASE || process.env.LOCAL_DB_NAME || 'DB_TESTE';
         sqlConfig = {
-            connectionString: `Driver={${driver}};Server=${server};Database=${databaseName};Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes;`,
+            connectionString: `Driver={${driver}};Server=${server};Database=${database};Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes;`,
             driver: 'msnodesqlv8'
         };
     }
