@@ -1,9 +1,9 @@
 const sql = require('mssql');
 
-// Identifica se está no Azure ou Local
+// Identifica se está no Azure (WEBSITE_SITE_NAME é injetado pelo App Service) ou via flag manual
 const isAzure = !!(process.env.WEBSITE_SITE_NAME || process.env.DB_ENVIRONMENT === 'azure');
 
-// Tratamento para instâncias nomeadas (Ex: localhost\SQLEXPRESS01)
+// Tratamento para instâncias nomeadas (Ex: localhost\SQLEXPRESS)
 const serverRaw = process.env.DB_SERVER || process.env.LOCAL_DB_SERVER || 'localhost';
 const [serverAddress, instanceName] = serverRaw.split('\\');
 
@@ -15,9 +15,11 @@ const config = {
   port: parseInt(process.env.DB_PORT || 1433),
   options: {
     encrypt: true,
-    trustServerCertificate: true, // Essencial para o seu SQLEXPRESS local e Driver 18
-    instanceName: instanceName,   // Permite que o driver ache a instância correta
-    useUTC: false
+    // No Azure, o certificado é confiável. No Local (SQLEXPRESS), geralmente precisamos forçar o trust.
+    trustServerCertificate: isAzure ? false : true,
+    instanceName: instanceName,
+    useUTC: false,
+    connectTimeout: 30000
   },
   pool: {
     max: 10,
@@ -26,15 +28,19 @@ const config = {
   }
 };
 
+// Validação básica para ajudar no debug do Azure
+if (isAzure && (!config.user || !config.password)) {
+  console.warn('⚠️ Alerta: Credenciais de banco de dados não detectadas no ambiente Azure.');
+}
+
 const poolPromise = new sql.ConnectionPool(config)
   .connect()
   .then(pool => {
-    console.log(`✅ Conectado ao SQL Server (${isAzure ? 'Azure' : 'Local'})`);
+    console.log(`✅ Conexão SQL Server estabelecida com sucesso (${isAzure ? 'Azure/PaaS' : 'Local/Dev'})`);
     return pool;
   })
   .catch(err => {
-    console.error('❌ Erro de conexão no banco de dados:', err.message);
-    // Lançamos o erro para que o server.js saiba que a conexão falhou
+    console.error('❌ ERRO CRÍTICO: Falha ao conectar no SQL Server:', err.message);
     throw err;
   });
 
