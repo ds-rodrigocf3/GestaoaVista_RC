@@ -59,7 +59,7 @@ function LoginModal({ onLogin }) {
         <div className="login-logo">
           <div className="login-logo-icon">📊</div>
           <div>
-            <h1>Gestão à Vista</h1>
+            <h1>CONTROLLER - Gestão à Vista</h1>
             <p>Superintendência de Finanças</p>
           </div>
         </div>
