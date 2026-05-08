@@ -46,6 +46,7 @@ const EVENT_TYPE_STYLES = {
   'Treinamento':       { bg: 'rgba(245,158,11,0.12)',   color: '#f59e0b',         icon: 'menu_book' },
   'Evento Corporativo': { bg: 'rgba(100,116,139,0.12)', color: 'var(--muted)',    icon: 'business' },
   'Aniversário':       { bg: 'rgba(255, 51, 153, 0.15)', color: '#ff3399',         icon: 'celebration' },
+  'Aniversário de Tempo de casa': { bg: 'rgba(255, 51, 153, 0.15)', color: '#ff3399', icon: 'workspace_premium' },
   'Outro':             { bg: 'rgba(51,204,204,0.08)',   color: 'var(--primary)',  icon: 'event' }
 };
 
@@ -58,7 +59,7 @@ function toDate(value) {
   if (value instanceof Date) {
     d = new Date(value.getTime());
   } else {
-    const str = String(value).trim();
+    const str = String(value).trim().replace(/Z$/, '');
     
     // 1. Caso especial: DD/MM/YYYY
     const brMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
@@ -99,6 +100,21 @@ function parseDateSafe(d) {
   return isNaN(obj.getTime()) ? null : obj;
 }
 
+/**
+ * Abrevia o nome para [Primeiro] [Último] se for mobile
+ * @param {string} name 
+ * @param {boolean} force - Força a abreviação idependente do device
+ */
+function shortenName(name, force = false) {
+  if (!name) return '';
+  const isMobile = window.innerWidth <= 768;
+  if (!isMobile && !force) return name;
+  
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 2) return name;
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
 function formatEventDate(d, tipo) {
   const obj = parseDateSafe(d);
   if (!obj) return '—';
@@ -106,7 +122,7 @@ function formatEventDate(d, tipo) {
   const month = String(obj.getMonth() + 1).padStart(2, '0');
   const year = obj.getFullYear();
   const dateStr = `${day}/${month}/${year}`;
-  if (tipo === 'Aniversário') return dateStr;
+  if (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') return dateStr;
   const hours = String(obj.getHours()).padStart(2, '0');
   const minutes = String(obj.getMinutes()).padStart(2, '0');
   return `${dateStr} ${hours}:${minutes}`;
@@ -300,6 +316,7 @@ function SearchableSelect({ options, value, onChange, placeholder = "Selecione..
 function MultiSelect({ options, value, onChange, placeholder = "Selecione..." }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
+  const [coords, setCoords] = React.useState({ top: 0, left: 0, width: 0 });
   const containerRef = React.useRef(null);
 
   const selectedValues = React.useMemo(() => {
@@ -324,12 +341,30 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
   };
 
   React.useEffect(() => {
+    const updateCoords = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setCoords({ top: rect.bottom, left: rect.left, width: rect.width });
+      }
+    };
+
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+    if (isOpen) {
+      updateCoords();
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', updateCoords, true);
+      window.addEventListener('resize', updateCoords);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', updateCoords, true);
+      window.removeEventListener('resize', updateCoords);
+    };
+  }, [isOpen]);
 
   const displayText = React.useMemo(() => {
     if (selectedValues.length === 0) return placeholder;
@@ -346,8 +381,8 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
         className="searchable-select-input" 
         onClick={() => setIsOpen(!isOpen)}
         style={{ 
-          width: '100%', minHeight: '42px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', 
-          padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.9rem',
+          width: '100%', height: '42px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', 
+          padding: '0 12px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.875rem',
           display: 'flex', alignItems: 'center', cursor: 'pointer', justifyContent: 'space-between',
           overflow: 'hidden', boxSizing: 'border-box'
         }}
@@ -356,13 +391,20 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
         <span className="material-symbols-outlined" style={{ fontSize: '18px', opacity: 0.5, marginLeft: '8px', flexShrink: 0 }}>{isOpen ? 'expand_less' : 'expand_more'}</span>
       </div>
       
-      {isOpen && (
+      {isOpen && ReactDOM.createPortal(
         <div className="searchable-select-dropdown" style={{ 
-          position: 'absolute', top: '105%', left: 0, right: 0, zIndex: 99999, 
-          background: 'var(--surface)', backgroundColor: 'var(--surface)',
-          border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', 
-          boxShadow: '0 20px 40px rgba(0,0,0,0.4)', maxHeight: '250px', overflowY: 'auto',
-          opacity: 1
+          position: 'fixed', 
+          top: `${coords.top + 5}px`, 
+          left: `${coords.left}px`, 
+          width: `${coords.width}px`,
+          zIndex: 9999999, 
+          background: 'var(--surface)', 
+          backgroundColor: 'var(--surface)',
+          border: '1px solid var(--line)', 
+          borderRadius: 'var(--radius-md)', 
+          boxShadow: '0 10px 30px rgba(0,0,0,0.4)', 
+          maxHeight: '250px', 
+          overflowY: 'auto'
         }}>
           <div style={{ padding: '8px', borderBottom: '1px solid var(--line)' }}>
             <input 
@@ -408,7 +450,8 @@ function MultiSelect({ options, value, onChange, placeholder = "Selecione..." })
               );
             }) : <div style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: '0.82rem' }}>Nenhum resultado</div>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -478,10 +521,10 @@ function ResizableHeader({ label, width, onResize, className = "", idPrefix = ""
 
 function getRelativeTime(startDateValue, type = '', endDateValue = null) {
   const now = new Date();
-  const startDate = new Date(startDateValue);
-  if (isNaN(startDate.getTime())) return null;
+  const startDate = parseDateSafe(startDateValue);
+  if (!startDate || isNaN(startDate.getTime())) return null;
 
-  const isAnniversary = type === 'Aniversário';
+  const isAnniversary = type === 'Aniversário' || type === 'Aniversário de Tempo de casa';
   const isAbsence = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga', 'Férias', 'Saúde'].includes(type);
   const isToday = now.toLocaleDateString('pt-BR') === startDate.toLocaleDateString('pt-BR');
 

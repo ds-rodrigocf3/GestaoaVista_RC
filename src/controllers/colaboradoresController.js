@@ -36,6 +36,12 @@ exports.getAll = async (req, res) => {
       areaId: c.AreaId,
       areaNome: c.AreaNome,
       dataNascimento: formatDateYYYYMMDD(c.DataNascimento),
+      dataAdmissao: formatDateYYYYMMDD(c.DataAdmissao),
+      exibirIdade: c.ExibirIdade === true,
+      delegadoId: c.DelegadoId,
+      delegacaoInicio: formatDateYYYYMMDD(c.DelegacaoInicio),
+      delegacaoFim: formatDateYYYYMMDD(c.DelegacaoFim),
+      delegacaoAtiva: c.DelegacaoAtiva === true,
       ativo: c.Ativo
     }));
     
@@ -59,7 +65,7 @@ exports.create = async (req, res) => {
   const pool = await poolPromise;
   const transaction = new sql.Transaction(pool);
   try {
-    const { nome, email, cargoId, areaId, nivelHierarquia, gestorId, tp_contrato, color, avatarUrl, dataNascimento } = req.body;
+    const { nome, email, cargoId, areaId, nivelHierarquia, gestorId, tp_contrato, color, avatarUrl, dataNascimento, dataAdmissao, exibirIdade } = req.body;
     
     await transaction.begin();
     
@@ -75,8 +81,10 @@ exports.create = async (req, res) => {
       .input('Color', sql.NVARCHAR(20), color || '#33CCCC')
       .input('Avatar', sql.NVARCHAR(500), avatarUrl || null)
       .input('DataNascimento', sql.DATE, toServerDate(dataNascimento))
-      .query(`INSERT INTO BI_Colaboradores (Nome, Email, CargoId, AreaId, NivelHierarquia, GestorId, Tp_contrato, Color, AvatarUrl, DataNascimento, Ativo)
-              OUTPUT Inserted.Id VALUES (@Nome, @Email, @CargoId, @AreaId, @Nivel, @GestorId, @Contrato, @Color, @Avatar, @DataNascimento, 1)`);
+      .input('DataAdmissao', sql.DATE, toServerDate(dataAdmissao))
+      .input('ExibirIdade', sql.BIT, exibirIdade ? 1 : 0)
+      .query(`INSERT INTO BI_Colaboradores (Nome, Email, CargoId, AreaId, NivelHierarquia, GestorId, Tp_contrato, Color, AvatarUrl, DataNascimento, DataAdmissao, ExibirIdade, Ativo)
+              OUTPUT Inserted.Id VALUES (@Nome, @Email, @CargoId, @AreaId, @Nivel, @GestorId, @Contrato, @Color, @Avatar, @DataNascimento, @DataAdmissao, @ExibirIdade, 1)`);
     
     const newColabId = result.recordset[0].Id;
     
@@ -105,7 +113,7 @@ exports.update = async (req, res) => {
   const transaction = new sql.Transaction(pool);
   try {
     const { id } = req.params;
-    const { nome, email, cargoId, areaId, nivelHierarquia, gestorId, tp_contrato, color, avatarUrl, dataNascimento, ativo } = req.body;
+    const { nome, email, cargoId, areaId, nivelHierarquia, gestorId, tp_contrato, color, avatarUrl, dataNascimento, dataAdmissao, exibirIdade, ativo } = req.body;
     
     await transaction.begin();
     
@@ -122,10 +130,13 @@ exports.update = async (req, res) => {
       .input('Color', sql.NVARCHAR(20), color)
       .input('Avatar', sql.NVARCHAR(500), avatarUrl)
       .input('DataNascimento', sql.DATE, toServerDate(dataNascimento))
+      .input('DataAdmissao', sql.DATE, toServerDate(dataAdmissao))
+      .input('ExibirIdade', sql.BIT, exibirIdade ? 1 : 0)
       .input('Ativo', sql.BIT, ativo !== false ? 1 : 0)
       .query(`UPDATE BI_Colaboradores SET Nome=@Nome, Email=@Email, CargoId=@CargoId, AreaId=@AreaId, 
               NivelHierarquia=@Nivel, GestorId=@GestorId, Tp_contrato=@Contrato, Color=@Color, 
-              AvatarUrl=@Avatar, DataNascimento=@DataNascimento, Ativo=@Ativo WHERE Id=@Id`);
+              AvatarUrl=@Avatar, DataNascimento=@DataNascimento, DataAdmissao=@DataAdmissao, 
+              ExibirIdade=@ExibirIdade, Ativo=@Ativo WHERE Id=@Id`);
     
     // Sync email in BI_Usuarios
     const userRequest = new sql.Request(transaction);

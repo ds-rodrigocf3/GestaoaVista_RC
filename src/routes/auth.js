@@ -26,5 +26,7 @@ router.put('/profile', authMiddleware, (req, res, next) => {
     next();
   });
 }, authController.updateProfile);
+// PUT /api/auth/delegation
+router.put('/delegation', authMiddleware, authController.updateDelegation);
 
 module.exports = router;

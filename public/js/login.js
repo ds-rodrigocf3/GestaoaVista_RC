@@ -45,28 +45,22 @@ function LoginModal({ onLogin }) {
 
   return (
     <div className="login-overlay">
-      <div className="login-card" style={{ position: 'relative' }}>
-        <button 
-          onClick={() => setIsDark(!isDark)} 
-          style={{ 
-            position: 'absolute', top: '16px', right: '16px', background: 'transparent', 
-            border: 'none', color: 'var(--muted)', cursor: 'pointer', display: 'flex', 
-            alignItems: 'center', justifyContent: 'center', padding: '6px', 
-            borderRadius: '50%', transition: 'background 0.2s' 
-          }}
-          title={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(128,128,128,0.1)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            {isDark ? 'light_mode' : 'dark_mode'}
-          </span>
-        </button>
+      <button 
+        className="login-theme-toggle" 
+        onClick={() => setIsDark(!isDark)}
+        title={isDark ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
+      >
+        <span className="material-symbols-outlined">
+          {isDark ? 'light_mode' : 'dark_mode'}
+        </span>
+      </button>
+      <div className="login-card">
+
         <div className="login-logo">
           <div className="login-logo-icon">📊</div>
           <div>
-            <h1>Superintendência de Finanças</h1>
-            <p>Gestão à Vista — Acesso Restrito</p>
+            <h1>Gestão à Vista</h1>
+            <p>Superintendência Financeira</p>
           </div>
         </div>
         <form onSubmit={handleSubmit}>

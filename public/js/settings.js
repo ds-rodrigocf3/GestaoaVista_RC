@@ -14,9 +14,10 @@ function SettingsModal({
   // Perfil
   const [avatarFile, setAvatarFile] = React.useState(null);
   const [previewUrl, setPreviewUrl] = React.useState(currentUser.avatarUrl || '');
+  const [userExibirIdade, setUserExibirIdade] = React.useState(currentUser.exibirIdade === true);
 
   // Form state
-  const [formColab, setFormColab] = React.useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '' });
+  const [formColab, setFormColab] = React.useState({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '', dataAdmissao: '', exibirIdade: false });
   const [formArea, setFormArea] = React.useState({ id: null, nome: '', cor: '#33CCCC' });
   const [formCargo, setFormCargo] = React.useState({ id: null, nome: '' });
   const [formNivel, setFormNivel] = React.useState({ id: null, descricao: '' });
@@ -55,8 +56,14 @@ function SettingsModal({
       const formData = new FormData();
       if (avatarFile) formData.append('avatarFile', avatarFile);
       else formData.append('avatarUrl', previewUrl);
+      formData.append('exibirIdade', userExibirIdade);
+
       const res = await fetch(API_BASE + '/api/auth/profile', { method: 'PUT', headers: { Authorization: 'Bearer ' + authToken }, body: formData });
-      if (res.ok) { const d = await res.json(); setMsg('Foto atualizada!'); if (onProfileUpdate) onProfileUpdate(d.avatarUrl); }
+      if (res.ok) { 
+        const d = await res.json(); 
+        setMsg('Alterações salvas com sucesso!'); 
+        if (onProfileUpdate) onProfileUpdate(d.avatarUrl, d.exibirIdade); 
+      }
       else { const e = await res.json(); setMsg(e.error || 'Erro.'); }
     } catch { setMsg('Erro de conexão.'); }
   };
@@ -77,7 +84,7 @@ function SettingsModal({
       const url = formColab.id ? `${API_BASE}/api/colaboradores/${formColab.id}` : `${API_BASE}/api/colaboradores`;
       await apiCall(url, formColab.id ? 'PUT' : 'POST', formColab);
       fetchAll({ silent: true }); if (refreshEmployees) refreshEmployees({ silent: true });
-      setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '' });
+      setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '', dataAdmissao: '', exibirIdade: false });
       setMsg('Colaborador salvo!');
     } catch (e) { alert(e.message); }
   };
@@ -212,7 +219,40 @@ function SettingsModal({
                   <label style={labelStyle}>Foto de Perfil</label>
                   <input type="file" accept="image/*" onChange={handleFileChange} style={{ fontSize: '.85rem' }} />
                 </div>
-                <button className="btn btn-primary" onClick={salvarPerfil}>Atualizar Foto</button>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={labelStyle}>Visibilidade da Idade</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg)', border: '1px solid var(--line)', padding: '10px 14px', borderRadius: 'var(--radius-md)', width: 'fit-content' }}>
+                    <span style={{ fontSize: '.85rem', fontWeight: 600, color: 'var(--text)' }}>Exibir minha idade em aniversários</span>
+                    <button 
+                      type="button"
+                      onClick={() => setUserExibirIdade(!userExibirIdade)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--line)',
+                        borderRadius: '6px',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: userExibirIdade ? 'var(--primary)' : 'var(--muted)',
+                        transition: 'all .2s',
+                        boxShadow: userExibirIdade ? '0 0 10px rgba(51, 204, 204, 0.2)' : 'none'
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+                        {userExibirIdade ? 'visibility' : 'visibility_off'}
+                      </span>
+                    </button>
+                  </div>
+                  <p style={{ margin: '8px 0 0', fontSize: '.72rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+                    {userExibirIdade ? 'Sua idade será mostrada nos cards de aniversário.' : 'Apenas seu nome será mostrado nos cards de aniversário.'}
+                  </p>
+                </div>
+
+                <button className="btn btn-primary" onClick={salvarPerfil}>Salvar Alterações</button>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <img src={previewUrl || 'https://ui-avatars.com/api/?name=U&background=33CCCC&color=fff'} loading="lazy" style={{ width: '100px', height: '100px', borderRadius: 'var(--radius-md)', objectFit: 'cover', border: '2px solid var(--line)' }} />
@@ -279,11 +319,39 @@ function SettingsModal({
                   </div>
                   <div>
                     <label style={labelStyle}>Data de Aniversário</label>
-                    <input type="date" style={inputStyle} value={formColab.dataNascimento} onChange={e => setFormColab(p => ({ ...p, dataNascimento: e.target.value }))} />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input type="date" style={{ ...inputStyle, flex: 1 }} value={formColab.dataNascimento} onChange={e => setFormColab(p => ({ ...p, dataNascimento: e.target.value }))} />
+                      <button 
+                        type="button"
+                        title={formColab.exibirIdade ? 'Idade Visível' : 'Idade Oculta'}
+                        onClick={() => setFormColab(p => ({ ...p, exibirIdade: !p.exibirIdade }))}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid var(--line)',
+                          borderRadius: '6px',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: formColab.exibirIdade ? 'var(--primary)' : 'var(--muted)',
+                          transition: 'all .2s'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                          {formColab.exibirIdade ? 'visibility' : 'visibility_off'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Data de Admissão</label>
+                    <input type="date" style={inputStyle} value={formColab.dataAdmissao} onChange={e => setFormColab(p => ({ ...p, dataAdmissao: e.target.value }))} />
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveColab}>Salvar</button>
-                    {formColab.id && <button className="btn btn-secondary" onClick={() => setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '' })}>Cancelar</button>}
+                    {formColab.id && <button className="btn btn-secondary" onClick={() => setFormColab({ id: null, nome: '', email: '', nivelHierarquia: '', areaId: '', cargoId: '', gestorId: '', dataNascimento: '', dataAdmissao: '', exibirIdade: false })}>Cancelar</button>}
                   </div>
                 </div>
               </div>
@@ -314,9 +382,15 @@ function SettingsModal({
                                   if (!c.dataNascimento) return '';
                                   const d = new Date(c.dataNascimento);
                                   if (isNaN(d.getTime())) return String(c.dataNascimento).slice(0, 10);
-                                  // For HTML5 date input (YYYY-MM-DD), we want the UTC date if it came from SQL DATE
                                   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-                                })()
+                                })(),
+                                dataAdmissao: (() => {
+                                  if (!c.dataAdmissao) return '';
+                                  const d = new Date(c.dataAdmissao);
+                                  if (isNaN(d.getTime())) return String(c.dataAdmissao).slice(0, 10);
+                                  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                                })(),
+                                exibirIdade: c.exibirIdade === true
                               })}>Editar</button>
                               <button className="admin-action-btn" onClick={() => toggleColabAtivo(c)} style={{ color: c.ativo !== false ? '#f59e0b' : '#10b981', borderColor: c.ativo !== false ? '#f59e0b' : '#10b981' }}>{c.ativo !== false ? 'Inativar' : 'Reativar'}</button>
                             </div>

@@ -244,8 +244,17 @@ button {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
+}
+
+.sidebar.collapsed {
+  overflow: visible !important;
+}
+
+.sidebar.collapsed .nav-list {
+  overflow: visible !important;
 }
 
 .sidebar.collapsed {
@@ -327,21 +336,73 @@ button {
 }
 
 .nav-button {
-  width: 100%;             /* Ocupa toda a largura da sidebar */
-  text-align: left;
-  padding: 10px 16px;
-  border-radius: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 14px;
   background: transparent;
   color: var(--text);
-  border: 1px solid transparent;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: row;     /* ├â cone + texto lado a lado */
-  align-items: center;
-  gap: 10px;
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
   position: relative;
-  overflow: hidden;
-  white-space: nowrap;     /* Texto n├â┬úo quebra linha */
+  text-align: left;
+}
+
+/* Tooltip para sidebar recolhida */
+.sidebar.collapsed .nav-button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-10px);
+  background: #1e293b; /* Fundo escuro fixo para melhor contraste em ambos os temas */
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.sidebar.collapsed .nav-button:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Garante que o bot├úo n├úo corte o tooltip */
+.sidebar.collapsed .nav-button {
+  overflow: visible !important;
+}
+
+/* Triângulo do tooltip */
+.sidebar.collapsed .nav-button::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #1e293b;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.sidebar.collapsed .nav-button:hover::before {
+  opacity: 1;
+  visibility: visible;
 }
 
 .nav-button:hover {
@@ -353,17 +414,12 @@ button {
   background: linear-gradient(90deg, rgba(51, 204, 204, 0.12) 0%, rgba(51, 204, 204, 0.02) 100%);
   color: var(--primary);
   border-right: 3px solid var(--primary);
-  border-radius: 14px 4px 4px 14px;
+  border-radius: var(--radius-md);
 }
 
-.nav-button:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateX(4px);
-}
-
-.nav-button.active {
-  background: linear-gradient(90deg, rgba(51, 204, 204, 0.1) 0%, transparent 100%);
-  color: var(--primary);
+.nav-text-wrapper {
+  flex: 1;
+  text-align: left;
 }
 
 .nav-button span.material-symbols-outlined {
@@ -3091,7 +3147,7 @@ button {
   vertical-align: middle;
   word-break: break-word;
 }
-.admin-table tr:hover td { background: rgba(51, 204, 204, 0.04); }
+.admin-table tr:hover td { background: rgba(51, 204, 204, 0.08); }
 
 /* =====================================================
    HARMONIZA├âÔÇí├âãÆO DE BOT├âÔÇóES
@@ -3825,7 +3881,7 @@ select:focus, input:focus, textarea:focus {
     .custom-table td { padding: 16px; background: rgba(255,255,255,0.02); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
     .custom-table tr td:first-child { border-left: 1px solid var(--line); border-radius: 10px 0 0 10px; }
     .custom-table tr td:last-child { border-right: 1px solid var(--line); border-radius: 0 10px 10px 0; }
-    .custom-table tr:hover td { background: rgba(51, 204, 204, 0.04); border-color: var(--primary); }
+    .custom-table tr:hover td { background: rgba(51, 204, 204, 0.08); }
 
     /* Kanban 360 & Cards */
     .dash-360-container {
@@ -5142,7 +5198,7 @@ html:not([data-theme="dark"]) .admin-table td {
 
 /* Missing Layout Classes */
 .glass-card {
-  contain: content;
+  contain: none;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -5690,4 +5746,186 @@ html, body {
   color: var(--title) !important; 
   background: none !important; 
   -webkit-text-fill-color: initial !important; 
+}
+
+/* --- Estilos de Badge e Temas (Recuperação UX Premium) --- */
+.nav-badge {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 900;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-left: auto;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  border: 1.5px solid var(--bg-soft);
+  animation: badgePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+/* Ajuste para sidebar colapsada */
+.sidebar.collapsed .nav-badge {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  margin-left: 0;
+  min-width: 16px;
+  height: 16px;
+  font-size: 0.65rem;
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.login-theme-toggle {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.login-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px) scale(1.05);
+  border-color: var(--primary);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .login-theme-toggle {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: var(--text);
+}
+
+/* --- Status Pills - UX Restoration --- */
+.status-pill {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.status-pill.done {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.status-pill.rejected {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+.status-pill.working {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+/* --- Mobile Optimization Overrides --- */
+@media (max-width: 768px) {
+  .form-grid, .field-grid, .content-grid, .field-grid-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .field label {
+    font-size: 0.72rem !important;
+    margin-bottom: 6px !important;
+    color: var(--muted) !important;
+  }
+
+  .modern-selector, select, input, textarea {
+    font-size: 1rem !important; /* Prevents iOS auto-zoom on focus */
+    padding: 12px !important;
+    min-height: 48px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .action-row, .queue-actions {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .btn, .btn-primary, .btn-secondary, button.btn-primary {
+    width: 100% !important;
+    height: 52px !important;
+    font-size: 0.95rem !important;
+  }
+
+  .glass-card {
+    padding: 20px 16px !important;
+  }
+
+  .history-filters {
+    flex-direction: column !important;
+  }
+}
+
+/* --- Mobile Optimization Overrides (Refined) --- */
+@media (max-width: 768px) {
+  .dash-360-buckets {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  
+  .dash-360-buckets button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Team Agenda Grid adjustment */
+  .team-agenda-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Horizontal scroll indicators */
+  .horizontal-scroll-container::after {
+    content: '↔ Deslize para ver mais';
+    display: block;
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--primary);
+    padding: 8px;
+    opacity: 0.8;
+  }
+}
+
+/* --- Event Filter Quick Pills --- */
+.event-filter-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.event-filter-pill:active {
+  transform: scale(0.96);
 }

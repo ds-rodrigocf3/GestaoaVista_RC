@@ -848,8 +848,20 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       background: STATUS_COLORS[s] || '#64748b', 
       color: '#fff', 
       fontWeight: 700,
-      padding: '4px 12px', // Added horizontal padding for better spacing
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      padding: '4px 8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      width: '120px',
+      height: '28px',
+      borderRadius: 'var(--radius-lg)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.72rem',
+      textTransform: 'uppercase',
+      border: 'none',
+      appearance: 'none',
+      cursor: 'pointer',
+      textAlign: 'center'
     };
   };
   const prioritySelectStyle = (p) => {
@@ -858,17 +870,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       background: map[p] || '#c4c4c4', 
       color: p === 'Baixa' ? '#555' : '#fff', 
       fontWeight: 700, 
-      fontSize: '.75rem', 
+      fontSize: '.72rem', 
       border: 'none', 
       borderRadius: 'var(--radius-lg)', 
-      padding: '6px 12px', 
+      padding: '4px 8px', 
       cursor: 'pointer', 
       textAlign: 'center', 
-      width: '100%', 
+      width: '120px',
+      height: '28px',
       textTransform: 'uppercase', 
       letterSpacing: '.03em',
       appearance: 'none',
-      display: 'flex',
+      display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center'
     };
@@ -1196,7 +1209,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                           src={owner?.avatarUrl || `https://ui-avatars.com/api/?name=${owner?.name || 'User'}&background=random`} 
                           style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} 
                         />
-                        <span style={{ fontSize: '.8rem', fontWeight: 600 }}>{owner?.name?.split(' ')[0] || 'Sem resp.'}</span>
+                        <span style={{ fontSize: '.8rem', fontWeight: 600 }}>{shortenName(owner?.name)}</span>
                       </div>
                     </td>
                     <td style={{ textAlign: 'center', padding: '8px' }}>
@@ -1220,7 +1233,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                         value={dStatus}
                         onChange={e => { e.stopPropagation(); handleDemandaStatusChange(d, e.target.value); }}
                         onClick={e => e.stopPropagation()}
-                        style={{ ...statusSelectStyle(dStatus), fontSize: '.72rem', borderRadius: 'var(--radius-lg)', padding: '4px 12px', width: '100%' }}
+                        style={statusSelectStyle(dStatus)}
                       >
                         {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -1403,18 +1416,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                               style={{ flex: 1, border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', fontSize: '.7rem', padding: '4px', background: 'transparent', color: 'var(--title)' }}
                             >
                               {dbEmployees?.map(e => (
-                                <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>
+                                <option key={e.id} value={e.id}>{shortenName(e.name)}</option>
                               ))}
                             </select>
                           </div>
                         </td>
                         <td className="text-center">
-                          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
                             <select
                               className="status-pill-select"
                               value={task.priority}
                               onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                              style={{ ...prioritySelectStyle(task.priority), maxWidth: '100px' }}
+                              style={prioritySelectStyle(task.priority)}
                             >
                               {priorities.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
@@ -1422,26 +1435,17 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                         </td>
                         <td className="text-center" style={{ width: `${taskColWidths.status}px` }}>
                           <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ position: 'relative', width: '100%', maxWidth: '110px', height: '32px' }}>
+                            <div style={{ position: 'relative', width: '120px', height: '28px' }}>
                               <div 
                                 className="status-pill-select" 
                                 style={{ 
                                   ...statusSelectStyle(task.status), 
-                                  padding: '4px 16px',
                                   position: 'absolute', 
                                   inset: 0, 
-                                  pointerEvents: 'none', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  borderRadius: 'var(--radius-lg)', 
-                                  fontSize: '0.72rem', 
-                                  fontWeight: 700,
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden'
+                                  pointerEvents: 'none'
                                 }}
                               >
-                                {taskColWidths.status < 95 ? STATUS_INITIALS[task.status] : task.status}
+                                {taskColWidths.status < 100 ? STATUS_INITIALS[task.status] : task.status}
                               </div>
                               <select
                                 value={task.status}

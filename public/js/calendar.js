@@ -493,7 +493,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         <div className="glass-card">
           <div className="section-title" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'var(--bg)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '1 1 200px' }}>
-               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal — <span style={{ textTransform: 'capitalize' }}>{displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></h3>
+               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal</h3>
                <p style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 500 }}>Toque nos dias para alternar Presencial/Home Office.</p>
             </div>
             
@@ -508,7 +508,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
                   {filteredEmployees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.name.split(' ')[0]} {employee.name.split(' ').pop()} · {employee.team}
+                      {shortenName(employee.name)} · {employee.team}
                     </option>
                   ))}
                 </select>
@@ -521,21 +521,14 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   <optgroup label="Colaboradores">
                     {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
                       <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
-                        {employee.name.split(' ')[0]} {employee.name.split(' ').pop()}
+                        {shortenName(employee.name)}
                       </option>
                     ))}
                   </optgroup>
                 </select>
               </div>
 
-              <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
-                 <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o - 1)} style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px' }}>
-                   <span className="material-symbols-outlined" style={{ color: 'var(--title)', fontSize: '18px' }}>chevron_left</span>
-                 </button>
-                 <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o + 1)} style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px' }}>
-                   <span className="material-symbols-outlined" style={{ color: 'var(--title)', fontSize: '18px' }}>chevron_right</span>
-                 </button>
-              </div>
+              <div style={{ marginLeft: 'auto' }}></div>
             </div>
           </div>
 
@@ -551,6 +544,56 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)' }}>
                   <div style={{ width: '12px', height: '12px', borderRadius: '4px', border: '1.5px dashed var(--line)' }}></div> Em Aberto
                 </div>
+              </div>
+              
+              <div className="calendar-month-nav" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '24px', 
+                marginBottom: '20px',
+                padding: '10px',
+                background: 'var(--bg-soft)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--line)'
+              }}>
+                <button 
+                  className="icon-btn-premium" 
+                  onClick={() => setSelectedMonthOffset(o => o - 1)}
+                  style={{ 
+                    background: 'transparent', border: 'none', cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '8px', borderRadius: '50%', transition: 'all 0.2s'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '24px', color: 'var(--primary)' }}>chevron_left</span>
+                </button>
+
+                <h2 style={{ 
+                  margin: 0, 
+                  fontSize: '1.15rem', 
+                  fontWeight: 900, 
+                  color: 'var(--title)', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em',
+                  fontFamily: "'Outfit', sans-serif",
+                  minWidth: '200px',
+                  textAlign: 'center'
+                }}>
+                  {displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                </h2>
+
+                <button 
+                  className="icon-btn-premium" 
+                  onClick={() => setSelectedMonthOffset(o => o + 1)}
+                  style={{ 
+                    background: 'transparent', border: 'none', cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '8px', borderRadius: '50%', transition: 'all 0.2s'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '24px', color: 'var(--primary)' }}>chevron_right</span>
+                </button>
               </div>
 
               <div className="calendar-grid">
@@ -610,7 +653,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   
                   const tooltipParts = [];
                   if (holidayInfo) tooltipParts.push(`Feriado: ${holidayInfo}`);
-                  if (dayEvents.length > 0) tooltipParts.push(`Eventos: ${dayEvents.map(e => e.titulo || e.Titulo).join(', ')}`);
+                  if (dayEvents.length > 0) tooltipParts.push(`Eventos: ${dayEvents.map(e => (e.titulo || e.Titulo) + (e.anos ? ` (${e.anos} anos)` : '')).join(', ')}`);
                   if (isComparedPresent) tooltipParts.push(`Presencial: ${comparedPeople.map(p => p.name).join(', ')}`);
                   if (absenceRequest) tooltipParts.push(`Ausência: ${absenceRequest.type}`);
                   if (pendingAbsence) tooltipParts.push(`Pendente: ${pendingAbsence.type}`);
@@ -677,8 +720,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       
                       {/* Event Slot: Top-Right */}
                       {dayEvents.length > 0 && !status && !absenceRequest && (
-                        <div 
-                          title={`${dayEvents.length} evento(s): ${dayEvents.map(e => e.titulo || e.Titulo).join(', ')}`}
+                          <div 
+                          title={`${dayEvents.length} evento(s): ${dayEvents.map(e => (e.titulo || e.Titulo) + (e.anos ? ` (${e.anos} anos)` : '')).join(', ')}`}
                           style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '2px' }}
                         >
                           {(() => {
@@ -813,7 +856,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                     .map((ev, i) => {
                       const date = (ev.dataInicio || ev.inicio || '').slice(8, 10);
                       const month = (ev.dataInicio || ev.inicio || '').slice(5, 7);
-                      const title = ev.titulo || ev.Titulo || ev.name || 'Sem título';
+                      const title = (ev.titulo || ev.Titulo || ev.name || 'Sem título') + (ev.anos ? ` (${ev.anos} anos)` : '');
                       const tipo = ev.tipo || ev.Tipo || 'Evento';
                       
                       const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];

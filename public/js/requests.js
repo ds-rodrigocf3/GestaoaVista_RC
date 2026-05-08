@@ -81,6 +81,9 @@ function RequestView({
   };
 
   const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const safeColor = isLight ? '#06b6d4' : 'var(--primary)';
+  const alertColor = isLight ? '#ea580c' : '#f59e0b';
 
   return (
     <div className="dashboard-grid requests-page-container" style={{ gap: '24px' }}>
@@ -112,7 +115,7 @@ function RequestView({
                 >
                   {employees.map((employee) => (
                     <option key={employee.id} value={employee.id}>
-                      {employee.name}
+                      {shortenName(employee.name)}
                     </option>
                   ))}
                 </select>
@@ -240,16 +243,38 @@ function RequestView({
                   if (!day) return <div key={`e-${idx}`} className="calendar-day empty"></div>;
                   const dateKey = formatDateLocal(day);
                   const isSelected = isWithinRange(dateKey, form.startDate, form.endDate);
-                  const teamBookings = pendingTeamMembers.filter(r => isWithinRange(dateKey, r.startDate, r.endDate));
-                  const conflicts = teamBookings.filter(r => r.employeeId !== Number(form.employeeId));
+                  const teamBookings = (requests || []).filter(r => {
+                    if (r.status === 'Rejeitado' || !isWithinRange(dateKey, r.startDate, r.endDate) || Number(r.employeeId) === Number(form.employeeId)) return false;
+                    
+                    // Excluir tipos que n├â┬úo s├â┬úo aus├â┬¬ncias (Escalas)
+                    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+                    if (!absenceTypes.includes(r.type)) return false;
+
+                    const rEmp = r.employee || {};
+                    const fEmp = formEmployee || {};
+                    const rLevel = Number(rEmp.nivelHierarquia);
+                    const fLevel = Number(fEmp.nivelHierarquia);
+                    
+                    const isAdjacentLevel = rLevel === fLevel || rLevel === fLevel - 1 || rLevel === fLevel + 1;
+                    const isMyDirectManager = Number(rEmp.id) === Number(fEmp.gestorId);
+                    const isMyDirectSubordinate = Number(rEmp.gestorId) === Number(fEmp.id);
+
+                    return isAdjacentLevel || isMyDirectManager || isMyDirectSubordinate;
+                  });
+
+                  const conflicts = teamBookings.filter(r => {
+                    // Qualquer um vis├¡vel que esteja Aprovado ou Pendente ├® um conflito
+                    return r.status === 'Aprovado' || r.status === 'Pendente';
+                  });
+
                   const hasConflict = conflicts.length > 0;
                   const booked = teamBookings.length > 0;
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   const isHoliday = holidays[dateKey];
                   
-                  const conflictDetails = conflicts.map(r => `${r.employee?.name || 'Colega'} (${r.type})`).join(', ');
+                  const conflictDetails = conflicts.map(r => `${shortenName(r.employee?.name) || 'Colega'} (${r.type})`).join(', ');
                   const tooltipText = hasConflict ? `Conflito com: ${conflictDetails}` : (isHoliday ? holidays[dateKey] : '');
-
+                  
                   // Map request types to Material Symbols icons
                   const TYPE_ICON = {
                     'Férias integrais':    'beach_access',
@@ -261,8 +286,7 @@ function RequestView({
                     'Escala de Trabalho':  'work',
                     'Ajuste de Escala':    'sync_alt',
                   };
-
-                  // Unique types booked on this day (excluding own bookings for conflicts)
+                  
                   const bookingTypes = [...new Set(teamBookings.map(r => r.type))];
 
                   return (
@@ -279,7 +303,7 @@ function RequestView({
                       }}
                       style={{ cursor: (hasConflict || isHoliday) ? 'pointer' : 'default', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1px', padding: '2px 1px' }}
                     >
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}>{day.getDate()}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1, color: isSelected ? '#ffffff' : 'var(--title)' }}>{day.getDate()}</span>
                       {booked && bookingTypes.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', justifyContent: 'center', maxWidth: '100%' }}>
                           {bookingTypes.slice(0, 2).map(type => (
@@ -288,10 +312,10 @@ function RequestView({
                               className="material-symbols-outlined"
                               title={type}
                               style={{
-                                fontSize: '9px',
+                                fontSize: '10px',
                                 lineHeight: 1,
-                                color: hasConflict ? '#f59e0b' : '#60a5fa',
-                                fontVariationSettings: "'FILL' 1",
+                                color: hasConflict ? alertColor : safeColor,
+                                fontVariationSettings: "'FILL' 1, 'wght' 600",
                                 display: 'block'
                               }}
                             >
@@ -301,11 +325,22 @@ function RequestView({
                         </div>
                       )}
                       {isHoliday && !booked && (
-                        <span className="material-symbols-outlined" style={{ fontSize: '9px', color: '#f59e0b', fontVariationSettings: "'FILL' 1" }}>celebration</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '10px', color: alertColor, fontVariationSettings: "'FILL' 1" }}>celebration</span>
                       )}
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="calendar-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: isLight ? '#ea580c' : '#f59e0b', boxShadow: '0 0 6px rgba(234, 88, 12, 0.2)' }}></div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 800 }}>Conflito</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'var(--primary)', boxShadow: '0 0 6px rgba(51, 204, 204, 0.3)' }}></div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 800 }}>Sua Seleção</span>
+                </div>
               </div>
             </div>
           </div>

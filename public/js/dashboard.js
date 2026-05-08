@@ -307,9 +307,9 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     'Workshop': 'school',
     'Treinamento': 'menu_book',
     'Feedback': 'chat',
-    'Aviso': 'priority_high',
     'Compromisso': 'event',
     'Aniversário': 'celebration',
+    'Aniversário de Tempo de casa': 'workspace_premium',
     'Evento Corporativo': 'business'
   };
 
@@ -457,7 +457,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           responsavelNome: ev.responsavelNome || ev.ResponsavelNome,
           isMultiDay,
           sortDate: startObj,
-          endDate: endObj
+          endDate: endObj,
+          anos: ev.anos
         };
       });
 
@@ -484,16 +485,14 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
               const isHappeningSoon = relTime === 'AGORA' || relTime === 'Em breve';
               return (
               <div className={`workload-item glass-card ${isHappeningSoon ? 'pulse-emphasis' : ''}`} key={a.id || Math.random()} style={{ position: 'relative', overflow: 'hidden' }}>
-                {isHappeningSoon && (
-                  <div className="border-beam-container">
-                    <div className="border-beam"></div>
-                  </div>
-                )}
+                {isHappeningSoon && <div className="border-beam"></div>}
+
+
                 {a.isEvent ? (
                   <div className="workload-avatar" style={{ 
-                    background: a.type === 'Aniversário' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'var(--primary)', 
+                    background: a.type === 'Aniversário' || a.type === 'Aniversário de Tempo de casa' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'var(--primary)', 
                     color: '#fff',
-                    boxShadow: a.type === 'Aniversário' ? '0 0 12px rgba(255,51,153,0.4)' : 'none',
+                    boxShadow: a.type === 'Aniversário' || a.type === 'Aniversário de Tempo de casa' ? '0 0 12px rgba(255,51,153,0.4)' : 'none',
                     border: 'none'
                   }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{EVENT_ICONS[a.type] || EVENT_ICONS['Compromisso']}</span>
@@ -536,7 +535,14 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                         overflow: 'hidden',
                         height: '3.1rem' // Fixed height for 3 lines ensuring alignment
                       }}>
-                        {a.isEvent ? a.title : a.emp?.name}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div>{a.isEvent ? a.title : shortenName(a.emp?.name)}</div>
+                          {a.type === 'Aniversário' && Number(a.anos) > 0 && (
+                            <div style={{ fontSize: '.72rem', color: 'var(--muted)', fontWeight: 600, marginTop: '1px' }}>
+                              ({a.anos} anos)
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {(() => {
                         if (!relTime) return null;
@@ -597,6 +603,8 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                     </div>
                   </div>
 
+
+
                   {/* Row 3: Temporal Context (Date & Time) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid var(--line)', paddingTop: '8px', marginTop: '4px' }}>
                     <div style={{ 
@@ -609,12 +617,29 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                       borderColor: a.isEvent ? 'rgba(51,204,204,0.1)' : 'rgba(245,158,11,0.1)'
                     }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
-                      {a.isMultiDay && a.type !== 'Aniversário' 
+                      {a.isMultiDay && a.type !== 'Aniversário' && a.type !== 'Aniversário de Tempo de casa'
                         ? `${a.formattedDate} até ${a.formattedEndDate}` 
                         : a.formattedDate
                       }
                     </div>
-                    {a.isEvent && a.type !== 'Aniversário' && (a.startTime || a.endTime) && (
+                    
+                    {/* Admission Anniversary Badge - Integrated in Bottom Row */}
+                    {a.type === 'Aniversário de Tempo de casa' && a.anos && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1))',
+                        border: '1px solid rgba(218, 165, 32, 0.4)',
+                        padding: '3px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        boxShadow: '0 2px 6px rgba(218, 165, 32, 0.1)'
+                      }}>
+                         <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#daa520', fontVariationSettings: "'FILL' 1" }}>stars</span>
+                         <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#b8860b', letterSpacing: '0.02em' }}>{a.anos} ANOS</span>
+                      </div>
+                    )}
+                    {a.isEvent && a.type !== 'Aniversário' && a.type !== 'Aniversário de Tempo de casa' && (a.startTime || a.endTime) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '.72rem', color: 'var(--muted)', fontWeight: 600, borderLeft: '1px solid var(--line)', paddingLeft: '8px' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>schedule</span>
                         {a.startTime || ''}{a.endTime && a.endTime !== a.startTime ? ` - ${a.endTime}` : ''}
@@ -767,7 +792,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
             <div className="dash-360-filters-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', marginBottom: '24px', padding: '12px 20px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Visualizar Status</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div className="dash-360-buckets" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {[
                     { id: 'criticas', label: 'Críticas', color: '#ef4444' },
                     { id: 'andamento', label: 'Em Andamento', color: '#3b82f6' },

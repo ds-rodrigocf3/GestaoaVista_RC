@@ -4,7 +4,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     const timer = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(timer);
   }, []);
-  const TIPO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Outro'];
+  const TIPO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Aniversário de Tempo de casa', 'Outro'];
 
   const getDefaultDates = () => {
     const now = new Date();
@@ -19,14 +19,14 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   const defaults = getDefaultDates();
   const emptyForm = { id: null, titulo: '', descricao: '', dataInicio: defaults.start, dataFim: defaults.end, tipo: 'Reunião', areaId: '', responsavelId: '' };
   const [form, setForm] = React.useState(emptyForm);
-  const [filterTipo, setFilterTipo] = React.useState('');
+  const [filterTipo, setFilterTipo] = React.useState([]);
   const [filterPeriodo, setFilterPeriodo] = React.useState('upcoming'); // Default to upcoming
   const [filterArea, setFilterArea] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState(null);
 
-  const inputStyle = { width: '100%', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box' };
-  const labelStyle = { fontSize: '.78rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' };
+  const inputStyle = { width: '100%', height: '42px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '0 12px', fontSize: '0.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box', cursor: 'pointer' };
+  const labelStyle = { fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' };
 
   const headers = () => apiHeaders(authToken);
 
@@ -45,10 +45,17 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     setSaving(true);
     try {
       const url = form.id ? `${API_BASE}/api/eventos/${form.id}` : `${API_BASE}/api/eventos`;
+      const toLocalISO = (d) => {
+        if (!d) return null;
+        const obj = new Date(d);
+        if (isNaN(obj.getTime())) return null;
+        return new Date(obj.getTime() - obj.getTimezoneOffset() * 60000).toISOString().replace('Z', '');
+      };
+
       const payload = {
         ...form,
-        dataInicio: form.dataInicio ? new Date(form.dataInicio).toISOString() : null,
-        dataFim: form.dataFim ? new Date(form.dataFim).toISOString() : null
+        dataInicio: toLocalISO(form.dataInicio),
+        dataFim: toLocalISO(form.dataFim)
       };
       await apiCall(url, form.id ? 'PUT' : 'POST', payload);
       await fetchAll({ silent: true });
@@ -122,7 +129,9 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       });
     }
 
-    if (filterTipo) list = list.filter(ev => (ev.tipo || ev.Tipo) === filterTipo);
+    if (filterTipo && filterTipo.length > 0) {
+      list = list.filter(ev => filterTipo.includes(ev.tipo || ev.Tipo));
+    }
     if (filterPeriodo) {
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -200,50 +209,54 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   return (
     <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
-      {/* Quick Filters Bar */}
-      <div className="glass-card events-quick-filters" style={{
-        padding: '16px 24px', borderRadius: 'var(--radius-lg)', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between',
-        background: 'var(--bg-soft)', border: '1px solid var(--line)',
-        position: 'relative', zIndex: 100, boxShadow: 'var(--shadow)'
-      }}>
-        <div className="events-filters-left" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: '0 1 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>speed</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Filtros Rápidos:</span>
+      {/* Filtros no Topo para Contextualização Imediata */}
+      <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-xl)', marginBottom: '0' }}>
+        <div className="events-quick-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '180px' }}>
+            <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>filter_list</span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>Filtros de Visualização</h3>
+              <div style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>{filteredEventos.length} resultados encontrados</div>
+            </div>
           </div>
 
-          <div className="events-filter-buttons" style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
-            {[
-              { id: 'upcoming', label: 'Próximos' },
-              { id: 'week', label: 'Esta Semana' },
-              { id: 'month', label: 'Este Mês' },
-              { id: 'year', label: 'Este Ano' },
-              { id: 'past', label: 'Passados' },
-              { id: '', label: 'Tudo' }
-            ].map(p => (
-              <button
-                key={p.id}
-                onClick={() => setFilterPeriodo(p.id)}
-                style={{
-                  padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
-                  border: '1px solid',
-                  borderColor: filterPeriodo === p.id ? 'var(--primary)' : 'var(--line)',
-                  background: filterPeriodo === p.id ? 'var(--primary)15' : 'transparent',
-                  color: filterPeriodo === p.id ? 'var(--primary)' : 'var(--muted)',
-                  transition: 'all 0.2s ease',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div style={{ width: '100%', borderBottom: '1px solid var(--line)', paddingBottom: '16px', marginBottom: '8px' }}>
+            <label style={{ ...labelStyle, marginBottom: '12px' }}>Filtrar por Tipos de Evento</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {TIPO_OPTIONS.map(tipo => {
+                const style = TYPE_STYLE[tipo] || TYPE_STYLE['Outro'];
+                const isSelected = filterTipo.includes(tipo);
+                return (
+                  <button
+                    key={tipo}
+                    className="event-filter-pill"
+                    onClick={() => setFilterTipo(prev => isSelected ? prev.filter(t => t !== tipo) : [...prev, tipo])}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      border: '1.5px solid',
+                      borderColor: isSelected ? style.color : 'var(--line)',
+                      background: isSelected ? `${style.color}15` : 'transparent',
+                      color: isSelected ? style.color : 'var(--muted)'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{style.icon}</span>
+                    {tipo}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        <div className="events-filters-right" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px', minWidth: '220px', justifyContent: 'flex-end' }}>
-          <div className="events-divider" style={{ width: '1px', height: '24px', background: 'var(--line)' }}></div>
-
-          <div style={{ flex: 1, maxWidth: '280px' }}>
+          <div style={{ flex: '1 1 200px' }}>
+            <label style={labelStyle}>Filtrar por Área</label>
             <MultiSelect
               options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
               value={filterArea}
@@ -251,12 +264,39 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
               placeholder="Todas as Áreas"
             />
           </div>
+
+          <div style={{ flex: '1 1 200px' }}>
+            <label style={labelStyle}>Período</label>
+            <select
+              value={filterPeriodo}
+              onChange={e => setFilterPeriodo(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Todo o Período</option>
+              <option value="upcoming">Próximos</option>
+              <option value="week">Esta Semana</option>
+              <option value="month">Este Mês</option>
+              <option value="past">Passados</option>
+            </select>
+          </div>
+
+          {(filterTipo.length > 0 || filterPeriodo || filterArea) && (
+            <button
+              onClick={() => { setFilterTipo([]); setFilterPeriodo(''); setFilterArea(''); }}
+              className="btn btn-secondary"
+              style={{ height: '42px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            >
+              Limpar Filtros
+            </button>
+          )}
         </div>
       </div>
 
+
+
       {/* KPI Strip */}
       <div className="stats-summary-bar" style={{ position: 'relative' }}>
-        {(filterArea !== '' || filterTipo !== '' || (filterPeriodo !== '' && filterPeriodo !== 'all')) && (
+        {(filterArea !== '' || filterTipo.length > 0 || (filterPeriodo !== '' && filterPeriodo !== 'all')) && (
           <div
             title="Filtro aplicado"
             style={{
@@ -288,97 +328,95 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         ))}
       </div>
 
-      {/* Filters Bar */}
-      <div className="glass-card" style={{ 
-        padding: '20px 24px', 
-        borderRadius: 'var(--radius-xl)', 
-        border: '1px solid var(--line)', 
-        background: 'rgba(255,255,255,0.02)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '24px',
-        marginBottom: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: 'var(--radius-sm)', 
-            background: 'var(--primary)15', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
-          }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '22px', color: 'var(--primary)' }}>filter_list</span>
-          </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--title)' }}>Filtros e Busca</h3>
-            <div style={{ fontSize: '0.7rem', color: 'var(--muted)', fontWeight: 600 }}>{filteredEventos.length} eventos encontrados</div>
-          </div>
-        </div>
+      {/* Form Card */}
+      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
+        <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
+          {form.id ? 'Editar Evento' : 'Novo Evento'}
+        </h3>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-          gap: '16px', 
-          flexGrow: 1,
-          alignItems: 'flex-end'
-        }}>
-          {/* Type */}
-          <div>
-            <label style={labelStyle}>Tipo de Evento</label>
-            <select
-              value={filterTipo}
-              onChange={e => setFilterTipo(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">Todos os Tipos</option>
-              {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-
-          {/* Period */}
-          <div>
-            <label style={labelStyle}>Período</label>
-            <select
-              value={filterPeriodo}
-              onChange={e => setFilterPeriodo(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">Todo o Período</option>
-              <option value="upcoming">Próximos</option>
-              <option value="week">Esta Semana</option>
-              <option value="month">Este Mês</option>
-              <option value="past">Passados</option>
-            </select>
-          </div>
-
-          {/* Clear Filters */}
-          {(filterTipo || filterPeriodo || filterArea) && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => { setFilterTipo(''); setFilterPeriodo(''); setFilterArea(''); }}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: 'var(--primary)', 
-                  fontSize: '.75rem', 
-                  fontWeight: 700, 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '4px', 
-                  padding: '8px 0' 
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
-                Limpar
-              </button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          {/* Col 1: Identificação */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Título do Evento*</label>
+              <input style={inputStyle} value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal de Resultados" />
             </div>
-          )}
+            <div>
+              <label style={labelStyle}>Tipo de Evento</label>
+              <select style={inputStyle} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
+                {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Col 2: Datas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Data e Hora de Início*</label>
+              <input type="datetime-local" style={inputStyle} value={form.dataInicio} onChange={e => setForm(p => ({ ...p, dataInicio: e.target.value }))} />
+            </div>
+            <div>
+              <label style={labelStyle}>Data e Hora de Término</label>
+              <input type="datetime-local" style={inputStyle} value={form.dataFim} onChange={e => setForm(p => ({ ...p, dataFim: e.target.value }))} />
+            </div>
+          </div>
+
+          {/* Col 3: Participantes e Responsável */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={labelStyle}>Áreas Participantes</label>
+              <MultiSelect
+                options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
+                value={form.areaId}
+                onChange={val => setForm(p => ({ ...p, areaId: val }))}
+                placeholder="Todas (Global)"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Responsável pelo Evento</label>
+              <select style={inputStyle} value={form.responsavelId} onChange={e => setForm(p => ({ ...p, responsavelId: e.target.value }))}>
+                <option value="">Nenhum responsável</option>
+                {(colaboradores || []).map(c => <option key={c.id} value={c.id}>{shortenName(c.name)}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Col 4: Descrição e Botão */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Descrição / Pauta</label>
+              <textarea
+                style={{ ...inputStyle, height: '82px', resize: 'none' }}
+                value={form.descricao}
+                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))}
+                placeholder="Breve pauta ou observações importantes sobre o evento..."
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-primary"
+                onClick={saveEvento}
+                disabled={saving}
+                style={{ flex: 2, height: '44px', fontWeight: 700 }}
+              >
+                {saving ? 'Salvando...' : (form.id ? 'Atualizar Evento' : 'Salvar Evento')}
+              </button>
+              {form.id && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setForm(emptyForm)}
+                  style={{ flex: 1, height: '44px' }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+
 
       {/* List Container */}
       <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
@@ -443,11 +481,8 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                     overflow: 'hidden' // Garante que o beam não escape
                   }}
                 >
-                  {isHappeningSoon && (
-                    <div className="border-beam-container">
-                      <div className="border-beam"></div>
-                    </div>
-                  )}
+                  {isHappeningSoon && <div className="border-beam"></div>}
+
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -455,21 +490,21 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                         width: '36px',
                         height: '36px',
                         borderRadius: 'var(--radius-sm)',
-                        background: tipo === 'Aniversário' ? 'linear-gradient(135deg, rgba(255,51,153,0.2), rgba(255,204,0,0.2))' : style.bg,
+                        background: (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') ? 'linear-gradient(135deg, rgba(255,51,153,0.2), rgba(255,204,0,0.2))' : style.bg,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
-                        boxShadow: tipo === 'Aniversário' ? '0 0 12px rgba(255,51,153,0.3)' : 'none'
+                        boxShadow: (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') ? '0 0 12px rgba(255,51,153,0.3)' : 'none'
                       }}>
                         <span
                           className="material-symbols-outlined"
                           style={{
                             fontSize: '18px',
-                            background: tipo === 'Aniversário' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'none',
-                            WebkitBackgroundClip: tipo === 'Aniversário' ? 'text' : 'none',
-                            WebkitTextFillColor: tipo === 'Aniversário' ? 'transparent' : style.color,
-                            color: tipo === 'Aniversário' ? 'transparent' : style.color,
+                            background: (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'none',
+                            WebkitBackgroundClip: (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') ? 'text' : 'none',
+                            WebkitTextFillColor: (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') ? 'transparent' : style.color,
+                            color: (tipo === 'Aniversário' || tipo === 'Aniversário de Tempo de casa') ? 'transparent' : style.color,
                           }}
                         >
                           {style.icon}
@@ -505,7 +540,10 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
 
                   {/* Title + Description */}
                   <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--title)', lineHeight: 1.35, wordBreak: 'break-word' }}>{ev.titulo || ev.Titulo}</div>
+                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--title)', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                      {ev.titulo || ev.Titulo}
+                      {ev.anos ? ` (${ev.anos} anos)` : ''}
+                    </div>
                     {(ev.descricao || ev.Descricao) && (
                       <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '4px', wordBreak: 'break-word' }}>
                         {ev.descricao || ev.Descricao}
@@ -527,7 +565,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
                     {respNome && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '.78rem', color: 'var(--muted)' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>person</span>
-                        {respNome}
+                        {shortenName(respNome)}
                       </div>
                     )}
 
@@ -583,93 +621,6 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         )}
       </div>
 
-      {/* Form Card */}
-      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
-          {form.id ? 'Editar Evento' : 'Novo Evento'}
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-          {/* Col 1: Identificação */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Título do Evento*</label>
-              <input style={inputStyle} value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal de Resultados" />
-            </div>
-            <div>
-              <label style={labelStyle}>Tipo de Evento</label>
-              <select style={inputStyle} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
-                {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Col 2: Datas */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Data e Hora de Início*</label>
-              <input type="datetime-local" style={inputStyle} value={form.dataInicio} onChange={e => setForm(p => ({ ...p, dataInicio: e.target.value }))} />
-            </div>
-            <div>
-              <label style={labelStyle}>Data e Hora de Término</label>
-              <input type="datetime-local" style={inputStyle} value={form.dataFim} onChange={e => setForm(p => ({ ...p, dataFim: e.target.value }))} />
-            </div>
-          </div>
-
-          {/* Col 3: Participantes e Responsável */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Áreas Participantes</label>
-              <MultiSelect
-                options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
-                value={form.areaId}
-                onChange={val => setForm(p => ({ ...p, areaId: val }))}
-                placeholder="Todas (Global)"
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Responsável pelo Evento</label>
-              <select style={inputStyle} value={form.responsavelId} onChange={e => setForm(p => ({ ...p, responsavelId: e.target.value }))}>
-                <option value="">Nenhum responsável</option>
-                {(colaboradores || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Col 4: Descrição e Botão */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Descrição / Pauta</label>
-              <textarea
-                style={{ ...inputStyle, height: '82px', resize: 'none' }}
-                value={form.descricao}
-                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))}
-                placeholder="Breve pauta ou observações importantes sobre o evento..."
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="btn btn-primary"
-                onClick={saveEvento}
-                disabled={saving}
-                style={{ flex: 2, height: '44px', fontWeight: 700 }}
-              >
-                {saving ? 'Salvando...' : (form.id ? 'Atualizar Evento' : 'Salvar Evento')}
-              </button>
-              {form.id && (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setForm(emptyForm)}
-                  style={{ flex: 1, height: '44px' }}
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

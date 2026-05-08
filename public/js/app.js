@@ -57,6 +57,81 @@ function App() {
     localStorage.setItem('gbi_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
+  useEffect(() => {
+    const handleTouchEnd = (e) => {
+      if (e.touches.length === 0) { // All fingers lifted
+        setTimeout(() => {
+          // Se o zoom visual mudou, tentamos suavemente encorajar o retorno ao ideal
+          if (window.visualViewport && window.visualViewport.scale !== 1) {
+             // Resetar o viewport força o navegador a reavaliar a escala se ela não for fixa
+             const vp = document.querySelector('meta[name="viewport"]');
+             if (vp) {
+               vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+             }
+          }
+        }, 500);
+      }
+    };
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => window.removeEventListener('touchend', handleTouchEnd);
+  }, []);
+
+  const resolveApprovers = useCallback((employeeId) => {
+    const requester = getEmployeeById(employeeId);
+    if (!requester || !requester.gestorId) return [];
+
+    const immediateManagerId = Number(requester.gestorId);
+    let currentManagerId = immediateManagerId;
+    let manager = getEmployeeById(currentManagerId);
+    
+    // Prevent infinite loops
+    const visited = new Set([Number(employeeId)]);
+    
+    while (manager) {
+      if (visited.has(Number(manager.id))) break;
+      visited.add(Number(manager.id));
+
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      
+      // 1. Explicit delegation
+      if (manager.delegacaoAtiva && manager.delegadoId && manager.delegacaoInicio && manager.delegacaoFim) {
+        const dStart = toDate(manager.delegacaoInicio);
+        const dEnd = toDate(manager.delegacaoFim);
+        if (now >= dStart && now <= dEnd) {
+          return [Number(manager.delegadoId)];
+        }
+      }
+
+      // 2. Implicit delegation (absence)
+      const isAbsent = requests.some(r => {
+        if (r.status !== 'Aprovado' || Number(r.employeeId) !== Number(manager.id)) return false;
+        const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga'];
+        if (!absenceTypes.includes(r.type)) return false;
+        const start = toDate(r.startDate);
+        const end = r.endDate ? toDate(r.endDate) : start;
+        return now >= start && now <= end;
+      });
+
+      if (isAbsent) {
+        if (manager.gestorId) {
+          currentManagerId = Number(manager.gestorId);
+          manager = getEmployeeById(currentManagerId);
+          continue; // Go up the hierarchy
+        } else {
+          // Reached the top and they are absent.
+          // Admin handles it, but immediate manager ALSO stays in the queue to confirm when available.
+          return [immediateManagerId];
+        }
+      }
+
+      // If no delegation and not absent (or no higher manager), this is the approver
+      return [Number(manager.id)];
+    }
+    
+    return [currentManagerId]; // Fallback
+  }, [getEmployeeById, requests]);
+
 
 
   const getSubordinateIds = (employees, managerId) => {
@@ -206,28 +281,27 @@ function App() {
         let allEvents = [...rEventos];
         if (rColabs) {
           const currentYear = new Date().getFullYear();
-          rColabs.filter(c => c.ativo !== false && c.dataNascimento).forEach(c => {
+          const processSyntheticEvent = (c, dateField, eventType, descriptionFn) => {
             let monthDay = '';
+            let originalYear = null;
             try {
-              const dateStr = String(c.dataNascimento);
+              const dateStr = String(c[dateField]);
               if (dateStr.includes('-')) {
-                // Manual split to avoid any browser Date parsing quirks
                 const parts = dateStr.split('T')[0].split('-');
                 if (parts.length >= 3) {
-                  // YYYY-MM-DD -> MM-DD
                   monthDay = `${parts[1]}-${parts[2]}`;
+                  originalYear = parseInt(parts[0], 10);
                 }
               }
-              
-              // Fallback if manual split failed but we have a valid date
               if (!monthDay) {
-                const d = new Date(c.dataNascimento);
+                const d = new Date(c[dateField]);
                 if (!isNaN(d.getTime())) {
                   monthDay = `${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                  originalYear = d.getUTCFullYear();
                 }
               }
             } catch (e) {
-              console.warn('Error processing birthday for', c.name, e);
+              console.warn('Error processing synthetic event for', c.name, e);
             }
 
             if (monthDay && monthDay.length === 5) {
@@ -237,26 +311,43 @@ function App() {
               limit30.setDate(now.getDate() + 30);
 
               [currentYear, currentYear + 1].forEach(year => {
-                const birthDate = new Date(`${year}-${monthDay}T12:00:00`);
-                
-                // Rule: Show if it's the current year OR within the next 30 days (handles Jan transition)
+                const eventDate = new Date(`${year}-${monthDay}T12:00:00`);
                 const isCurrentYear = (year === currentYear);
-                const isWithin30Days = (birthDate >= now && birthDate <= limit30);
+                const isWithin30Days = (eventDate >= now && eventDate <= limit30);
 
                 if (isCurrentYear || isWithin30Days) {
-                  allEvents.push({
-                    id: `birth-${c.id}-${year}`,
-                    titulo: c.name,
-                    tipo: 'Aniversário',
-                    dataInicio: `${year}-${monthDay}T12:00:00`,
-                    dataFim: `${year}-${monthDay}T13:00:00`,
-                    responsavelId: c.id,
-                    responsavelNome: c.name,
-                    descricao: `Parabéns para ${c.name}!`,
-                    isSynthetic: true
-                  });
+                  let anos = originalYear ? year - originalYear : 0;
+                  
+                  // Ocultar idade se o colaborador não desejar (apenas para aniversário de nascimento)
+                  if (eventType === 'Aniversário' && !c.exibirIdade) {
+                    anos = 0;
+                  }
+
+                  if (anos > 0 || eventType !== 'Aniversário de Tempo de casa') {
+                    allEvents.push({
+                      id: `${eventType === 'Aniversário' ? 'birth' : 'adm'}-${c.id}-${year}`,
+                      titulo: c.name,
+                      tipo: eventType,
+                      dataInicio: `${year}-${monthDay}T12:00:00`,
+                      dataFim: `${year}-${monthDay}T13:00:00`,
+                      responsavelId: c.id,
+                      responsavelNome: c.name,
+                      descricao: descriptionFn(c, anos),
+                      isSynthetic: true,
+                      anos: anos
+                    });
+                  }
                 }
               });
+            }
+          };
+
+          rColabs.filter(c => c.ativo !== false).forEach(c => {
+            if (c.dataNascimento) {
+              processSyntheticEvent(c, 'dataNascimento', 'Aniversário', (colab) => `Parabéns para ${colab.name}!`);
+            }
+            if (c.dataAdmissao) {
+              processSyntheticEvent(c, 'dataAdmissao', 'Aniversário de Tempo de casa', (colab, anos) => `${colab.name} completa ${anos} ano${anos > 1 ? 's' : ''} de empresa!`);
             }
           });
         }
@@ -306,9 +397,25 @@ function App() {
     return list;
   }, [currentUser, dbEmployees]);
 
-  const pendingRequests = useMemo(() => filterByUserRole(detailedRequests.filter(r => r.status === 'Pendente')), [detailedRequests, filterByUserRole]);
+  const pendingRequests = useMemo(() => {
+    return detailedRequests.filter(r => {
+      if (r.status !== 'Pendente') return false;
+      if (currentUser.isAdmin) return true;
+      
+      const isOwner = Number(r.employeeId) === Number(currentUser.colaboradorId);
+      const approvers = resolveApprovers(r.employeeId);
+      const isApprover = approvers.includes(Number(currentUser.colaboradorId));
+      
+      return isOwner || isApprover;
+    });
+  }, [detailedRequests, currentUser, resolveApprovers]);
+
   const approvedRequests = useMemo(() => filterByUserRole(detailedRequests.filter(r => r.status === 'Aprovado')), [detailedRequests, filterByUserRole]);
   const rejectedRequests = useMemo(() => filterByUserRole(detailedRequests.filter(r => r.status === 'Rejeitado')), [detailedRequests, filterByUserRole]);
+
+  const pendingApprovalsCount = useMemo(() => {
+    return pendingRequests.length;
+  }, [pendingRequests]);
 
   const formEmployee = getEmployeeById(form.employeeId);
   const selectedDuration = form.startDate && form.endDate && toDate(form.endDate) >= toDate(form.startDate) ? diffDays(form.startDate, form.endDate) : 0;
@@ -317,7 +424,22 @@ function App() {
     return detailedRequests.filter((request) => {
       if (!request || request.status === 'Rejeitado') return false;
       if (request.employeeId === formEmployee.id) return false;
-      if (request.employee?.team !== formEmployee?.team) return false;
+      
+      // Apenas tipos de aus├â┬¬ncia geram conflito
+      const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+      if (!absenceTypes.includes(request.type)) return false;
+
+      const rLevel = Number(request.employee?.nivelHierarquia);
+      const fLevel = Number(formEmployee?.nivelHierarquia);
+      
+      // Conflito no raio de visibilidade (+1, -1 ou mesmo n├¡vel)
+      const isAdjacentLevel = rLevel === fLevel || rLevel === fLevel - 1 || rLevel === fLevel + 1;
+      // OU Gestores e Subordinados Diretos (mesmo que pulem n├¡veis)
+      const isMyDirectManager = Number(request.employee?.id) === Number(formEmployee?.gestorId);
+      const isMyDirectSubordinate = Number(request.employee?.gestorId) === Number(formEmployee?.id);
+      
+      if (!isAdjacentLevel && !isMyDirectManager && !isMyDirectSubordinate) return false;
+
       return rangesOverlap(form.startDate, form.endDate, request.startDate, request.endDate);
     });
   }, [detailedRequests, form.startDate, form.endDate, formEmployee]);
@@ -459,8 +581,6 @@ function App() {
 
     if (!currentUser.isAdmin) {
       const isOwner = Number(req.employeeId) === Number(currentUser.colaboradorId);
-      const isDirectManager = Number(req.employee.gestorId) === Number(currentUser.colaboradorId);
-      const isSuperiorLevel = currentUser.nivelHierarquia < (req?.employee?.nivelHierarquia || 7);
       const hasNoManager = req.employee.gestorId === null || !req.employee.gestorId;
 
       if (isOwner && !hasNoManager) {
@@ -468,10 +588,21 @@ function App() {
         return;
       }
 
-      if (!isOwner && !isDirectManager && !isSuperiorLevel) {
-        setToast({ title: 'Permissão negada', message: 'Você precisa ser o gestor direto ou possuir nível hierárquico superior para realizar aprovações.', type: 'error' });
+      const approvers = resolveApprovers(req.employeeId);
+      if (!approvers.includes(Number(currentUser.colaboradorId))) {
+        setToast({ title: 'Permissão negada', message: 'Você não é o aprovador responsável por esta solicitação.', type: 'error' });
         return;
       }
+    }
+
+    let finalNote = note || '';
+    // Append delegation info if the current user is not the direct manager
+    const directManagerId = Number(req.employee.gestorId);
+    if (directManagerId && Number(currentUser.colaboradorId) !== directManagerId) {
+      const actionText = decision === 'Aprovado' ? 'Aprovou' : 'Rejeitou';
+      const managerName = req.employee.gestorNome || 'Gestor Imediato';
+      const delegationStr = `[${currentUser.name || currentUser.nome} ${actionText} em nome de ${managerName}]`;
+      finalNote = finalNote ? `${finalNote}\n${delegationStr}` : delegationStr;
     }
 
     setProcessingApprovalId(requestId);
@@ -481,7 +612,7 @@ function App() {
       body: JSON.stringify({
         status: decision,
         aprovadorId: currentUser.colaboradorId,
-        comentarioAprovacao: note
+        comentarioAprovacao: finalNote
       })
     })
       .then(async res => {
@@ -524,7 +655,7 @@ function App() {
   return (
     <div className="app-container">
       <div className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
-      {showSettings && <SettingsModal currentUser={currentUser} authToken={authToken} onClose={() => setShowSettings(false)} onProfileUpdate={url => { const u = { ...currentUser, avatarUrl: url }; setCurrentUser(u); sessionStorage.setItem('gbi_user', JSON.stringify(u)); setShowSettings(false); setActiveView('dashboard'); }} refreshEmployees={fetchAll} colaboradores={colaboradores} areas={areas} cargos={cargos} hierarquia={hierarquia} statusTipos={statusTipos} eventos={eventos} fetchAll={fetchAll} />}
+      {showSettings && <SettingsModal currentUser={currentUser} authToken={authToken} onClose={() => setShowSettings(false)} onProfileUpdate={(url, ex) => { const u = { ...currentUser, avatarUrl: url, exibirIdade: ex }; setCurrentUser(u); sessionStorage.setItem('gbi_user', JSON.stringify(u)); fetchAll(); setShowSettings(false); setActiveView('dashboard'); }} refreshEmployees={fetchAll} colaboradores={colaboradores} areas={areas} cargos={cargos} hierarquia={hierarquia} statusTipos={statusTipos} eventos={eventos} fetchAll={fetchAll} />}
 
       <div className={`app-shell ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <aside className={`sidebar glass ${isSidebarOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`}>
@@ -544,12 +675,20 @@ function App() {
           </div>
           <nav className="nav-list">
             {views.map(v => (
-              <button key={v.id} className={`nav-button ${activeView === v.id ? 'active' : ''}`} onClick={() => { setActiveView(v.id); setIsSidebarOpen(false); }}>
+              <button 
+                key={v.id} 
+                className={`nav-button ${activeView === v.id ? 'active' : ''}`} 
+                onClick={() => { setActiveView(v.id); setIsSidebarOpen(false); }}
+                data-tooltip={v.title}
+              >
                 <span className="material-symbols-outlined">{v.icon}</span>
                 <div className="nav-text-wrapper">
                   <span className="nav-title">{v.title}</span>
                   <span className="nav-caption">{v.caption}</span>
                 </div>
+                {v.id === 'approvals' && pendingApprovalsCount > 0 && (
+                  <div className="nav-badge">{pendingApprovalsCount}</div>
+                )}
               </button>
             ))}
           </nav>
@@ -680,7 +819,7 @@ function App() {
           {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} authorizedScope={authorizedScope} />}
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} />}
           {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} authorizedScope={authorizedScope} />}
-          {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} />}
+          {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} dbEmployees={dbEmployees} authToken={authToken} fetchAll={fetchAll} setToast={setToast} />}
           {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} calendarViewDate={calendarViewDate} setCalendarViewDate={setCalendarViewDate} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} />}
           {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
         </main>

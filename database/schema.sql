@@ -82,7 +82,11 @@ BEGIN
         AreaId INT NULL FOREIGN KEY REFERENCES BI_Areas(Id),
         CargoId INT NULL FOREIGN KEY REFERENCES BI_Cargos(Id),
         Ativo BIT DEFAULT 1,
-        DataInativacao DATETIME NULL
+        DataInativacao DATETIME NULL,
+        DelegadoId INT NULL FOREIGN KEY REFERENCES BI_Colaboradores(Id),
+        DelegacaoInicio DATE NULL,
+        DelegacaoFim DATE NULL,
+        DelegacaoAtiva BIT DEFAULT 0
     );
 
     -- Dados iniciais base

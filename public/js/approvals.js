@@ -1,10 +1,137 @@
-function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUser, processingApprovalId }) {
+function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUser, processingApprovalId, dbEmployees, authToken, fetchAll, setToast }) {
   const [localNotes, setLocalNotes] = React.useState({}); // { requestId: comment }
+  const [isSavingDelegation, setIsSavingDelegation] = React.useState(false);
+  
+  // Initialize delegation state from currentUser
+  const [delegationState, setDelegationState] = React.useState({
+    delegadoId: currentUser?.delegadoId || '',
+    delegacaoInicio: currentUser?.delegacaoInicio || '',
+    delegacaoFim: currentUser?.delegacaoFim || '',
+    delegacaoAtiva: currentUser?.delegacaoAtiva || false
+  });
+
+  const [historyFilters, setHistoryFilters] = React.useState({
+    scope: 'all', // 'all' (hierarquia) ou 'direct' (diretos)
+    status: 'all' // 'all', 'Aprovado', 'Rejeitado', 'Pendente'
+  });
+
   // Regra Global: Apenas Admin ou Nível 5 (Coordenador) para cima
   const hasMinApprovalLevel = currentUser && (currentUser.isAdmin || (currentUser.nivelHierarquia && currentUser.nivelHierarquia <= 5));
+  const hasSubordinates = dbEmployees && currentUser && dbEmployees.some(e => String(e.gestorId) === String(currentUser.colaboradorId));
+
+  const saveDelegation = async () => {
+    if (delegationState.delegacaoAtiva && (!delegationState.delegadoId || !delegationState.delegacaoInicio || !delegationState.delegacaoFim)) {
+      setToast({ title: 'Campos incompletos', message: 'Preencha o delegado e as datas para ativar a delegação.', type: 'warning' });
+      return;
+    }
+    
+    setIsSavingDelegation(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/delegation`, {
+        method: 'PUT',
+        headers: apiHeaders(authToken),
+        body: JSON.stringify(delegationState)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar delegação');
+      
+      setToast({ title: 'Sucesso', message: 'Configurações de delegação salvas.' });
+      fetchAll({ silent: true });
+      
+      // Update session storage immediately to avoid refresh
+      const savedUser = JSON.parse(sessionStorage.getItem('gbi_user'));
+      if (savedUser) {
+        const updatedUser = { ...savedUser, ...delegationState };
+        sessionStorage.setItem('gbi_user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      setToast({ title: 'Erro', message: err.message, type: 'error' });
+    } finally {
+      setIsSavingDelegation(false);
+    }
+  };
 
   return (
     <div className="dashboard-grid">
+
+      {/* Bloco de Delegação */}
+      {hasSubordinates && (
+        <section className="card delegation-config-card" style={{ marginBottom: '10px', borderLeft: '3px solid var(--primary)', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-20px', right: '-20px', fontSize: '100px', opacity: 0.03, pointerEvents: 'none' }}>
+            <span className="material-symbols-outlined">swap_horiz</span>
+          </div>
+          <div className="section-title">
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Delegação de Aprovações</h3>
+              <p>Configure um responsável temporário para assumir suas aprovações.</p>
+            </div>
+          </div>
+          
+          <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end', marginTop: '16px' }}>
+            <div className="field">
+              <label>Delegar para (Opcional)</label>
+              <select 
+                value={delegationState.delegadoId} 
+                onChange={e => setDelegationState({...delegationState, delegadoId: e.target.value})}
+                disabled={delegationState.delegacaoAtiva}
+              >
+                <option value="">Selecione um colaborador...</option>
+                {dbEmployees.filter(e => e.ativo && e.nivelHierarquia <= 5 && String(e.id) !== String(currentUser.colaboradorId)).map(e => (
+                  <option key={e.id} value={e.id}>{e.name} - {e.cargoNome || e.cargo}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Data Início</label>
+              <input 
+                type="date" 
+                value={delegationState.delegacaoInicio} 
+                onChange={e => setDelegationState({...delegationState, delegacaoInicio: e.target.value})}
+                disabled={delegationState.delegacaoAtiva}
+              />
+            </div>
+            <div className="field">
+              <label>Data Fim</label>
+              <input 
+                type="date" 
+                value={delegationState.delegacaoFim} 
+                onChange={e => setDelegationState({...delegationState, delegacaoFim: e.target.value})}
+                disabled={delegationState.delegacaoAtiva}
+              />
+            </div>
+            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '12px' }}>
+              <label style={{ visibility: 'hidden' }}>Ativar</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={delegationState.delegacaoAtiva} 
+                  onChange={e => setDelegationState({...delegationState, delegacaoAtiva: e.target.checked})}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: 600, color: delegationState.delegacaoAtiva ? 'var(--primary)' : 'var(--text)' }}>
+                  {delegationState.delegacaoAtiva ? 'Delegação Ativa' : 'Delegação Inativa'}
+                </span>
+              </label>
+            </div>
+            <div className="field">
+              <button 
+                className="btn btn-primary" 
+                onClick={saveDelegation} 
+                disabled={isSavingDelegation}
+                style={{ width: '100%', height: '42px' }}
+              >
+                {isSavingDelegation ? 'Salvando...' : 'Salvar Configuração'}
+              </button>
+            </div>
+          </div>
+          <div className="alert-box info" style={{ marginTop: '20px', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>lightbulb</span>
+            <div style={{ fontSize: '0.85rem' }}>
+              <strong>Dica:</strong> Em caso de ausência programada no calendário (ex: férias), sua delegação será ativada automaticamente para o seu superior imediato, caso não tenha definido uma delegação manual acima.
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="content-grid">
         <div className="card">
@@ -22,7 +149,18 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                 if (item.id === request.id) return false;
                 if (item.status === 'Rejeitado') return false;
                 if (!absenceTypes.includes(item.type)) return false;
-                if (item.employee?.team !== request.employee?.team) return false;
+                
+                const rLevel = Number(item.employee?.nivelHierarquia);
+                const fLevel = Number(request.employee?.nivelHierarquia);
+                
+                // Conflito no raio de visibilidade (+1, -1 ou mesmo n├¡vel)
+                const isAdjacentLevel = rLevel === fLevel || rLevel === fLevel - 1 || rLevel === fLevel + 1;
+                // OU Gestores e Subordinados Diretos (mesmo que pulem n├¡veis)
+                const isMyDirectManager = Number(item.employee?.id) === Number(request.employee?.gestorId);
+                const isMyDirectSubordinate = Number(item.employee?.gestorId) === Number(request.employee?.id);
+                
+                if (!isAdjacentLevel && !isMyDirectManager && !isMyDirectSubordinate) return false;
+
                 return rangesOverlap(item.startDate, item.endDate, request.startDate, request.endDate);
               });
               const level = getConflictLevel(relatedConflicts);
@@ -31,8 +169,28 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                 <div className="queue-card glass-card" key={request.id} style={{ padding: '24px', borderRadius: 'var(--radius-lg)', marginBottom: '20px' }}>
                   <div className="queue-meta" style={{ marginBottom: '20px' }}>
                     <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{request.employee?.name || 'Indefinido'}</h4>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{shortenName(request.employee?.name) || 'Indefinido'}</h4>
                       <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{request.type} · <strong>{formatDate(request.startDate)}</strong> até <strong>{formatDate(request.endDate)}</strong></p>
+                      
+                      {/* Indicador de Delegação */}
+                      {currentUser && !currentUser.isAdmin && Number(request.employee?.gestorId) !== Number(currentUser.colaboradorId) && (
+                        <div className="delegation-badge" style={{ 
+                          fontSize: '0.72rem', 
+                          color: 'var(--primary)', 
+                          marginTop: '6px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          background: 'rgba(var(--primary-rgb), 0.1)',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          width: 'fit-content',
+                          fontWeight: 600
+                        }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>swap_horiz</span>
+                          Solicitação delegada por {request.employee?.gestorNome || 'seu gestor'}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <span className={`dash-micro-badge glass ${getConflictClass(level)}`} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)' }}>
@@ -55,6 +213,20 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                     </div>
                   </div>
 
+                  {request.note && request.note !== 'Sem observações adicionais.' && (
+                    <div className="requester-note" style={{ 
+                      marginBottom: '20px', 
+                      padding: '12px 16px', 
+                      background: 'rgba(255,255,255,0.02)', 
+                      borderRadius: 'var(--radius-md)', 
+                      borderLeft: '2px solid rgba(255,255,255,0.1)',
+                      fontStyle: 'italic'
+                    }}>
+                      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Observações do Solicitante</label>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-soft)', lineHeight: '1.5' }}>"{request.note}"</p>
+                    </div>
+                  )}
+
                   {relatedConflicts.length > 0 && (
                     <div className="mini-list glass" style={{ margin: '0 0 20px 0', padding: '16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.1)' }}>
                        <h5 style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -63,7 +235,7 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                        </h5>
                        {relatedConflicts.map((conflict) => (
                          <div key={conflict.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                           <span style={{ fontSize: '0.85rem' }}>{conflict.employee?.name}</span>
+                           <span style={{ fontSize: '0.85rem' }}>{shortenName(conflict.employee?.name)}</span>
                            <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>{formatDate(conflict.startDate)} - {formatDate(conflict.endDate)}</span>
                          </div>
                        ))}
@@ -73,10 +245,7 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
 
                   {(() => {
                       const isOwner = Number(request.employeeId) === Number(currentUser.colaboradorId);
-                      const isDirectManager = Number(request.employee?.gestorId) === Number(currentUser.colaboradorId);
-                      const isSuperiorLevel = currentUser.nivelHierarquia < (request.employee?.nivelHierarquia || 7);
-                      const hasNoManager = request.employee?.gestorId === null || !request.employee?.gestorId;
-                      const canAction = currentUser.isAdmin || (isOwner && hasNoManager) || (!isOwner && (isDirectManager || isSuperiorLevel));
+                      const canAction = !isOwner || currentUser.isAdmin;
 
                       if (canAction) {
                         return (
@@ -97,11 +266,7 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                   <div className="queue-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
                     {(() => {
                       const isOwner = Number(request.employeeId) === Number(currentUser.colaboradorId);
-                      const isDirectManager = Number(request.employee?.gestorId) === Number(currentUser.colaboradorId);
-                      const isSuperiorLevel = currentUser.nivelHierarquia < (request.employee?.nivelHierarquia || 7);
-                      const hasNoManager = request.employee?.gestorId === null || !request.employee?.gestorId;
-                      
-                      const canAction = currentUser.isAdmin || (isOwner && hasNoManager) || (!isOwner && (isDirectManager || isSuperiorLevel));
+                      const canAction = !isOwner || currentUser.isAdmin;
 
                       if (canAction) {
                         return (
@@ -119,13 +284,9 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                       return (
                         <div style={{ color: 'var(--muted)', fontSize: '.85rem', padding: '8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#f59e0b' }}>
-                            {isOwner ? 'person_off' : 'lock'}
+                            person_off
                           </span>
-                          <span>
-                            {isOwner 
-                              ? 'Sua solicitação (apenas consulta)' 
-                              : 'Sem permissão para este nível hierárquico'}
-                          </span>
+                          <span>Sua solicitação (Aguardando aprovação do seu gestor)</span>
                         </div>
                       );
                     })()}
@@ -146,12 +307,65 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
             </div>
           </div>
 
+          {/* Filtros do Histórico */}
+          <div className="history-filters" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <div style={{ flex: 1 }}>
+              <select 
+                value={historyFilters.scope} 
+                onChange={e => setHistoryFilters({...historyFilters, scope: e.target.value})}
+                style={{ width: '100%', fontSize: '0.75rem', padding: '6px 10px', borderRadius: 'var(--radius-sm)', background: 'rgba(0,0,0,0.1)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
+              >
+                <option value="all">Toda Hierarquia</option>
+                <option value="direct">Apenas Diretos</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <select 
+                value={historyFilters.status} 
+                onChange={e => setHistoryFilters({...historyFilters, status: e.target.value})}
+                style={{ width: '100%', fontSize: '0.75rem', padding: '6px 10px', borderRadius: 'var(--radius-sm)', background: 'rgba(0,0,0,0.1)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
+              >
+                <option value="all">Todos Status</option>
+                <option value="Aprovado">Aprovados</option>
+                <option value="Rejeitado">Rejeitados</option>
+                <option value="Pendente">Pendentes</option>
+              </select>
+            </div>
+          </div>
+
           <div className="history-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {allRequests.filter(r => r.status !== 'Pendente' && r.type !== 'Escala de Trabalho' && r.type !== 'Ajuste de Escala').slice(0, 10).map(req => (
+            {allRequests
+              .filter(r => {
+                // Filtro básico de tipo (ignorando escalas)
+                if (r.type === 'Escala de Trabalho' || r.type === 'Ajuste de Escala') return false;
+
+                // Filtro de Status
+                if (historyFilters.status !== 'all' && r.status !== historyFilters.status) return false;
+                // Se o status for 'all', por padrão mostramos apenas o que não é pendente para não duplicar a lista da esquerda
+                // EXCETO se o usuário pedir explicitamente para ver pendentes no filtro de status.
+                if (historyFilters.status === 'all' && r.status === 'Pendente') return false;
+
+                // Filtro de Escopo (Hierarquia)
+                if (historyFilters.scope === 'direct') {
+                  if (Number(r.employee?.gestorId) !== Number(currentUser.colaboradorId)) return false;
+                } else {
+                  // Filtro de Hierarquia Geral (Baseado no que o usuário tem acesso)
+                  // Se não for admin, filtra pela hierarquia subordinada
+                  if (!currentUser.isAdmin) {
+                    const isSubordinate = dbEmployees.some(e => e.id === r.employeeId && (Number(e.gestorId) === Number(currentUser.colaboradorId) || String(e.gestor).includes(currentUser.name)));
+                    // Na verdade, no app.js já temos a lógica de authorizedScope. 
+                    // Como estamos no ApprovalView, vamos assumir que o usuário só quer ver o que lhe concerne.
+                    // Se estiver em 'all', mostramos o que vier no detailedRequests que pertencer à rede dele.
+                  }
+                }
+                return true;
+              })
+              .slice(0, 15)
+              .map(req => (
               <div key={req.id} className="glass" style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>{req.employeeName}</h5>
+                    <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>{shortenName(req.employeeName)}</h5>
                     <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--muted)' }}>{req.type} · {formatDate(req.startDate)}</p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -164,7 +378,7 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
                         chat_bubble
                       </span>
                     )}
-                    <span className={`status-pill ${req.status === 'Aprovado' ? 'done' : 'rejected'}`} style={{ fontSize: '0.7rem', padding: '4px 10px' }}>{req.status}</span>
+                    <span className={`status-pill ${req.status === 'Aprovado' ? 'done' : req.status === 'Rejeitado' ? 'rejected' : 'working'}`} style={{ fontSize: '0.7rem', padding: '4px 10px' }}>{req.status}</span>
                   </div>
                 </div>
                 {req.comentarioAprovacao && req.comentarioAprovacao.trim() !== '' && (
