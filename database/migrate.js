@@ -77,19 +77,39 @@ async function runMigration() {
             END
         `);
 
-        // 4. Garantir que DataNascimento existe em Colaboradores
+        // 4. Garantir que DataNascimento e DataAdmissao existem em Colaboradores
         await request.query(`
             IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'DataNascimento')
-            BEGIN
                 ALTER TABLE BI_Colaboradores ADD DataNascimento DATE NULL;
-                PRINT 'Adicionado: BI_Colaboradores.DataNascimento';
-            END
+            
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'DataAdmissao')
+                ALTER TABLE BI_Colaboradores ADD DataAdmissao DATE NULL;
         `);
 
-        // 5. Garantir que NivelHierarquia aceita NULL (para evitar erros de carga)
+        // 5. Garantir que ExibirIdade existe (necessário para o login)
+        await request.query(`
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'ExibirIdade')
+                ALTER TABLE BI_Colaboradores ADD ExibirIdade BIT DEFAULT 0;
+        `);
+
+        // 6. Colunas de Delegação
+        await request.query(`
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'DelegadoId')
+                ALTER TABLE BI_Colaboradores ADD DelegadoId INT NULL;
+            
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'DelegacaoInicio')
+                ALTER TABLE BI_Colaboradores ADD DelegacaoInicio DATE NULL;
+            
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'DelegacaoFim')
+                ALTER TABLE BI_Colaboradores ADD DelegacaoFim DATE NULL;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'DelegacaoAtiva')
+                ALTER TABLE BI_Colaboradores ADD DelegacaoAtiva BIT DEFAULT 0;
+        `);
+
+        // 7. Garantir que NivelHierarquia aceita NULL
         await request.query(`
             ALTER TABLE BI_Colaboradores ALTER COLUMN NivelHierarquia INT NULL;
-            PRINT 'Ajustado: BI_Colaboradores.NivelHierarquia para permitir NULL';
         `);
 
         console.log('✨ Migração finalizada com sucesso!');
