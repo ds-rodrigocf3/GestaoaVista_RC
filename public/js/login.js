@@ -28,11 +28,11 @@ function LoginModal({ onLogin }) {
       });
       const data = await res.json();
       console.log('📡 Resposta do login - status:', res.status, 'sucesso:', res.ok);
-      if (!res.ok) { 
+      if (!res.ok) {
         console.error('❌ Login falhou:', data.error);
-        setError(data.error || 'Credenciais inválidas'); 
-        setLoading(false); 
-        return; 
+        setError(data.error || 'Credenciais inválidas');
+        setLoading(false);
+        return;
       }
       console.log('✅ Login bem-sucedido, chamando onLogin');
       onLogin(data.user, data.token);
@@ -45,8 +45,8 @@ function LoginModal({ onLogin }) {
 
   return (
     <div className="login-overlay">
-      <button 
-        className="login-theme-toggle" 
+      <button
+        className="login-theme-toggle"
         onClick={() => setIsDark(!isDark)}
         title={isDark ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
       >
@@ -60,7 +60,7 @@ function LoginModal({ onLogin }) {
           <div className="login-logo-icon">📊</div>
           <div>
             <h1>Gestão à Vista</h1>
-            <p>Superintendência Financeira</p>
+            <p>Superintendência de Finanças</p>
           </div>
         </div>
         <form onSubmit={handleSubmit}>
