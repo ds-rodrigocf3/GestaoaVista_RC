@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "build": "echo 'No build needed'",
     "setup-db": "node database/setup.js",
+    "migrate-db": "node database/migrate.js",
     "test": "echo \"No tests for now\""
   },
   "keywords": [],
