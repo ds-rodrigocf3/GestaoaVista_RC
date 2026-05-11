@@ -1,4 +1,6 @@
 // Modular server entrypoint - mounts route modules
+// Carrega variáveis de ambiente (.env.local tem prioridade sobre .env)
+require('dotenv').config({ path: '.env.local' });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

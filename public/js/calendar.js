@@ -446,7 +446,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
           {/* Numeric Indicators Bar */}
           <div className="calendar-stats-strip glass" style={{ 
             display: 'flex', gap: '16px', 
-            padding: '16px 24px', 
+            padding: '16px 20px', 
             borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)',
             boxShadow: 'var(--shadow-sm)',
             alignItems: 'center',
@@ -454,37 +454,37 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
             flexWrap: 'wrap',
             width: '100%'
           }}>
-            <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)', minWidth: '200px' }}>
-               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '20px' }}>calendar_month</span>
                </div>
-               <div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Dias Disponíveis</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Dias Disponíveis</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>
                     {businessDaysCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {totalBusinessDays}</span>
                   </div>
                </div>
             </div>
 
-            <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)', minWidth: '200px', paddingLeft: '8px' }}>
-               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>analytics</span>
                </div>
-               <div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Meta (Mínimo 50%)</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Meta (Mínimo 50%)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>
                     {Math.floor(businessDaysCount / 2)} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {businessDaysCount}</span>
                   </div>
                </div>
             </div>
 
-            <div style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', minWidth: '200px', paddingLeft: '8px' }}>
-               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
                </div>
-               <div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Realizado (Presencial)</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{presencialCount}</div>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Realizado (Presencial)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>{presencialCount}</div>
                </div>
             </div>
           </div>

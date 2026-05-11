@@ -5502,11 +5502,19 @@ html:not([data-theme="dark"]) .admin-table td {
 
   .dash-kpi-card {
     flex-direction: row !important;
-    padding: 10px 20px !important;
-    min-height: 60px !important;
-    gap: 16px !important;
+    padding: 12px 16px !important;
+    min-height: 70px !important;
+    gap: 12px !important;
     justify-content: flex-start !important;
     align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dash-kpi-card > div:first-child {
+    font-size: 1.5rem !important;
+    min-width: 40px;
+    text-align: center;
   }
 
   .dash-kpi-card > div:last-child {
@@ -5514,33 +5522,40 @@ html:not([data-theme="dark"]) .admin-table td {
     flex-direction: column;
     align-items: flex-start !important;
     text-align: left !important;
+    flex: 1;
   }
 
   .dash-kpi-card > div:last-child > div:first-child {
-    font-size: 0.65rem !important;
+    font-size: clamp(0.6rem, 2vw, 0.7rem) !important;
     margin-bottom: 2px;
+    opacity: 0.8;
   }
 
   .dash-kpi-card > div:last-child > div:last-child {
-    font-size: 1.2rem !important;
-    line-height: 1 !important;
+    font-size: clamp(1.1rem, 4vw, 1.3rem) !important;
+    line-height: 1.1 !important;
+    font-weight: 800 !important;
   }
 
   .calendar-stats-strip {
     flex-direction: column !important;
-    gap: 10px !important;
+    gap: 12px !important;
     padding: 16px !important;
   }
 
   .calendar-stats-strip > div {
     border-right: none !important;
     border-bottom: 1px solid var(--line);
-    padding-bottom: 10px !important;
+    padding: 0 0 12px 0 !important;
     width: 100% !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .calendar-stats-strip > div:last-child {
     border-bottom: none !important;
+    padding-bottom: 0 !important;
   }
 
   .dash-360-filters-bar,
@@ -5548,10 +5563,7 @@ html:not([data-theme="dark"]) .admin-table td {
   .events-quick-filters {
     padding: 16px !important;
     gap: 16px !important;
-  }
-
-  .dash-360-filters-bar label {
-    margin-bottom: 8px !important;
+    flex-direction: column !important;
   }
 
   .dash-360-filters-bar > div:first-child > div {
@@ -5563,12 +5575,10 @@ html:not([data-theme="dark"]) .admin-table td {
 
   .dash-360-filters-bar button {
     width: 100% !important;
-    padding: 8px 4px !important;
-    font-size: 0.7rem !important;
-    white-space: nowrap !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
+    padding: 10px 6px !important;
+    font-size: 0.72rem !important;
+    height: auto !important;
+    min-height: 40px;
   }
 
   .dash-360-filters-bar > div:nth-child(2),
@@ -5816,36 +5826,67 @@ html, body {
   color: var(--text);
 }
 
-/* --- Status Pills - UX Restoration --- */
-.status-pill {
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: inline-flex;
-  align-items: center;
+/* --- Status & Priority Pills - Unified UI --- */
+.status-pill, .priority-badge {
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   gap: 6px;
   transition: all 0.2s ease;
+  min-width: 90px !important;
+  height: 24px !important;
+  white-space: nowrap !important;
+  border: 1px solid transparent !important;
 }
 
+/* Status Variations */
 .status-pill.done {
-  background: rgba(16, 185, 129, 0.12) !important;
+  background: rgba(16, 185, 129, 0.15) !important;
   color: #10b981 !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
 }
 
 .status-pill.rejected {
-  background: rgba(239, 68, 68, 0.12) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
   color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
 }
 
 .status-pill.working {
-  background: rgba(245, 158, 11, 0.12) !important;
+  background: rgba(245, 158, 11, 0.15) !important;
   color: #f59e0b !important;
-  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Priority Variations (Themed) */
+.priority-badge.critica {
+  background: rgba(226, 68, 92, 0.15) !important;
+  color: #e2445c !important;
+  border-color: rgba(226, 68, 92, 0.25) !important;
+}
+
+.priority-badge.alta {
+  background: rgba(120, 75, 209, 0.15) !important;
+  color: #9d76ef !important;
+  border-color: rgba(120, 75, 209, 0.25) !important;
+}
+
+.priority-badge.media {
+  background: rgba(87, 155, 252, 0.15) !important;
+  color: #579bfc !important;
+  border-color: rgba(87, 155, 252, 0.25) !important;
+}
+
+.priority-badge.baixa {
+  background: rgba(148, 163, 184, 0.15) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
 }
 
 /* --- Mobile Optimization Overrides --- */
@@ -5856,36 +5897,46 @@ html, body {
   }
 
   .field label {
-    font-size: 0.72rem !important;
+    font-size: clamp(0.65rem, 2vw, 0.75rem) !important;
     margin-bottom: 6px !important;
     color: var(--muted) !important;
   }
 
   .modern-selector, select, input, textarea {
-    font-size: 1rem !important; /* Prevents iOS auto-zoom on focus */
-    padding: 12px !important;
-    min-height: 48px !important;
+    font-size: 16px !important; /* Fixed 16px to prevent iOS zoom */
+    padding: 10px 12px !important;
+    min-height: 44px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
   .action-row, .queue-actions {
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   .btn, .btn-primary, .btn-secondary, button.btn-primary {
     width: 100% !important;
-    height: 52px !important;
-    font-size: 0.95rem !important;
+    height: 48px !important;
+    font-size: 0.9rem !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
   }
 
   .glass-card {
-    padding: 20px 16px !important;
+    padding: 16px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .view-header h1 {
+    font-size: clamp(1.2rem, 5vw, 1.6rem) !important;
+    line-height: 1.2 !important;
   }
 
   .history-filters {
     flex-direction: column !important;
+    gap: 12px !important;
   }
 }
 

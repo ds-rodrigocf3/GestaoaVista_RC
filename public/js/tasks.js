@@ -847,16 +847,15 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     return { 
       background: STATUS_COLORS[s] || '#64748b', 
       color: '#fff', 
-      fontWeight: 700,
-      padding: '4px 8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      width: '120px',
-      height: '28px',
-      borderRadius: 'var(--radius-lg)',
-      display: 'inline-flex',
+      fontWeight: 800,
+      padding: '0 8px',
+      width: '100%',
+      height: '100%',
+      borderRadius: '12px',
+      display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '0.72rem',
+      fontSize: '0.68rem',
       textTransform: 'uppercase',
       border: 'none',
       appearance: 'none',
@@ -865,23 +864,23 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     };
   };
   const prioritySelectStyle = (p) => {
-    const map = { 'Crítica': '#e2445c', 'Alta': '#784bd1', 'Média': '#579bfc', 'Baixa': '#c4c4c4' };
+    const map = { 'Crítica': '#e2445c', 'Alta': '#784bd1', 'Média': '#579bfc', 'Baixa': '#94a3b8' };
     return { 
       background: map[p] || '#c4c4c4', 
-      color: p === 'Baixa' ? '#555' : '#fff', 
-      fontWeight: 700, 
-      fontSize: '.72rem', 
+      color: '#fff', 
+      fontWeight: 800, 
+      fontSize: '0.68rem', 
       border: 'none', 
-      borderRadius: 'var(--radius-lg)', 
-      padding: '4px 8px', 
+      borderRadius: '12px', 
+      padding: '0 8px', 
       cursor: 'pointer', 
       textAlign: 'center', 
-      width: '120px',
-      height: '28px',
+      width: '100%',
+      height: '100%',
       textTransform: 'uppercase', 
-      letterSpacing: '.03em',
+      letterSpacing: '.02em',
       appearance: 'none',
-      display: 'inline-flex',
+      display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
     };
@@ -1118,39 +1117,44 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         <div className="horizontal-scroll-container">
           <table className="custom-table demandas-table" style={{ borderSpacing: '0 4px', tableLayout: 'fixed', width: 'max-content', minWidth: '100%', borderCollapse: 'separate' }}>
             <thead>
-              <tr style={{ background: 'var(--table-header-bg)' }}>
-                <th style={{ width: '40px', textAlign: 'center' }}></th>
+              <tr style={{ background: 'var(--table-header-bg)', height: '40px' }}>
+                <th style={{ width: '40px', textAlign: 'center', verticalAlign: 'middle' }}></th>
                 <ResizableHeader 
                   label="Nome da Demanda" 
                   idPrefix="demand-"
                   width={demandColWidths.title} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, title: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, title: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '12px' }}
                 />
                 <ResizableHeader 
                   label="Responsável" 
                   idPrefix="demand-"
                   width={demandColWidths.owner} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, owner: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, owner: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '12px' }}
                 />
                 <ResizableHeader 
                   label="Cronograma" 
                   idPrefix="demand-"
                   width={demandColWidths.dates} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, dates: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, dates: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'center' }}
                 />
                 <ResizableHeader 
                   label="Progresso" 
                   idPrefix="demand-"
                   width={demandColWidths.progress} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, progress: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, progress: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '12px' }}
                 />
                 <ResizableHeader 
                   label="Status" 
                   idPrefix="demand-"
                   width={demandColWidths.status} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, status: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, status: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'center' }}
                 />
-                <th style={{ width: '60px', textAlign: 'center', fontSize: '0.7rem', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Ações</th>
+                <th style={{ width: '60px', textAlign: 'center', verticalAlign: 'middle', fontSize: '0.7rem', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -1228,15 +1232,41 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       </div>
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px' }}>
-                      <select
-                        className="status-pill-select"
-                        value={dStatus}
-                        onChange={e => { e.stopPropagation(); handleDemandaStatusChange(d, e.target.value); }}
-                        onClick={e => e.stopPropagation()}
-                        style={statusSelectStyle(dStatus)}
-                      >
-                        {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                      <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100px', height: '24px', margin: '0 auto' }}>
+                        <div 
+                          style={{ 
+                            ...statusSelectStyle(dStatus), 
+                            position: 'absolute', 
+                            inset: 0, 
+                            pointerEvents: 'none',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {demandColWidths.status < 100 ? STATUS_INITIALS[dStatus] || dStatus : dStatus}
+                        </div>
+                        <select
+                          value={dStatus}
+                          onChange={e => { e.stopPropagation(); handleDemandaStatusChange(d, e.target.value); }}
+                          onClick={e => e.stopPropagation()}
+                          style={{ 
+                            position: 'absolute', 
+                            inset: 0, 
+                            opacity: 0, 
+                            cursor: 'pointer',
+                            width: '100%',
+                            height: '100%'
+                          }}
+                        >
+                          {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -1422,46 +1452,69 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                           </div>
                         </td>
                         <td className="text-center">
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100px', height: '24px', margin: '0 auto' }}>
+                            <div 
+                              style={{ 
+                                ...prioritySelectStyle(task.priority), 
+                                position: 'absolute', 
+                                inset: 0, 
+                                pointerEvents: 'none',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {task.priority}
+                            </div>
                             <select
-                              className="status-pill-select"
                               value={task.priority}
                               onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                              style={prioritySelectStyle(task.priority)}
+                              style={{ 
+                                position: 'absolute', 
+                                inset: 0, 
+                                opacity: 0, 
+                                cursor: 'pointer',
+                                width: '100%',
+                                height: '100%'
+                              }}
                             >
                               {priorities.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                           </div>
                         </td>
                         <td className="text-center" style={{ width: `${taskColWidths.status}px` }}>
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ position: 'relative', width: '120px', height: '28px' }}>
-                              <div 
-                                className="status-pill-select" 
-                                style={{ 
-                                  ...statusSelectStyle(task.status), 
-                                  position: 'absolute', 
-                                  inset: 0, 
-                                  pointerEvents: 'none'
-                                }}
-                              >
-                                {taskColWidths.status < 100 ? STATUS_INITIALS[task.status] : task.status}
-                              </div>
-                              <select
-                                value={task.status}
-                                onChange={e => handleStatusChange(task, e.target.value)}
-                                style={{ 
-                                  position: 'absolute', 
-                                  inset: 0, 
-                                  opacity: 0, 
-                                  cursor: 'pointer', 
-                                  width: '100%',
-                                  height: '100%'
-                                }}
-                              >
-                                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
+                          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100px', height: '24px', margin: '0 auto' }}>
+                            <div 
+                              style={{ 
+                                ...statusSelectStyle(task.status), 
+                                borderRadius: '12px',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                position: 'absolute', 
+                                inset: 0, 
+                                pointerEvents: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {taskColWidths.status < 100 ? STATUS_INITIALS[task.status] : task.status}
                             </div>
+                            <select
+                              value={task.status}
+                              onChange={e => handleStatusClick(task.id, e.target.value, task.status)}
+                              style={{ 
+                                position: 'absolute', 
+                                inset: 0, 
+                                opacity: 0, 
+                                cursor: 'pointer',
+                                width: '100%',
+                                height: '100%'
+                              }}
+                            >
+                              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
                           </div>
                         </td>
                         <td className="text-center" style={{ minWidth: '110px' }}>
