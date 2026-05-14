@@ -73,7 +73,28 @@ A transição e definição das cores são feitas através de **CSS Custom Prope
 
 ---
 
-## 5. Responsividade (Mobile-First Constraints)
+## 5. Indicadores de Status e Conflitos
+
+Para facilitar a tomada de decisão rápida, o sistema utiliza códigos de cores e iconografia específica para status de solicitações e alertas de conflito.
+
+### 5.1. Cores de Status (Pills)
+Utilizadas em tabelas e resumos:
+- **Aprovado / Concluído**: Verde (`#10b981`).
+- **Pendente / Em Andamento**: Laranja (`#f59e0b`).
+- **Rejeitado / Bloqueio**: Vermelho (`#ef4444`).
+
+### 5.2. Calendário de Conflitos (Agendamentos)
+O calendário utiliza pontos coloridos para indicar sobreposição de períodos entre membros da equipe:
+- **Vermelho (#ef4444)**: Indica conflito com um agendamento já **Aprovado**. Exige atenção imediata e possível ajuste de datas.
+- **Laranja (#f59e0b)**: Indica conflito com um agendamento **Pendente**. Serve como alerta preventivo para períodos com alta demanda de ausência.
+- **Critérios de Detecção**: O conflito é disparado automaticamente se houver sobreposição em:
+  1. Hierarquia direta (Gestor/Subordinado).
+  2. Níveis hierárquicos próximos (±1 nível).
+  3. Paridade total de Cargo e Área (mesmo que em níveis distantes).
+
+---
+
+## 6. Responsividade (Mobile-First Constraints)
 
 O dashboard contém alta densidade de dados (tabelas, Gantt, relatórios). As abordagens para garantir responsividade incluem:
 

@@ -628,7 +628,7 @@ function getRelativeTime(startDateValue, type = '', endDateValue = null) {
   if (!startDate || isNaN(startDate.getTime())) return null;
 
   const isAnniversary = type === 'Aniversário' || type === 'Aniversário de Tempo de casa';
-  const isAbsence = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga', 'Férias', 'Saúde'].includes(type);
+  const isAbsence = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga', 'Férias', 'Saúde', 'Banco de horas'].includes(type);
   const isToday = now.toLocaleDateString('pt-BR') === startDate.toLocaleDateString('pt-BR');
 
   const endDate = endDateValue ? new Date(endDateValue) : null;

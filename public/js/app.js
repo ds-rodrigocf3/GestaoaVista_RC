@@ -134,7 +134,7 @@ function App() {
       // 2. Implicit delegation (absence)
       const isAbsent = requests.some(r => {
         if (r.status !== 'Aprovado' || Number(r.employeeId) !== Number(manager.id)) return false;
-        const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga'];
+        const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde', 'Saúde (Exames/Consultas)', 'Licença programada', 'Folga', 'Férias', 'Banco de horas'];
         if (!absenceTypes.includes(r.type)) return false;
         const start = toDate(r.startDate);
         const end = r.endDate ? toDate(r.endDate) : start;
@@ -454,7 +454,7 @@ function App() {
       if (Number(request.employeeId) === Number(form.employeeId)) return false;
       
       // Apenas tipos de ausência geram conflito
-      const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+      const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde'];
       if (!absenceTypes.includes(request.type)) return false;
 
       const rLevel = Number(request.employee?.nivelHierarquia);
@@ -476,7 +476,7 @@ function App() {
   }, [detailedRequests, form.startDate, form.endDate, formEmployee, editingRequestId]);
 
   const formConflictLevel = (() => {
-    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde'];
     const requesterCargoId = formEmployee?.cargoId;
     const requesterAreaId = formEmployee?.areaId;
     const allColleagues = (dbEmployees || []).filter(e =>
@@ -507,7 +507,7 @@ function App() {
   const formConflictDetails = useMemo(() => {
     if (formConflicts.length === 0 || !form.startDate || !form.endDate || !formEmployee) return [];
 
-    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde'];
     const requesterCargoId = formEmployee?.cargoId;
     const requesterAreaId = formEmployee?.areaId;
     

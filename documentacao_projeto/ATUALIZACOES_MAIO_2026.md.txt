@@ -27,6 +27,12 @@ Este documento lista todas as melhorias de performance, estabilização de UI/UX
 ## 📅 Refinamento de Agendamentos e Escalas
 1. **Estabilização de Interface**: Normalização de campos de entrada e seletores no módulo de agendamento, garantindo consistência visual e funcional.
 2. **Histórico de Auditoria**: Implementação de modal de histórico para acompanhamento de mudanças em agendamentos e aprovações.
+3. **Agendamentos Pendentes no Calendário**: As solicitações com status "Pendente" agora são exibidas no calendário de conflitos e consideradas na lógica de bloqueio, permitindo uma visão proativa da capacidade da equipe antes mesmo da aprovação formal.
+4. **Distinção Visual de Conflitos**: Implementação de código de cores no calendário de agendamentos:
+   - **Vermelho (#ef4444)**: Conflito com ausência já **Aprovada**.
+   - **Laranja (#f59e0b)**: Conflito com ausência **Pendente**.
+5. **Sincronização de Critérios de Conflito**: Unificação da lógica de detecção de conflitos entre o formulário e o calendário, abrangendo Hierarquia (±1 nível), Gestão Direta e paridade de Cargo/Área.
+6. **Exclusão de Escala de Trabalho**: Refinamento dos filtros de ausência para garantir que marcações de "Escala de Trabalho" e "Ajuste de Escala" não sejam contabilizadas como conflitos de agendamento.
 
 ## 👤 Perfil Profissional (Sobre Mim)
 1. **Timeline de Conquistas**: Novo layout de perfil com timeline para Realizações, Formação Acadêmica e Méritos.

@@ -366,19 +366,26 @@ function RequestView({
 
                 const teamBookings = (requests || []).filter(r => {
                   if (r.status === 'Rejeitado' || !isWithinRange(dateKey, r.startDate, r.endDate) || Number(r.employeeId) === Number(form.employeeId)) return false;
-                  const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+                  const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde'];
                   if (!absenceTypes.includes(r.type)) return false;
+                  
                   const rEmp = r.employee || {};
                   const fEmp = formEmployee || {};
-                  const isAdjacentLevel = Math.abs(Number(rEmp.nivelHierarquia) - Number(fEmp.nivelHierarquia)) <= 1;
-                  const isRelated = Number(rEmp.id) === Number(fEmp.gestorId) || Number(rEmp.gestorId) === Number(fEmp.id);
-                  return isAdjacentLevel || isRelated;
+                  const rLevel = Number(rEmp.nivelHierarquia);
+                  const fLevel = Number(fEmp.nivelHierarquia);
+                  
+                  const isAdjacentLevel = rLevel === fLevel || rLevel === fLevel - 1 || rLevel === fLevel + 1;
+                  const isDirectRelation = Number(rEmp.id) === Number(fEmp.gestorId) || Number(rEmp.gestorId) === Number(fEmp.id);
+                  const isSameRoleAndArea = Number(rEmp.cargoId) === Number(fEmp.cargoId) && Number(rEmp.areaId) === Number(fEmp.areaId);
+
+                  return isAdjacentLevel || isDirectRelation || isSameRoleAndArea;
                 });
 
-                const conflicts = teamBookings.filter(r => r.status === 'Aprovado' || r.status === 'Pendente');
-                const hasConflict = conflicts.length > 0;
+                const approvedConflicts = teamBookings.filter(r => r.status === 'Aprovado');
+                const pendingConflicts = teamBookings.filter(r => r.status === 'Pendente');
+                const hasConflict = approvedConflicts.length > 0 || pendingConflicts.length > 0;
                 const booked = teamBookings.length > 0;
-                const conflictDetails = conflicts.map(r => `${shortenName(r.employee?.name) || 'Colega'} (${r.type})`).join(', ');
+                const conflictDetails = teamBookings.map(r => `${shortenName(r.employee?.name) || 'Colega'} (${r.type}${r.status === 'Pendente' ? ' - Pendente' : ''})`).join(', ');
                 const eventDetails = dayEvents.map(ev => ev.titulo || ev.Titulo || ev.type).join(', ');
 
                 return (
@@ -425,7 +432,16 @@ function RequestView({
                     )}
 
                     {(hasConflict || isHoliday) && (
-                      <div style={{ position: 'absolute', top: '4px', right: '4px', width: '4px', height: '4px', borderRadius: '50%', background: hasConflict ? '#ef4444' : 'var(--primary)' }}></div>
+                      <div style={{ 
+                        position: 'absolute', 
+                        top: '4px', 
+                        right: '4px', 
+                        width: '4.5px', 
+                        height: '4.5px', 
+                        borderRadius: '50%', 
+                        background: approvedConflicts.length > 0 ? '#ef4444' : (pendingConflicts.length > 0 ? '#f59e0b' : 'var(--primary)'),
+                        boxShadow: hasConflict ? '0 0 4px rgba(0,0,0,0.1)' : 'none'
+                      }}></div>
                     )}
                   </div>
                 );
@@ -435,7 +451,11 @@ function RequestView({
             <div className="calendar-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }}></div>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Conflito</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Aprovado</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }}></div>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Pendente</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '3px', border: '1.5px solid var(--primary)', background: 'rgba(51, 204, 204, 0.1)' }}></div>
