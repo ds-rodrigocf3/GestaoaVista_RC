@@ -817,7 +817,14 @@ function App() {
             return (
               <>
                 {/* Mobile: hamburger + título inline */}
-                <div className="topbar-header">
+                <div className="topbar-header" style={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 50,
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  backdropFilter: 'blur(8px)',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)'
+                }}>
                   <button className="menu-toggle" onClick={() => { setIsSidebarOpen(true); setIsSidebarCollapsed(false); }}>
                     <span className="material-symbols-outlined">menu</span>
                   </button>
@@ -828,7 +835,14 @@ function App() {
 
                 {/* Desktop: título e descrição completos */}
                 {meta.title && (
-                  <div className="topbar">
+                  <div className="topbar" style={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 40,
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    backdropFilter: 'blur(8px)',
+                    paddingBottom: '16px'
+                  }}>
                     <div>
                       <h2>{meta.title}</h2>
                       <p>{meta.description}</p>
