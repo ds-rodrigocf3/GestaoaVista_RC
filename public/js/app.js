@@ -78,9 +78,12 @@ function App() {
     // Update theme-color meta tag for mobile status bar
     const metaThemeColor = document.getElementById('theme-color-meta');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', isDark ? '#0f172a' : '#f3f6f9');
+      const color = isSidebarOpen && windowWidth <= 1200
+        ? (isDark ? '#1e293b' : '#ffffff')
+        : (isDark ? '#0f172a' : '#f3f6f9');
+      metaThemeColor.setAttribute('content', color);
     }
-  }, [isDark]);
+  }, [isDark, isSidebarOpen, windowWidth]);
 
   useEffect(() => {
     const handleTouchEnd = (e) => {

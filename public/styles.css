@@ -6264,6 +6264,11 @@ select:focus, input:focus, textarea:focus {
         display: flex !important;
         order: 1 !important;
     }
+
+    .sidebar {
+        padding-top: calc(16px + env(safe-area-inset-top)) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Instant color switch, smooth slide */
+    }
 }
 
 /* Desktop Sticky Header */
