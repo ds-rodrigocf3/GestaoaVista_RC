@@ -28,33 +28,61 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
   const viewportRef = useRef(null);
   const treeRef = useRef(null);
 
-  // Smart Scale Logic to fit viewport
-  useEffect(() => {
-    const adjustScale = () => {
-      if (!viewportRef.current || !treeRef.current) return;
-      const vw = viewportRef.current.offsetWidth;
-      const tw = treeRef.current.scrollWidth;
-      
-      // Reset scale to measure true width
-      treeRef.current.style.transform = 'scale(1)';
-      const trueWidth = treeRef.current.scrollWidth;
-      
-      if (trueWidth > vw && vw > 0) {
-        const scale = (vw - 40) / trueWidth;
-        treeRef.current.style.transform = `scale(${Math.max(scale, 0.4)})`;
-      } else {
-        treeRef.current.style.transform = 'scale(1)';
-      }
-    };
+  // Pan & Zoom State
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
 
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(adjustScale, 100);
-    window.addEventListener('resize', adjustScale);
-    return () => {
-      window.removeEventListener('resize', adjustScale);
-      clearTimeout(timer);
-    };
-  }, [treeData, expandedNodes, searchQuery]);
+  // Reset view when searching
+  useEffect(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, [searchQuery]);
+
+  const handleWheel = (e) => {
+    const zoomSensitivity = 0.001;
+    const delta = e.deltaY * -zoomSensitivity;
+    setScale(s => Math.min(Math.max(0.2, s + delta), 3.0));
+  };
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      dragStart.current = { 
+        x: e.touches[0].clientX - position.x, 
+        y: e.touches[0].clientY - position.y 
+      };
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    setPosition({
+      x: e.touches[0].clientX - dragStart.current.x,
+      y: e.touches[0].clientY - dragStart.current.y
+    });
+  };
+
+  const zoomIn = () => setScale(s => Math.min(s + 0.2, 3.0));
+  const zoomOut = () => setScale(s => Math.max(s - 0.2, 0.2));
+  const resetZoom = () => { setScale(1); setPosition({ x: 0, y: 0 }); };
+
 
   const buildTree = useCallback(() => {
     if (!employees || employees.length === 0) return [];
@@ -199,8 +227,47 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
           </div>
         </div>
       </div>
-      <div className="organogram-viewport" ref={viewportRef}>
-        <div className="organogram-tree" ref={treeRef}>
+      <div 
+        className="organogram-viewport" 
+        ref={viewportRef}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleMouseUp}
+        style={{ 
+          cursor: isDragging ? 'grabbing' : 'grab',
+          overflow: 'hidden',
+          position: 'relative',
+          userSelect: 'none',
+          touchAction: 'none'
+        }}
+      >
+        <div className="zoom-controls" style={{
+          position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000,
+          display: 'flex', flexDirection: 'column', gap: '8px',
+          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.6)'
+        }}>
+          <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomIn} title="Aumentar Zoom"><span className="material-symbols-outlined">add</span></button>
+          <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={resetZoom} title="Centralizar e Resetar Zoom"><span className="material-symbols-outlined">center_focus_strong</span></button>
+          <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomOut} title="Diminuir Zoom"><span className="material-symbols-outlined">remove</span></button>
+        </div>
+
+        <div 
+          className="organogram-tree" 
+          ref={treeRef}
+          style={{
+            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            transformOrigin: 'top center',
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+            willChange: 'transform'
+          }}
+        >
           {treeData.map(root => (
             <OrganogramNode 
               key={root.id} 
