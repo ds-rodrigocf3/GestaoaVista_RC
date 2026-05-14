@@ -48,12 +48,12 @@ function App() {
 
   // Limpa estados de sidebar ao alternar entre mobile/desktop para evitar falhas visuais
   useEffect(() => {
-    if (windowWidth > 768) {
+    if (windowWidth > 1200) {
       setIsSidebarOpen(false);
     } else {
       setIsSidebarCollapsed(false);
     }
-  }, [windowWidth <= 768]); // Só dispara quando cruza a fronteira de 768px
+  }, [windowWidth <= 1200]); // Só dispara quando cruza a fronteira de 1200px
 
   const getEmployeeById = useCallback((id) => {
     return (dbEmployees || []).find((employee) => employee.id === Number(id));
@@ -71,8 +71,15 @@ function App() {
   }, [getEmployeeById]);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('gbi_theme', isDark ? 'dark' : 'light');
+    const theme = isDark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('gbi_theme', theme);
+    
+    // Update theme-color meta tag for mobile status bar
+    const metaThemeColor = document.getElementById('theme-color-meta');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isDark ? '#0f172a' : '#f3f6f9');
+    }
   }, [isDark]);
 
   useEffect(() => {
@@ -775,13 +782,13 @@ function App() {
               </div>
             </div>
             <button className="sidebar-toggle-btn" onClick={() => {
-              if (windowWidth <= 768) {
+              if (windowWidth <= 1200) {
                 setIsSidebarOpen(false);
               } else {
                 setIsSidebarCollapsed(!isSidebarCollapsed);
               }
             }} title={isSidebarCollapsed ? "Expandir" : "Recolher"}>
-              <span className="material-symbols-outlined">{windowWidth <= 768 ? 'close' : (isSidebarCollapsed ? 'menu' : 'menu_open')}</span>
+              <span className="material-symbols-outlined">{windowWidth <= 1200 ? 'close' : (isSidebarCollapsed ? 'menu' : 'menu_open')}</span>
             </button>
           </div>
           <nav className="nav-list">
