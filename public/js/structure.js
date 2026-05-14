@@ -231,6 +231,24 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
     }
   }, [searchQuery, employees]);
 
+  const expandAll = () => {
+    const allIds = new Set();
+    const addIds = (nodes) => {
+      nodes.forEach(node => {
+        if (node.children && node.children.length > 0) {
+          allIds.add(node.id);
+          addIds(node.children);
+        }
+      });
+    };
+    addIds(treeData);
+    setExpandedNodes(allIds);
+  };
+
+  const collapseAll = () => {
+    setExpandedNodes(new Set());
+  };
+
   if (selectedProfile) {
     return (
       <ProfileFeed 
@@ -254,11 +272,11 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
         <div className="structure-legend">
           <div className="legend-item"><span className="dot" style={{background: 'var(--primary)'}}></span> Ativo</div>
           <div className="structure-controls">
-          <button className="btn-action-exe" onClick={() => window.MaestroTree?.expandAll()}>
+          <button className="btn-action-exe" onClick={expandAll}>
             <span className="material-symbols-outlined">unfold_more</span>
             <span>Expandir Tudo</span>
           </button>
-          <button className="btn-action-exe" onClick={() => window.MaestroTree?.collapseAll()}>
+          <button className="btn-action-exe" onClick={collapseAll}>
             <span className="material-symbols-outlined">unfold_less</span>
             <span>Recolher Tudo</span>
           </button>

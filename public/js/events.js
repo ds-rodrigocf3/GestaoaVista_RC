@@ -208,10 +208,10 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   }, [filteredEventos]);
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px', position: 'relative' }}>
+    <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative' }}>
 
-      {/* Botão de Adicionar Evento (Canto Superior Direito) */}
-      <div style={{ position: 'absolute', top: '-60px', right: '0', zIndex: 10 }}>
+      {/* Botão de Adicionar Evento - Agora no fluxo normal para evitar sobreposição no mobile */}
+      <div className="events-add-wrapper" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
         <button 
           onClick={() => { setForm(emptyForm); setShowModal(true); }}
           className="btn-primary"
@@ -219,14 +219,14 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
             display: 'flex', 
             alignItems: 'center', 
             gap: '8px', 
-            padding: '10px 20px', 
+            padding: '12px 24px', 
             borderRadius: 'var(--radius-md)', 
             fontWeight: 800, 
             fontSize: '0.85rem',
-            boxShadow: '0 4px 15px var(--primary)40'
+            boxShadow: '0 8px 20px var(--primary)30'
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add_circle</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>add_circle</span>
           NOVO EVENTO
         </button>
       </div>

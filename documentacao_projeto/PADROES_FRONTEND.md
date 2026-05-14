@@ -82,9 +82,12 @@ O dashboard contém alta densidade de dados (tabelas, Gantt, relatórios). As ab
 
 2. **Sidebar Colapsável**:
    - A barra lateral de navegação no Desktop ocupa ~280px e pode ser colapsada para ~80px.
-   - Em mobile (`max-width: 768px`), a sidebar se transforma em um "drawer" (gaveta) oculta fora da tela, ativada por um menu sanduíche.
+   - Em mobile e tablets (`max-width: 1200px`), a sidebar se transforma em um "drawer" (gaveta) oculta fora da tela, ativada por um menu sanduíche. Este breakpoint de 1200px foi adotado para suportar iPads de alta resolução.
 
-3. **Horizontal Scrolling para Tabelas**:
+3. **Suporte a Safe Areas (iOS/Notch)**:
+   - O cabeçalho fixo (`topbar-header`) e a `sidebar` utilizam `env(safe-area-inset-top)` para garantir que o conteúdo respeite a área física da câmera (notch) e barra de status em dispositivos Apple.
+
+4. **Horizontal Scrolling para Tabelas**:
    - Componentes que estouram a largura (como o Gantt e o mapa de escala semanal) são envolvidos em `div` com `overflow-x: auto` e `white-space: nowrap` para permitir scroll pelo toque (touch scroll).
 
 4. **Resets de Flex/Grid em Mobile**:

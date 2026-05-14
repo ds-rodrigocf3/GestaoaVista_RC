@@ -32,10 +32,13 @@ Este documento lista todas as melhorias de performance, estabilização de UI/UX
 1. **Timeline de Conquistas**: Novo layout de perfil com timeline para Realizações, Formação Acadêmica e Méritos.
 2. **UX de Edição**: Fluxo de edição baseado em modais para garantir foco e clareza na inserção de dados profissionais.
 
-## 🏗️ Preparação para Deploy
-1. **Organização de Pastas**: Limpeza da pasta `scripts/` e isolamento de arquivos de teste/validação na pasta `scratch/`.
-2. **Configurações de Ambiente**: Padronização de variáveis de ambiente para facilitar a transição entre ambientes Local e Azure.
+## 📱 Otimização Mobile & Tablet (iPhone/iPad)
+1. **Padronização de Breakpoint (1200px)**: Unificação do limite de transição mobile/desktop para 1200px. Isso garante que tablets de alta densidade (como iPad Pro) recebam a experiência otimizada de toque com menu lateral tipo "drawer", em vez da interface desktop compacta que causava erros de escala.
+2. **Suporte a Safe Areas (Notch)**: Implementação de `env(safe-area-inset-top)` em cabeçalhos e menus laterais, garantindo que o conteúdo não seja ocultado pelo "notch" ou barra de status em dispositivos iOS (iPhone/iPad).
+3. **Sincronização de Tema da Barra de Status**: Otimização da meta-tag `theme-color` e CSS transitions para atualizar instantaneamente a cor da barra de status do sistema operacional durante a troca de temas (Claro/Escuro), mesmo com a sidebar aberta.
+4. **Correção de Espaçamento e Fluxo**: Refatoração do espaçamento entre blocos (`margin-bottom`) e ajuste na visibilidade de botões de ação em módulos críticos (Eventos e Estrutura) para evitar sobreposição por elementos fixos.
+5. **Funcionalidade do Organograma**: Ativação completa dos controles de "Expandir/Recolher Tudo" na visão de Estrutura Organizacional, otimizada para performance em dispositivos móveis.
 
 ---
 **Status:** ✅ Homologado e Atualizado
-**Data da Revisão:** 14 de Maio de 2026
+**Data da Revisão:** 14 de Maio de 2026 (Refinamento Mobile Finalizado)

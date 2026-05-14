@@ -6225,9 +6225,9 @@ select:focus, input:focus, textarea:focus {
         background: var(--bg) !important;
     }
 
-    /* Prevent content from hiding under the fixed header */
+    /* Prevent content from hiding under the fixed header - Increased for better breathing room */
     .main-content {
-        padding-top: calc(84px + env(safe-area-inset-top)) !important;
+        padding-top: calc(100px + env(safe-area-inset-top)) !important;
     }
 
     /* Force sidebar to full width on mobile/tablet even if 'collapsed' state is triggered */
@@ -6294,12 +6294,13 @@ select:focus, input:focus, textarea:focus {
     gap: 10px; 
 }
 
-@media (max-width: 768px) { 
+@media (max-width: 1200px) { 
     .structure-header-actions { 
         flex-direction: column !important; 
         align-items: stretch !important; 
         padding: 15px !important; 
         gap: 12px !important; 
+        margin-bottom: 16px !important;
     } 
     .structure-search { 
         width: 100% !important; 
@@ -6320,7 +6321,12 @@ select:focus, input:focus, textarea:focus {
     .structure-controls button { 
         justify-content: center !important; 
         padding: 10px 5px !important; 
-        font-size: 0.75rem !important; 
+        font-size: 0.65rem !important; 
         width: 100% !important; 
-    } 
+    }
+
+    /* General block spacing for mobile/tablet */
+    .glass-card, .dashboard-card, .stat-card, .profile-feed-container > div {
+        margin-bottom: 20px !important;
+    }
 }
