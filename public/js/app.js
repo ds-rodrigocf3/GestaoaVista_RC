@@ -817,7 +817,7 @@ function App() {
             <span className="material-symbols-outlined">{isDark ? 'light_mode' : 'dark_mode'}</span>
             <span className="sidebar-text">{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
           </button>
-          <div className="sidebar-user-area" style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
+          <div className="sidebar-user-area">
             <div className="user-badge" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
               <div className="user-badge-content">
                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{(currentUser.name || currentUser.nome || 'A').charAt(0)}</div>}

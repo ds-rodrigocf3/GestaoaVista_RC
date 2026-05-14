@@ -44,6 +44,7 @@ Este documento lista todas as melhorias de performance, estabilização de UI/UX
 3. **Sincronização de Tema da Barra de Status**: Otimização da meta-tag `theme-color` e CSS transitions para atualizar instantaneamente a cor da barra de status do sistema operacional durante a troca de temas (Claro/Escuro), mesmo com a sidebar aberta.
 4. **Correção de Espaçamento e Fluxo**: Refatoração do espaçamento entre blocos (`margin-bottom`) e ajuste na visibilidade de botões de ação em módulos críticos (Eventos e Estrutura) para evitar sobreposição por elementos fixos.
 5. **Funcionalidade do Organograma**: Ativação completa dos controles de "Expandir/Recolher Tudo" na visão de Estrutura Organizacional, otimizada para performance em dispositivos móveis.
+6. **Correção do Botão de Sair na Sidebar**: Implementação de `safe-area-inset-bottom` e preenchimento extra na base do menu lateral, resolvendo o problema de corte visual do botão "Sair" em iPhones e garantindo acessibilidade total ao comando de logout.
 
 ---
 **Status:** ✅ Homologado e Atualizado

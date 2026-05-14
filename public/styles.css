@@ -430,10 +430,13 @@ button {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
+  overflow-y: auto; 
+  scrollbar-width: none; 
+  -ms-overflow-style: none;
   overflow-x: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .sidebar.collapsed {
@@ -729,6 +732,53 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Sidebar User Area & Logout */
+.sidebar-user-area {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+  color: #ef4444;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  transform: translateX(2px);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.logout-btn span.material-symbols-outlined {
+  font-size: 20px;
+  color: #ef4444 !important;
+}
+
+.sidebar.collapsed .logout-btn {
+  justify-content: center;
+  padding: 10px;
+}
+
+.sidebar.collapsed .logout-btn .sidebar-text {
+  display: none;
 }
 
 .nav-button:hover,
