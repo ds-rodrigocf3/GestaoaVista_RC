@@ -33,6 +33,8 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
+  const initialPinchDistance = useRef(null);
+  const initialPinchScale = useRef(null);
 
   // Reset view when searching
   useEffect(() => {
@@ -41,7 +43,10 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
   }, [searchQuery]);
 
   const handleWheel = (e) => {
-    const zoomSensitivity = 0.001;
+    if (e.ctrlKey) {
+      e.preventDefault(); // Evita zoom nativo do navegador (trackpad pinch)
+    }
+    const zoomSensitivity = e.ctrlKey ? 0.005 : 0.001; // Ajuste fino para trackpad
     const delta = e.deltaY * -zoomSensitivity;
     setScale(s => Math.min(Math.max(0.2, s + delta), 3.0));
   };
@@ -61,6 +66,13 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
 
   const handleMouseUp = () => setIsDragging(false);
 
+  const getPinchDistance = (touches) => {
+    return Math.hypot(
+      touches[0].clientX - touches[1].clientX,
+      touches[0].clientY - touches[1].clientY
+    );
+  };
+
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -68,15 +80,39 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
         x: e.touches[0].clientX - position.x, 
         y: e.touches[0].clientY - position.y 
       };
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      initialPinchDistance.current = getPinchDistance(e.touches);
+      initialPinchScale.current = scale;
     }
   };
 
   const handleTouchMove = (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setPosition({
-      x: e.touches[0].clientX - dragStart.current.x,
-      y: e.touches[0].clientY - dragStart.current.y
-    });
+    if (isDragging && e.touches.length === 1) {
+      setPosition({
+        x: e.touches[0].clientX - dragStart.current.x,
+        y: e.touches[0].clientY - dragStart.current.y
+      });
+    } else if (e.touches.length === 2 && initialPinchDistance.current) {
+      const currentDistance = getPinchDistance(e.touches);
+      const scaleDelta = currentDistance / initialPinchDistance.current;
+      const newScale = Math.min(Math.max(0.2, initialPinchScale.current * scaleDelta), 3.0);
+      setScale(newScale);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+      initialPinchDistance.current = null;
+    } else if (e.touches.length === 1) {
+      setIsDragging(true);
+      dragStart.current = { 
+        x: e.touches[0].clientX - position.x, 
+        y: e.touches[0].clientY - position.y 
+      };
+      initialPinchDistance.current = null;
+    }
   };
 
   const zoomIn = () => setScale(s => Math.min(s + 0.2, 3.0));
@@ -237,7 +273,7 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
         onMouseLeave={handleMouseUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleMouseUp}
+        onTouchEnd={handleTouchEnd}
         style={{ 
           cursor: isDragging ? 'grabbing' : 'grab',
           overflow: 'hidden',
