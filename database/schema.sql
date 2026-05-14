@@ -86,7 +86,14 @@ BEGIN
         DelegadoId INT NULL FOREIGN KEY REFERENCES BI_Colaboradores(Id),
         DelegacaoInicio DATE NULL,
         DelegacaoFim DATE NULL,
-        DelegacaoAtiva BIT DEFAULT 0
+        DelegacaoAtiva BIT DEFAULT 0,
+        DataNascimento DATE NULL,
+        DataAdmissao DATE NULL,
+        ExibirIdade BIT DEFAULT 0,
+        ResumoProfissional NVARCHAR(MAX) NULL,
+        TimelineRealizacoes NVARCHAR(MAX) NULL,
+        Formacoes NVARCHAR(MAX) NULL,
+        MeritosPromocoes NVARCHAR(MAX) NULL
     );
 
     -- Dados iniciais base
@@ -120,6 +127,22 @@ BEGIN
         DataInativacao DATETIME NULL,
         DataCriacao DATETIME DEFAULT GETDATE(),
         UltimoLogin DATETIME NULL
+    );
+END
+GO
+
+-- 5.1 PERFIS PROFISSIONAIS (DEDICADA)
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BI_ColaboradorPerfis' AND xtype='U')
+BEGIN
+    CREATE TABLE BI_ColaboradorPerfis (
+        Id INT PRIMARY KEY IDENTITY(1,1),
+        ColaboradorId INT NOT NULL FOREIGN KEY REFERENCES BI_Colaboradores(Id),
+        ResumoProfissional NVARCHAR(MAX),
+        TimelineRealizacoes NVARCHAR(MAX),
+        Formacoes NVARCHAR(MAX),
+        MeritosPromocoes NVARCHAR(MAX),
+        AvatarFull NVARCHAR(MAX),
+        DataModificacao DATETIME DEFAULT GETDATE()
     );
 END
 GO

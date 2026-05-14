@@ -22,18 +22,23 @@ async function runMigration() {
             }
         };
     } else {
-        const driver = "ODBC Driver 18 for SQL Server";
-        const server = process.env.DB_SERVER || 'localhost\\SQLEXPRESS01';
-        const database = process.env.DB_DATABASE || process.env.LOCAL_DB_NAME || 'DB_TESTE';
+        // Modo Local (Tedious)
         sqlConfig = {
-            connectionString: `Driver={${driver}};Server=${server};Database=${database};Trusted_Connection=yes;Encrypt=yes;TrustServerCertificate=yes;`,
-            driver: 'msnodesqlv8'
+            user: process.env.DB_USER || process.env.LOCAL_DB_USER,
+            password: process.env.DB_PASSWORD || process.env.LOCAL_DB_PASSWORD,
+            database: process.env.LOCAL_DB_NAME || 'gestaointernabi-database',
+            server: (process.env.DB_SERVER || 'localhost').split('\\')[0], // Apenas o host
+            options: {
+                instanceName: (process.env.DB_SERVER || '').split('\\')[1],
+                encrypt: false,
+                trustServerCertificate: true,
+                enableArithAbort: true
+            }
         };
     }
 
     try {
-        const mssqlProvider = isAzure ? require('mssql') : require('mssql/msnodesqlv8');
-        const pool = await mssqlProvider.connect(sqlConfig);
+        const pool = await sql.connect(sqlConfig);
         console.log('🔗 Conectado ao banco de dados...');
 
         const request = pool.request();
@@ -125,6 +130,24 @@ async function runMigration() {
 
             IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'MeritosPromocoes')
                 ALTER TABLE BI_Colaboradores ADD MeritosPromocoes NVARCHAR(MAX) NULL;
+        `);
+
+        // 9. Garantir que BI_ColaboradorPerfis existe (Tabela dedicada para perfis profissionais)
+        await request.query(`
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BI_ColaboradorPerfis' AND xtype='U')
+            BEGIN
+                CREATE TABLE BI_ColaboradorPerfis (
+                    Id INT PRIMARY KEY IDENTITY(1,1),
+                    ColaboradorId INT NOT NULL FOREIGN KEY REFERENCES BI_Colaboradores(Id),
+                    ResumoProfissional NVARCHAR(MAX),
+                    TimelineRealizacoes NVARCHAR(MAX),
+                    Formacoes NVARCHAR(MAX),
+                    MeritosPromocoes NVARCHAR(MAX),
+                    AvatarFull NVARCHAR(MAX),
+                    DataModificacao DATETIME DEFAULT GETDATE()
+                );
+                PRINT 'Criado: Tabela BI_ColaboradorPerfis';
+            END
         `);
 
         console.log('✨ Migração finalizada com sucesso!');
