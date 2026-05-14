@@ -6191,3 +6191,20 @@ select:focus, input:focus, textarea:focus {
 [data-theme='dark'] .profile-info-box-exe .material-symbols-outlined {
     color: var(--primary) !important;
 }
+
+/* Fix Mobile Topbar Sticky */
+.topbar-header, .topbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+    background: #ffffff !important; /* White for Light Mode */
+    backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid var(--line) !important;
+}
+
+[data-theme="dark"] .topbar-header, 
+[data-theme="dark"] .topbar {
+    background: var(--bg) !important; /* Deep Blue (#0f172a) for Dark Mode */
+}
+
+

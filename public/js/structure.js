@@ -279,7 +279,9 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
           overflow: 'hidden',
           position: 'relative',
           userSelect: 'none',
-          touchAction: 'none'
+          touchAction: 'none',
+          height: 'calc(100vh - 240px)',
+          minHeight: '400px'
         }}
       >
         <div className="zoom-controls" style={{

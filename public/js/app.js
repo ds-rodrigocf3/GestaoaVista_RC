@@ -38,6 +38,22 @@ function App() {
   const [globalFilters, setGlobalFilters] = useState({ gestor: '', colaboradorId: '', gestorId: '' });
   const [requestedModal, setRequestedModal] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Limpa estados de sidebar ao alternar entre mobile/desktop para evitar falhas visuais
+  useEffect(() => {
+    if (windowWidth > 768) {
+      setIsSidebarOpen(false);
+    } else {
+      setIsSidebarCollapsed(false);
+    }
+  }, [windowWidth <= 768]); // Só dispara quando cruza a fronteira de 768px
 
   const getEmployeeById = useCallback((id) => {
     return (dbEmployees || []).find((employee) => employee.id === Number(id));
@@ -758,8 +774,14 @@ function App() {
                 <p style={{ color: 'var(--muted)', fontSize: '0.7rem', margin: 0 }}>GESTÃO À VISTA</p>
               </div>
             </div>
-            <button className="sidebar-toggle-btn" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} title={isSidebarCollapsed ? "Expandir" : "Recolher"}>
-              <span className="material-symbols-outlined">{isSidebarCollapsed ? 'menu' : 'menu_open'}</span>
+            <button className="sidebar-toggle-btn" onClick={() => {
+              if (windowWidth <= 768) {
+                setIsSidebarOpen(false);
+              } else {
+                setIsSidebarCollapsed(!isSidebarCollapsed);
+              }
+            }} title={isSidebarCollapsed ? "Expandir" : "Recolher"}>
+              <span className="material-symbols-outlined">{windowWidth <= 768 ? 'close' : (isSidebarCollapsed ? 'menu' : 'menu_open')}</span>
             </button>
           </div>
           <nav className="nav-list">
@@ -817,14 +839,7 @@ function App() {
             return (
               <>
                 {/* Mobile: hamburger + título inline */}
-                <div className="topbar-header" style={{
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 50,
-                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                  backdropFilter: 'blur(8px)',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)'
-                }}>
+                <div className="topbar-header">
                   <button className="menu-toggle" onClick={() => { setIsSidebarOpen(true); setIsSidebarCollapsed(false); }}>
                     <span className="material-symbols-outlined">menu</span>
                   </button>
@@ -835,14 +850,7 @@ function App() {
 
                 {/* Desktop: título e descrição completos */}
                 {meta.title && (
-                  <div className="topbar" style={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 40,
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    backdropFilter: 'blur(8px)',
-                    paddingBottom: '16px'
-                  }}>
+                  <div className="topbar">
                     <div>
                       <h2>{meta.title}</h2>
                       <p>{meta.description}</p>
