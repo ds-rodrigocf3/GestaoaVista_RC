@@ -9,11 +9,17 @@ router.get('/', authMiddleware, colaboradoresController.getAll);
 // GET - Obter colaborador por ID
 router.get('/:id', authMiddleware, colaboradoresController.getById);
 
+// GET - Obter perfil profissional detalhado
+router.get('/:id/profile', authMiddleware, colaboradoresController.getProfile);
+
+// GET - Obter avatar/foto (Lazy loading)
+router.get('/:id/avatar', colaboradoresController.getAvatar);
+
 // POST - Criar colaborador
 router.post('/', authMiddleware, adminMiddleware, colaboradoresController.create);
 
 // PUT - Atualizar colaborador
-router.put('/:id', authMiddleware, adminMiddleware, colaboradoresController.update);
+router.put('/:id', authMiddleware, colaboradoresController.update);
 
 // DELETE - Deletar colaborador (soft delete)
 router.delete('/:id', authMiddleware, adminMiddleware, colaboradoresController.delete);

@@ -24,6 +24,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   const [filterArea, setFilterArea] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState(null);
+  const [showModal, setShowModal] = React.useState(false);
 
   const inputStyle = { width: '100%', height: '42px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '0 12px', fontSize: '0.875rem', background: 'var(--bg)', color: 'var(--text)', boxSizing: 'border-box', cursor: 'pointer' };
   const labelStyle = { fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' };
@@ -60,8 +61,8 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       await apiCall(url, form.id ? 'PUT' : 'POST', payload);
       await fetchAll({ silent: true });
       setForm(emptyForm);
+      setShowModal(false);
       setToast && setToast({ title: form.id ? 'Evento atualizado' : 'Evento criado', message: 'Salvo com sucesso.', type: 'success' });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setToast && setToast({ title: 'Erro', message: e.message, type: 'error' });
     } finally {
@@ -100,7 +101,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
       areaId: ev.areaId || ev.AreaId || '',
       responsavelId: ev.responsavelId || ev.ResponsavelId || ''
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowModal(true);
   };
 
 
@@ -207,7 +208,28 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
   }, [filteredEventos]);
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div style={{ animation: 'fadeIn 0.4s ease-out', display: 'flex', flexDirection: 'column', gap: '32px', position: 'relative' }}>
+
+      {/* Botão de Adicionar Evento (Canto Superior Direito) */}
+      <div style={{ position: 'absolute', top: '-60px', right: '0', zIndex: 10 }}>
+        <button 
+          onClick={() => { setForm(emptyForm); setShowModal(true); }}
+          className="btn-primary"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            padding: '10px 20px', 
+            borderRadius: 'var(--radius-md)', 
+            fontWeight: 800, 
+            fontSize: '0.85rem',
+            boxShadow: '0 4px 15px var(--primary)40'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add_circle</span>
+          NOVO EVENTO
+        </button>
+      </div>
 
       {/* Filtros no Topo para Contextualização Imediata */}
       <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-xl)', marginBottom: '0' }}>
@@ -328,93 +350,115 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         ))}
       </div>
 
-      {/* Form Card */}
-      <div className="glass-card" style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)' }}>
-        <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
-          {form.id ? 'Editar Evento' : 'Novo Evento'}
-        </h3>
+      {/* Modal de Cadastro/Edição de Evento */}
+      {showModal && (
+        <div className="status-modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="glass-card" style={{ 
+            width: '95%', 
+            maxWidth: '900px', 
+            padding: '32px', 
+            borderRadius: 'var(--radius-xl)', 
+            border: '1px solid var(--line)',
+            background: 'var(--surface)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--title)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '24px', color: 'var(--primary)' }}>{form.id ? 'edit_calendar' : 'add_event'}</span>
+                {form.id ? 'Editar Evento' : 'Novo Evento'}
+              </h3>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="icon-btn"
+                style={{ background: 'var(--bg-soft)', borderRadius: '50%', width: '36px', height: '36px' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+              </button>
+            </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-          {/* Col 1: Identificação */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Título do Evento*</label>
-              <input style={inputStyle} value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal de Resultados" />
-            </div>
-            <div>
-              <label style={labelStyle}>Tipo de Evento</label>
-              <select style={inputStyle} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
-                {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+              {/* Col 1: Identificação */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={labelStyle}>Título do Evento*</label>
+                  <input style={inputStyle} value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))} placeholder="Ex: Reunião Mensal de Resultados" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Tipo de Evento</label>
+                  <select style={inputStyle} value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
+                    {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+              </div>
 
-          {/* Col 2: Datas */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Data e Hora de Início*</label>
-              <input type="datetime-local" style={inputStyle} value={form.dataInicio} onChange={e => setForm(p => ({ ...p, dataInicio: e.target.value }))} />
-            </div>
-            <div>
-              <label style={labelStyle}>Data e Hora de Término</label>
-              <input type="datetime-local" style={inputStyle} value={form.dataFim} onChange={e => setForm(p => ({ ...p, dataFim: e.target.value }))} />
-            </div>
-          </div>
+              {/* Col 2: Datas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={labelStyle}>Data e Hora de Início*</label>
+                  <input type="datetime-local" style={inputStyle} value={form.dataInicio} onChange={e => setForm(p => ({ ...p, dataInicio: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Data e Hora de Término</label>
+                  <input type="datetime-local" style={inputStyle} value={form.dataFim} onChange={e => setForm(p => ({ ...p, dataFim: e.target.value }))} />
+                </div>
+              </div>
 
-          {/* Col 3: Participantes e Responsável */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={labelStyle}>Áreas Participantes</label>
-              <MultiSelect
-                options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
-                value={form.areaId}
-                onChange={val => setForm(p => ({ ...p, areaId: val }))}
-                placeholder="Todas (Global)"
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Responsável pelo Evento</label>
-              <select style={inputStyle} value={form.responsavelId} onChange={e => setForm(p => ({ ...p, responsavelId: e.target.value }))}>
-                <option value="">Nenhum responsável</option>
-                {(colaboradores || []).map(c => <option key={c.id} value={c.id}>{shortenName(c.name)}</option>)}
-              </select>
-            </div>
-          </div>
+              {/* Col 3: Participantes e Responsável */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={labelStyle}>Áreas Participantes</label>
+                  <MultiSelect
+                    options={(areas || []).filter(a => a.ativo !== false).map(a => ({ value: a.id, label: a.nome }))}
+                    value={form.areaId}
+                    onChange={val => setForm(p => ({ ...p, areaId: val }))}
+                    placeholder="Todas (Global)"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Responsável pelo Evento</label>
+                  <select style={inputStyle} value={form.responsavelId} onChange={e => setForm(p => ({ ...p, responsavelId: e.target.value }))}>
+                    <option value="">Nenhum responsável</option>
+                    {(colaboradores || []).map(c => <option key={c.id} value={c.id}>{shortenName(c.name)}</option>)}
+                  </select>
+                </div>
+              </div>
 
-          {/* Col 4: Descrição e Botão */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Descrição / Pauta</label>
-              <textarea
-                style={{ ...inputStyle, height: '82px', resize: 'none' }}
-                value={form.descricao}
-                onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))}
-                placeholder="Breve pauta ou observações importantes sobre o evento..."
-              />
+              {/* Col 4: Descrição */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', gridColumn: '1 / -1' }}>
+                <div>
+                  <label style={labelStyle}>Descrição / Pauta</label>
+                  <textarea
+                    style={{ ...inputStyle, height: '100px', resize: 'none', padding: '12px' }}
+                    value={form.descricao}
+                    onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))}
+                    placeholder="Breve pauta ou observações importantes sobre o evento..."
+                  />
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '32px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowModal(false)}
+                style={{ height: '46px', padding: '0 32px' }}
+              >
+                Cancelar
+              </button>
               <button
                 className="btn btn-primary"
                 onClick={saveEvento}
                 disabled={saving}
-                style={{ flex: 2, height: '44px', fontWeight: 700 }}
+                style={{ height: '46px', padding: '0 48px', fontWeight: 800 }}
               >
-                {saving ? 'Salvando...' : (form.id ? 'Atualizar Evento' : 'Salvar Evento')}
+                {saving ? 'Salvando...' : (form.id ? 'ATUALIZAR EVENTO' : 'SALVAR EVENTO')}
               </button>
-              {form.id && (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setForm(emptyForm)}
-                  style={{ flex: 1, height: '44px' }}
-                >
-                  Cancelar
-                </button>
-              )}
             </div>
           </div>
         </div>
-      </div>
+      )}
 
 
 

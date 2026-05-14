@@ -1,0 +1,596 @@
+
+=====================================================
+VISÃO GERAL DO PROJETO - GESTÃO À VISTA
+=====================================================
+
+1. ARQUITETURA DO PROJETO
+-------------------------
+A aplicação "Gestão à Vista" é um sistema web do tipo Single Page Application (SPA) com arquitetura cliente-servidor:
+- Frontend (Cliente): Construído com HTML5, CSS puro e JavaScript nativo. Utiliza a biblioteca React inserida diretamente no navegador (via Babel Standalone) para renderizar a maioria dos módulos interativos (Calendário, Dashboard, Tarefas, etc). Isso dispensa o uso de empacotadores como Webpack ou Vite no lado do cliente, simplificando a estrutura.
+- Backend (Servidor): Construído com Node.js e Express.js, atuando como uma API RESTful. Ele é responsável pelas regras de negócios e segurança.
+- Banco de Dados: SQLite (arquivo local na pasta /database). O banco é relacional e as consultas são feitas via pacote `sqlite3`.
+- Autenticação: Customizada via Tokens gerados no backend e persistidos na base de dados, enviados em headers (x-auth-token).
+
+2. LISTA COMPLETA DE ARQUIVOS
+-------------------------
+- DATABASE_SETUP.txt
+- SETUP_DATABASE.md
+- WINDOWS_AUTH.md
+
+
+3. CONTEÚDO INTEGRAL DOS ARQUIVOS E SUAS FUNÇÕES
+------------------------------------------------
+
+========================================================================
+ARQUIVO: DATABASE_SETUP.txt
+FUNÇÃO: Arquivo de código fonte ou configuração auxiliar do projeto.
+========================================================================
+## 🚀 Iniciando com SQL Server Local
+
+### Para Desenvolvimento (SQL Server Local)
+
+#### Opção A: Autenticação Windows (RECOMENDADO ⭐)
+
+1. **Edite o arquivo `.env`:**
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=windows
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+2. **Inicie o servidor como Administrador:**
+```bash
+node server.js
+```
+
+3. **Acesse em seu navegador:**
+```
+http://localhost:3000
+```
+
+#### Opção B: Autenticação SQL (user + password)
+
+1. **Edite o arquivo `.env`:**
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+PORT=3000
+```
+
+2. **Inicie o servidor:**
+```bash
+node server.js
+```
+
+3. **Acesse em seu navegador:**
+```
+http://localhost:3000
+```
+
+---
+
+### Alternativas de Servidor Local
+
+| Tipo | `LOCAL_DB_SERVER` |
+|------|------------------|
+| SQL Server LocalDB | `(localdb)\MSSQLLocalDB` |
+| SQL Server Express | `localhost\SQLEXPRESS` |
+| SQL Server (local) | `localhost` |
+| SQL Server (remoto) | `192.168.x.x\SQLEXPRESS` |
+
+---
+
+### Para Produção (Azure SQL)
+
+1. **Configure o arquivo `.env`:**
+```env
+USE_LOCAL_DB=false
+DB_USER=seu_usuario@servidor
+DB_PASSWORD=sua_senha
+DB_SERVER=seu_servidor.database.windows.net
+DB_DATABASE=sua_database
+PORT=3000
+```
+
+2. **Inicie o servidor:**
+```bash
+node server.js
+```
+
+---
+
+### 📖 Documentação Completa
+
+Veja `SETUP_DATABASE.md` para guia detalhado com:
+- Instalação do SQL Server
+- Configuração de autenticação (Windows ou SQL)
+- Solução de problemas
+- Exemplos de scripts SQL
+- Alternativas de servidor
+
+
+
+========================================================================
+ARQUIVO: SETUP_DATABASE.md
+FUNÇÃO: Arquivo de código fonte ou configuração auxiliar do projeto.
+========================================================================
+# 🚀 Guia de Conexão - SQL Server Local vs Azure SQL
+
+## 📌 Opção 1: SQL Server Local (Recomendado para Desenvolvimento)
+
+### Pré-requisitos
+- SQL Server Local, Express ou Standard instalado
+- SQL Management Studio (opcional, mas recomendado)
+
+### Variáveis de Autenticação
+
+#### Autenticação Windows (Integrada) - RECOMENDADO ⭐
+Usa suas credenciais de usuário do Windows. Nenhuma senha necessária.
+
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=windows
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+**Vantagens:**
+- Mais seguro (sem senhas armazenadas)
+- Usa credenciais do Windows
+- Mais simples de configurar
+
+**Desvantagens:**
+- Deve estar rodando como admin
+- Funciona apenas em máquinas Windows
+
+#### Autenticação SQL (user/password)
+Usa usuário `sa` ou outro usuário SQL.
+
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+### Passo 1: Configurar o .env
+```bash
+# Copie o arquivo .env.local para .env
+cp .env.local .env
+
+# Edite conforme necessário (ou deixe o padrão)
+```
+
+### Passo 2: Editar o .env com suas credenciais
+
+**Para Autenticação Windows:**
+```
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=windows
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+**Para Autenticação SQL:**
+```
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+### Opções de LOCAL_DB_SERVER
+
+#### SQL Server LocalDB (Padrão)
+```
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+```
+
+#### SQL Server Express
+```
+LOCAL_DB_SERVER=localhost\SQLEXPRESS
+```
+
+#### SQL Server (Standard/Enterprise no localhost)
+```
+LOCAL_DB_SERVER=localhost
+```
+
+#### SQL Server remoto (outro computador)
+```
+LOCAL_DB_SERVER=192.168.1.100\SQLEXPRESS
+```
+
+### Passo 3: Iniciar o servidor
+```bash
+node server.js
+```
+
+**Para Autenticação Windows:**
+```
+🔧 Modo DESENVOLVIMENTO - SQL Server Local
+🔐 Usando autenticação Windows integrada
+✅ Conectado ao SQL Server Local com sucesso!
+🚀 Servidor rodando na porta 3000
+   http://localhost:3000
+```
+
+**Para Autenticação SQL:**
+```
+🔧 Modo DESENVOLVIMENTO - SQL Server Local
+🔐 Usando autenticação SQL (user/password)
+✅ Conectado ao SQL Server Local com sucesso!
+🚀 Servidor rodando na porta 3000
+   http://localhost:3000
+```
+
+---
+
+## 📌 Opção 2: Azure SQL (Produção)
+
+### Pré-requisitos
+- Banco Azure SQL provisionado
+- Credenciais do Azure SQL
+
+### Passo 1: Configurar o .env
+```
+USE_LOCAL_DB=false
+DB_USER=seu_usuario@seu_servidor
+DB_PASSWORD=sua_senha_forte
+DB_SERVER=seu_servidor.database.windows.net
+DB_DATABASE=sua_database
+```
+
+### Passo 2: Iniciar o servidor
+```bash
+node server.js
+```
+
+Você deve ver:
+```
+🚀 Modo PRODUÇÃO - Azure SQL
+✅ Conectado ao Azure SQL com sucesso!
+🚀 Servidor rodando na porta 3000
+   http://localhost:3000
+```
+
+---
+
+## 🔧 Solução de Problemas
+
+### Autenticação Windows não funciona
+
+**Problema: "Error: 'Connection Refused'"**
+
+**Causa 1: Não está rodando como administrador**
+- Abra PowerShell/CMD como Administrador
+- Execute `node server.js` novamente
+
+**Causa 2: Usuário Windows não tem permissão**
+- Abra SQL Server Management Studio como Admin
+- Vá em Security > Logins
+- Verifique se sua conta Windows está listada
+- Se não estiver, clique em New Login
+- Digite seu usuário no formato `COMPUTADOR\usuario`
+- Grant acesso ao banco GestaoVista
+
+**Causa 3: SQL Server não está rodando**
+```bash
+# Verifique se o serviço está ativo
+Get-Service -Name "MSSQL*" | Start-Service
+
+# Ou para LocalDB:
+sqllocaldb start MSSQLLocalDB
+```
+
+### Erro: "Falha ao conectar ao SQL Server Local"
+
+**Problema 1: SQL Server não está instalado**
+- Baixe SQL Server Express em: https://www.microsoft.com/pt-br/sql-server/sql-server-downloads
+- Ou use LocalDB: https://learn.microsoft.com/pt-br/sql/database-engine/configure-windows/sql-server-express-localdb
+
+**Problema 2: Credenciais SQL incorretas (autenticação=sql)**
+- Verifique o usuário (geralmente `sa`)
+- Verifique a senha configurada durante instalação
+- Use SQL Management Studio para testar conexão
+
+**Problema 3: Servidor não encontrado**
+- Verifique o nome do servidor: `(localdb)\MSSQLLocalDB`, `localhost\SQLEXPRESS`, etc.
+- Use este comando para listar servidores:
+```bash
+sqlcmd -L
+```
+
+### Erro: "Banco de dados não existe"
+
+Execute este script SQL para criar o banco:
+
+```sql
+-- Criar banco de dados
+CREATE DATABASE GestaoVista;
+
+-- Usar o novo banco
+USE GestaoVista;
+
+-- Criar tabelas básicas (se necessário)
+CREATE TABLE BI_Colaboradores (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Nome NVARCHAR(100),
+    Email NVARCHAR(200),
+    NivelHierarquia INT,
+    CargoId INT,
+    AreaId INT,
+    GestorId INT,
+    Color NVARCHAR(20),
+    AvatarUrl NVARCHAR(500),
+    Ativo BIT DEFAULT 1
+);
+
+-- Continuar com outras tabelas conforme necessário...
+```
+
+### Trocar de Autenticação Windows para SQL
+
+Se quiser mudar de autenticação Windows para SQL (ou vice-versa):
+
+1. **Edite o `.env`:**
+```env
+# De Windows:
+LOCAL_DB_AUTH_TYPE=windows
+
+# Para SQL:
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+```
+
+2. **Reinicie o servidor:**
+```bash
+node server.js
+```
+
+---
+
+## 📊 Variáveis de Ambiente Suportadas
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `USE_LOCAL_DB` | `true` | Usa SQL Server Local (true) ou Azure (false) |
+| `LOCAL_DB_USER` | `sa` | Usuário do SQL Server Local |
+| `LOCAL_DB_PASSWORD` | `SuaSenha123` | Senha do SQL Server Local |
+| `LOCAL_DB_SERVER` | `(localdb)\MSSQLLocalDB` | Servidor SQL Local |
+| `LOCAL_DB_NAME` | `GestaoVista` | Nome do banco de dados local |
+| `PORT` | `3000` | Porta do servidor Node.js |
+
+---
+
+## 🎯 Fluxo de Escolha Automático
+
+O servidor tenta conectar nesta ordem:
+1. **Se `USE_LOCAL_DB=true`** → SQL Server Local
+2. **Se `USE_LOCAL_DB=false` ou não definido** → Azure SQL
+3. **Se Azure falhar** → Erro e saída
+
+---
+
+## 💡 Dicas Úteis
+
+### Testar conexão antes de iniciar
+```bash
+sqlcmd -S (localdb)\MSSQLLocalDB -U sa -P SuaSenha123 -Q "SELECT @@VERSION"
+```
+
+### Ver bancos disponíveis
+```bash
+sqlcmd -S (localdb)\MSSQLLocalDB -U sa -P SuaSenha123 -Q "SELECT name FROM sys.databases"
+```
+
+### Criar banco via comando
+```bash
+sqlcmd -S (localdb)\MSSQLLocalDB -U sa -P SuaSenha123 -Q "CREATE DATABASE GestaoVista"
+```
+
+---
+
+## 🔒 Segurança
+
+⚠️ **IMPORTANTE**: Nunca commit as credenciais do banco no git!
+
+```bash
+# Adicione ao .gitignore
+echo ".env" >> .gitignore
+echo ".env.local" >> .gitignore
+```
+
+Use variáveis de ambiente em produção:
+```bash
+export DB_USER="seu_usuario"
+export DB_PASSWORD="sua_senha"
+export DB_SERVER="seu_servidor.database.windows.net"
+export DB_DATABASE="sua_database"
+```
+
+
+
+========================================================================
+ARQUIVO: WINDOWS_AUTH.md
+FUNÇÃO: Arquivo de código fonte ou configuração auxiliar do projeto.
+========================================================================
+# 🔐 Autenticação Windows - Guia Rápido
+
+## O que é Autenticação Windows?
+
+Autenticação Windows (Integrated Security) permite usar suas credenciais do Windows para acessar o SQL Server sem precisar armazenar senhas.
+
+**Vantagens:**
+- ✅ Mais seguro (sem senhas em texto plano)
+- ✅ Usa suas credenciais do Windows
+- ✅ Configuração mais simples
+- ✅ Sincronizado com seu usuário do SO
+
+**Desvantagens:**
+- ❌ Funciona apenas no Windows
+- ❌ Requer executar como administrador
+- ❌ Não funciona em máquinas remotas facilmente
+
+---
+
+## Como Usar (3 passos)
+
+### 1️⃣ Editar o `.env`
+
+```env
+USE_LOCAL_DB=true
+LOCAL_DB_AUTH_TYPE=windows
+LOCAL_DB_SERVER=(localdb)\MSSQLLocalDB
+LOCAL_DB_NAME=GestaoVista
+```
+
+**Nota:** Não é necessário adicionar `LOCAL_DB_USER` ou `LOCAL_DB_PASSWORD`
+
+### 2️⃣ Executar como Administrador
+
+Abra PowerShell ou CMD **como Administrador**:
+
+```powershell
+# PowerShell
+Start-Process powershell -Verb RunAs
+cd "c:\Users\rodri\OneDrive\Área de Trabalho\GestaoaVista_RC"
+node server.js
+```
+
+Ou via atalho (Win+X, A no Windows 11)
+
+### 3️⃣ Acessar a aplicação
+
+```
+http://localhost:3000
+```
+
+Esperado ver:
+```
+🔧 Modo DESENVOLVIMENTO - SQL Server Local
+🔐 Usando autenticação Windows integrada
+✅ Conectado ao SQL Server Local com sucesso!
+🚀 Servidor rodando na porta 3000
+```
+
+---
+
+## Troubleshooting
+
+### Erro: "Connection refused"
+- ❌ Não está rodando como Administrador
+- ✅ Abra PowerShell/CMD como Admin (Win+X → A)
+
+### Erro: "Login failed for user"
+- ❌ Seu usuário Windows não tem permissão no SQL Server
+- ✅ Veja a seção "Adicionar Permissão Windows" abaixo
+
+### Erro: "Named pipe provider, error: 40"
+- ❌ SQL Server não está rodando ou not found
+- ✅ Inicie com: `sqllocaldb start MSSQLLocalDB`
+
+---
+
+## Adicionar Permissão Windows no SQL Server
+
+Se seu usuário Windows não consegue acessar:
+
+1. **Abra SQL Server Management Studio como Admin**
+2. Conecte com autenticação Windows
+3. Vá em: `Security` → `Logins` (lado esquerdo)
+4. Clique com botão direito → `New Login`
+5. Em "Login name", clique em `Search...`
+6. Digite seu usuário: `COMPUTADOR\usuario`
+7. Clique `OK`
+8. Vá para `User Mapping` e marque `GestaoVista` com role `db_owner`
+9. Clique `OK` para salvar
+
+---
+
+## Trocar entre Autenticações
+
+### De Windows para SQL
+
+```env
+# Mude isto:
+LOCAL_DB_AUTH_TYPE=windows
+
+# Para isto:
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+```
+
+### De SQL para Windows
+
+```env
+# Mude isto:
+LOCAL_DB_AUTH_TYPE=sql
+LOCAL_DB_USER=sa
+LOCAL_DB_PASSWORD=SuaSenha123
+
+# Para isto:
+LOCAL_DB_AUTH_TYPE=windows
+```
+
+Depois reinicie o servidor: `node server.js`
+
+---
+
+## Comandos Úteis
+
+### Testar conexão com autenticação Windows
+```bash
+sqlcmd -S (localdb)\MSSQLLocalDB -E -Q "SELECT @@VERSION"
+# -E = usar Windows Auth
+# -Q = executar query
+```
+
+### Iniciar SQL Server LocalDB
+```bash
+sqllocaldb start MSSQLLocalDB
+```
+
+### Parar SQL Server LocalDB
+```bash
+sqllocaldb stop MSSQLLocalDB
+```
+
+### Listar instâncias LocalDB
+```bash
+sqllocaldb info
+```
+
+---
+
+## Comparação: Windows vs SQL
+
+| Aspecto | Windows | SQL |
+|--------|---------|-----|
+| Segurança | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Facilidade | ⭐⭐⭐⭐ | ⭐⭐ |
+| Cross-plataforma | ❌ | ✅ |
+| Senhas armazenadas | ❌ | ✅ |
+| Requer admin | ✅ | ❌ |
+| Produção | ⭐⭐ | ⭐⭐⭐⭐ |
+
+---
+
+## 💡 Recomendação
+
+Para **desenvolvimento local** → Use **autenticação Windows** ✅
+
+Para **produção/remote** → Use **autenticação SQL** ou **Azure SQL**
+
+

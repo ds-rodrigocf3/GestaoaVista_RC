@@ -22,7 +22,8 @@ const views = [
   { id: 'requests', title: 'Agendamentos', caption: 'Férias e afastamentos', icon: 'add_circle' },
   { id: 'approvals', title: 'Aprovações', caption: 'Gestão de solicitações', icon: 'fact_check' },
   { id: 'scale', title: 'Escala Mensal', caption: 'Dias presenciais e remotos', icon: 'calendar_month' },
-  { id: 'eventos', title: 'Eventos', caption: 'Agenda corporativa da equipe', icon: 'event' }
+  { id: 'eventos', title: 'Eventos', caption: 'Agenda corporativa da equipe', icon: 'event' },
+  { id: 'structure', title: 'Estrutura', caption: 'Informações sobre as áreas', icon: 'account_tree' }
 ];
 
 
@@ -59,9 +60,9 @@ function toDate(value) {
   if (value instanceof Date) {
     d = new Date(value.getTime());
   } else {
-    const str = String(value).trim().replace(/Z$/, '');
+    const str = String(value).trim();
     
-    // 1. Caso especial: DD/MM/YYYY
+    // 1. Caso especial: DD/MM/YYYY (sem timezone, interpreta como local)
     const brMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
     if (brMatch) {
       d = new Date(parseInt(brMatch[3], 10), parseInt(brMatch[2], 10) - 1, parseInt(brMatch[1], 10));
@@ -75,8 +76,11 @@ function toDate(value) {
         
         const tMatch = str.match(/T(\d{2}):(\d{2})/);
         if (tMatch && (parseInt(tMatch[1], 10) !== 0 || parseInt(tMatch[2], 10) !== 0)) {
+          // Preserva Z ou +00:00 para que o JS converta UTC -> local corretamente
+          // Se não houver indicador de timezone, trata como local
           d = new Date(str);
         } else {
+          // Data sem hora: interpreta como local (sem timezone shift)
           d = new Date(y, m, day);
         }
       } else {
@@ -94,6 +98,7 @@ function toDate(value) {
   }
   return d;
 }
+
 
 function parseDateSafe(d) {
   const obj = toDate(d);
@@ -217,14 +222,112 @@ function rangesOverlap(startA, endA, startB, endB) {
   return toDate(startA) <= toDate(endB) && toDate(endA) >= toDate(startB);
 }
 
-function getConflictLevel(conflicts) {
+/**
+ * Motor de Classificação de Conflito com Pontuação Composta
+ *
+ * @param {Array}  conflicts  - Solicitações com sobreposição hierárquica (regra atual)
+ * @param {Object} options
+ *   @param {Array}  allColleagues         - Todos colaboradores com mesmo cargoId e areaId
+ *   @param {Array}  absentColleagues      - Subconjunto de allColleagues ausentes no período
+ *   @param {string} coverageEmployeeName  - Nome do suplente indicado pelo solicitante
+ *   @param {Array}  allRequests           - Todas as solicitações (para histórico de suplência)
+ *   @param {number|string} requesterId    - Id do colaborador solicitante
+ */
+function getConflictLevel(conflicts, options = {}) {
   if (!conflicts) return 'Nenhum';
-  if (conflicts.length >= 2) return 'Alto';
-  if (conflicts.length === 1) return 'Médio';
+
+  const {
+    allColleagues = [],    // Colegas (exclui solicitante)
+    absentColleagues = [], // Colegas ausentes (exclui solicitante)
+    coverageEmployeeName = '',
+    allRequests = [],
+    requesterId = null
+  } = options;
+
+  // --- BASE: sobreposições hierárquicas (regra anterior) ---
+  let score = 0;
+  if (conflicts.length === 1) score += 1;
+  if (conflicts.length >= 2) score += 2;
+
+  // --- BÔNUS: cobertura de cargo por área ---
+  // Tamanho total do grupo = colegas + 1 (o próprio solicitante)
+  const totalInRoleInArea = allColleagues.length + 1;
+  
+  // Só aplicamos agravamento de cargo se houver pelo menos 2 pessoas no grupo total 
+  // E pelo menos uma OUTRA pessoa já estiver ausente (evita penalizar ausência solo em times pequenos)
+  if (totalInRoleInArea >= 2 && absentColleagues.length > 0) {
+    // Se o Pedro solicita e o Rodrigo já está ausente, temos 1 (já ausente) + 1 (solicitante) = 2 ausentes
+    const predictedAbsentCount = absentColleagues.length + 1;
+    const absentRatio = predictedAbsentCount / totalInRoleInArea;
+
+    if (absentRatio >= 1) {
+      // 100% da equipe do cargo na área estará ausente → +3 pts (Garante Crítico se houver qualquer outro conflito ou Alto isolado)
+      score += 3;
+    } else if (absentRatio >= 0.5) {
+      // ≥50% da equipe ausente → +1 pt
+      score += 1;
+    }
+  }
+
+  // --- BÔNUS/MITIGAÇÃO: histórico de suplência ---
+  if (coverageEmployeeName && allRequests.length > 0) {
+    const suplente = allRequests.find(r =>
+      r.status !== 'Rejeitado' &&
+      (r.employee?.name === coverageEmployeeName || r.employeeName === coverageEmployeeName) &&
+      // Precisa checar se o suplente está ausente no período que o solicitante quer
+      options.currentStartDate && options.currentEndDate &&
+      rangesOverlap(options.currentStartDate, options.currentEndDate, r.startDate, r.endDate)
+    );
+
+    if (suplente) {
+      score += 1; // Suplente também estará ausente → agrava
+    }
+
+    if (requesterId) {
+      const hasProvenHistory = allRequests.some(r =>
+        r.status === 'Aprovado' &&
+        Number(r.employeeId) === Number(requesterId) &&
+        r.coverage &&
+        r.coverage.trim().toLowerCase() === coverageEmployeeName.trim().toLowerCase()
+      );
+      if (hasProvenHistory) {
+        score -= 1; // Cobertura validada pelo histórico → mitiga
+        if (!suplente) score -= 1; // Se o suplente está disponível e já é validado → mitiga mais
+      }
+    }
+  }
+
+  score = Math.max(0, score);
+
+  // Escala final: 
+  // 4+ pts → Crítico (Ex: 100% cargo ausente + 1 conflito hierárquico)
+  // 3 pts  → Alto (Ex: 100% cargo ausente isolado)
+  // 1-2 pts → Médio (Ex: 50% cargo ausente ou 1 conflito hierárquico)
+  if (score >= 4) return 'Crítico';
+  if (score >= 3) return 'Alto';
+  if (score >= 1) return 'Médio';
   return 'Nenhum';
 }
 
+function getOverlapDescription(startA, endA, startB, endB) {
+  const s = new Date(Math.max(toDate(startA), toDate(startB)));
+  const e = new Date(Math.min(toDate(endA), toDate(endB)));
+  
+  if (s > e) return null;
+
+  const fmt = (d) => {
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  };
+
+  if (s.getTime() === e.getTime()) {
+    return `apenas no dia ${fmt(s)}`;
+  } else {
+    return `no período de ${fmt(s)} a ${fmt(e)}`;
+  }
+}
+
 function getConflictClass(level) {
+  if (level === 'Crítico') return 'high';
   if (level === 'Alto') return 'high';
   if (level === 'Médio') return 'medium';
   return 'none';

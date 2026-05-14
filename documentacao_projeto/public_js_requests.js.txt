@@ -18,9 +18,11 @@ function RequestView({
   editingRequestId,
   setEditingRequestId,
   deleteRequest,
-  setToast
+  setToast,
+  eventos
 }) {
   const [requestMonthOffset, setRequestMonthOffset] = React.useState(0);
+  const todayStr = formatDateLocal(new Date());
 
   const displayMonth = React.useMemo(() => {
     const baseDate = form.startDate ? new Date(form.startDate + 'T12:00:00') : new Date(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01T12:00:00`);
@@ -86,238 +88,285 @@ function RequestView({
   };
 
   const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const safeColor = isLight ? '#06b6d4' : 'var(--primary)';
+  const alertColor = isLight ? '#ea580c' : '#f59e0b';
 
   return (
     <div className="dashboard-grid requests-page-container" style={{ gap: '24px' }}>
 
-      <section className="form-grid-layout" style={{ display: 'grid', gap: '24px' }}>
-        <div className="form-panel">
-          <div className={`card glass-card ${editingRequestId ? 'editing-pulse' : ''}`} style={{ padding: '28px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}>
-            <div className="section-title" style={{ marginBottom: '28px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(51, 204, 204, 0.2)' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '22px' }}>event_note</span>
+      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', alignItems: 'start' }}>
+        {/* Bloco de Parâmetros da Solicitação */}
+        <div className="card glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--line)', height: '100%' }}>
+          <div className="section-title" style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '20px' }}>event_note</span>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--title)' }}>Parâmetros da Solicitação</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Preencha os detalhes do seu período de ausência.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-grid" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {formConflictLevel !== 'Nenhum' && (
+              <div className={`alert-box glass ${formConflictLevel === 'Crítico' ? 'danger' : 'warning'}`} style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    {formConflictLevel === 'Crítico' ? 'error' : 'warning'}
+                  </span>
+                  Atenção: Conflito {formConflictLevel} detectado
+                </strong>
+                <p style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.8 }}>
+                  {formConflictLevel === 'Crítico' ? 'Alta concentração de ausências na equipe.' : 'Sugerimos validar a cobertura com o suplente.'}
+                </p>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>Tipo de Ausência / Agendamento</label>
+              <select 
+                className="custom-input"
+                value={form.type} 
+                onChange={(e) => updateField('type', e.target.value)} 
+                style={{ width: '100%', height: '42px' }}
+              >
+                <option>Férias integrais</option>
+                <option>Férias fracionadas</option>
+                <option>Banco de horas</option>
+                <option>Licença programada</option>
+                <option>Day-off</option>
+                <option>Saúde (Exames/Consultas)</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', position: 'relative' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>Data Inicial</label>
+                <input type="date" className="custom-input" value={form.startDate} onChange={e => updateField('startDate', e.target.value)} style={{ width: '100%', height: '42px' }} />
+              </div>
+              <div className="form-group" style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: '0.05em' }}>Data Final</label>
+                  {selectedDuration > 0 && (
+                    <div style={{ 
+                      fontSize: '0.65rem', 
+                      fontWeight: 900, 
+                      color: 'var(--primary)', 
+                      background: 'rgba(51, 204, 204, 0.1)', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px',
+                      border: '1px solid rgba(51, 204, 204, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>schedule</span>
+                      {selectedDuration} {selectedDuration === 1 ? 'dia' : 'dias'}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--title)' }}>Parâmetros da Solicitação</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 500 }}>Detalhamento total para aprovação rápida</p>
-                </div>
+                <input type="date" className="custom-input" value={form.endDate} onChange={e => updateField('endDate', e.target.value)} style={{ width: '100%', height: '42px' }} />
               </div>
             </div>
 
-            <div className="field-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Colaborador</label>
-                <select
-                  className="modern-selector"
-                  value={form.employeeId}
-                  onChange={(e) => updateField('employeeId', e.target.value)}
-                  disabled={!currentUser?.isAdmin}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontWeight: 500, fontSize: '0.88rem', outline: 'none' }}
-                >
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tipo de Ausência</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>Suplente (Cobertura)</label>
                 <select 
-                  className="modern-selector"
-                  value={form.type} 
-                  onChange={(e) => updateField('type', e.target.value)} 
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontWeight: 500, fontSize: '0.88rem', outline: 'none' }}
-                >
-                  <option>Férias integrais</option>
-                  <option>Férias fracionadas</option>
-                  <option>Banco de horas</option>
-                  <option>Licença programada</option>
-                  <option>Day-off</option>
-                  <option>Saúde (Exames/Consultas)</option>
-                </select>
-              </div>
-              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data Inicial</label>
-                <input type="date" value={form.startDate} onChange={(e) => updateField('startDate', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontWeight: 500, fontSize: '0.88rem', outline: 'none' }} />
-              </div>
-              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data Final</label>
-                <input type="date" value={form.endDate} onChange={(e) => updateField('endDate', e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontWeight: 500, fontSize: '0.88rem', outline: 'none' }} />
-              </div>
-              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Suplente (Cobertura)</label>
-                <input 
-                  list="coverage-employees-list"
+                  className="custom-input"
                   value={form.coverage} 
                   onChange={(e) => updateField('coverage', e.target.value)} 
-                  onFocus={(e) => { if(form.coverage) updateField('coverage', ''); }}
-                  placeholder="Quem assume?" 
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontWeight: 500, fontSize: '0.88rem', outline: 'none' }} 
-                />
-                <datalist id="coverage-employees-list">
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.name}>
-                      {emp.areaNome || emp.team} · {emp.cargoNome || emp.cargo}
-                    </option>
-                  ))}
-                </datalist>
+                  style={{ width: '100%', height: '42px' }} 
+                >
+                  <option value="">Selecione quem assume...</option>
+                  {employees
+                    .filter(emp => Number(emp.id) !== Number(form.employeeId))
+                    .map(emp => (
+                      <option key={emp.id} value={emp.name}>
+                        {emp.name}
+                      </option>
+                    ))
+                  }
+                </select>
               </div>
-              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Área</label>
-                <input 
-                  value={(() => {
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>Área do Suplente</label>
+                <div 
+                  className="custom-input"
+                  style={{ 
+                    width: '100%', 
+                    background: 'rgba(51, 204, 204, 0.05)', 
+                    color: 'var(--primary)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '0 12px',
+                    height: '42px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px dashed var(--primary)30',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    opacity: 0.9,
+                    cursor: 'default'
+                  }}
+                >
+                  {(() => {
                     const coverageEmp = employees.find(e => e.name === form.coverage);
-                    return coverageEmp ? (coverageEmp.areaNome || coverageEmp.team) : 'Selecione um suplente';
-                  })()} 
-                  readOnly 
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--panel-strong)', color: 'var(--primary)', fontWeight: 600, fontSize: '0.88rem', outline: 'none', cursor: 'not-allowed', opacity: 0.9 }} 
-                />
+                    return coverageEmp ? (coverageEmp.areaNome || coverageEmp.team) : 'Selecione um suplente...';
+                  })()}
+                </div>
               </div>
             </div>
 
-            <div className="field" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Observações e Contexto</label>
+            <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '8px', letterSpacing: '0.05em' }}>Observações e Contexto</label>
               <textarea 
+                className="custom-input" 
+                rows="3" 
+                placeholder="Informe sobre handoff, pendências críticas..." 
                 value={form.note} 
-                onChange={(e) => updateField('note', e.target.value)} 
-                placeholder="Informe sobre handoff, pendências críticas ou links de apoio." 
-                style={{ width: '100%', minHeight: '120px', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)', fontWeight: 500, outline: 'none' }}
-              />
+                onChange={e => updateField('note', e.target.value)}
+                style={{ width: '100%', resize: 'none' }}
+              ></textarea>
             </div>
 
-            <div className="action-row" style={{ marginTop: '36px', display: 'flex', gap: '16px' }}>
-              <button
-                className="btn-primary"
-                onClick={submitRequest}
-                style={{ flex: 1 }}
-              >
-                {editingRequestId ? 'Atualizar Agendamento' : 'Enviar para aprovação'}
-              </button>
-              {editingRequestId && (
-                <button className="btn-secondary" onClick={cancelEdit} style={{ height: '54px', borderRadius: 'var(--radius-lg)', padding: '0 28px', background: 'var(--panel-strong)', border: '1px solid var(--line)', color: 'var(--title)', fontWeight: 600, cursor: 'pointer' }}>
-                   Cancelar
-                </button>
-              )}
-            </div>
+            <button className="btn-primary" onClick={submitRequest} style={{ width: '100%', padding: '14px', borderRadius: 'var(--radius-md)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              {editingRequestId ? 'Atualizar Agendamento' : 'Enviar para aprovação'}
+            </button>
           </div>
         </div>
 
-        <div className="form-panel">
-          <div className="card glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
-            <div className="section-title">
-              <h3 style={{ fontSize: '1.05rem' }}>Análise de Impacto</h3>
+        {/* Bloco do Calendário de Conflitos */}
+        <div className="card glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', background: 'var(--panel-strong)', border: '1px solid var(--line)', minWidth: '320px' }}>
+          <div className="section-title" style={{ marginBottom: '16px', textAlign: 'center' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'rgba(51, 204, 204, 0.1)', borderRadius: '20px', border: '1px solid rgba(51, 204, 204, 0.2)' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: formConflictLevel === 'Crítico' ? '#ef4444' : (formConflictLevel === 'Médio' ? '#f59e0b' : '#10b981') }}></div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--title)' }}>Conflitos: {formConflictLevel}</span>
+            </div>
+          </div>
+
+          <div className="calendar-mini-container">
+            <div className="calendar-month-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '16px', padding: '8px', background: 'var(--bg-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
+              <button className="icon-btn-premium" onClick={() => setRequestMonthOffset(o => o - 1)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>chevron_left</span>
+              </button>
+              <h2 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--title)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'Outfit, sans-serif', minWidth: '130px', textAlign: 'center' }}>
+                {displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              </h2>
+              <button className="icon-btn-premium" onClick={() => setRequestMonthOffset(o => o + 1)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--primary)' }}>chevron_right</span>
+              </button>
             </div>
 
-            <div className="summary-cards-row" style={{ display: 'grid', gap: '12px', marginTop: '16px' }}>
-              <div className="summary-card glass" style={{ padding: '16px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(37,99,235,0.05) 100%)', border: '1px solid rgba(59,130,246,0.1)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duração Total</span>
-                <p style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '4px' }}>{selectedDuration ? `${selectedDuration} dia(s)` : '---'}</p>
-              </div>
-              
-              <div className={`alert-box glass ${formConflictLevel === 'Alto' ? 'danger' : formConflictLevel === 'Médio' ? 'warning' : 'info'}`} style={{ margin: 0, padding: '16px', borderRadius: 'var(--radius-md)' }}>
-                <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                    {formConflictLevel === 'Alto' ? 'error' : formConflictLevel === 'Médio' ? 'warning' : 'verified_user'}
-                  </span>
-                  Protocolo: {formConflictLevel === 'Nenhum' ? 'Seguro' : `Alerta ${formConflictLevel}`}
-                </strong>
-                <div style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>
-                  {formConflictLevel === 'Alto' && 'Requer mediação do gestor.'}
-                  {formConflictLevel === 'Médio' && 'Sugerido alinhar cobertura.'}
-                  {formConflictLevel === 'Nenhum' && 'Sem conflitos operacionais.'}
-                </div>
-              </div>
+            <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' }}>
+              {weekdayLabels.map(l => (
+                <div key={l} className="calendar-label" style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', textAlign: 'center', paddingBottom: '8px' }}>{l}</div>
+              ))}
+
+              {monthDays.map((day, idx) => {
+                if (!day) return <div key={`e-${idx}`} style={{ aspectRatio: '1/1' }}></div>;
+                
+                const dateKey = formatDateLocal(day);
+                const isSelected = isWithinRange(dateKey, form.startDate, form.endDate);
+                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                const isHoliday = holidays[dateKey];
+                const dateToday = formatDateLocal(new Date());
+
+                // Filtragem de Eventos (Ignorando Escala Mensal e Ausências)
+                const dayEvents = (eventos || []).filter(ev => {
+                  const evStart = ev.startDate || ev.DataInicio || ev.data;
+                  const evEnd = ev.endDate || ev.DataFim || evStart;
+                  if (!evStart) return false;
+                  const type = ev.type || ev.Tipo || '';
+                  if (type === 'Escala de Trabalho' || type === 'Ajuste de Escala' || type === 'Escala Mensal') return false;
+                  return isWithinRange(dateKey, evStart, evEnd);
+                });
+
+                const teamBookings = (requests || []).filter(r => {
+                  if (r.status === 'Rejeitado' || !isWithinRange(dateKey, r.startDate, r.endDate) || Number(r.employeeId) === Number(form.employeeId)) return false;
+                  const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+                  if (!absenceTypes.includes(r.type)) return false;
+                  const rEmp = r.employee || {};
+                  const fEmp = formEmployee || {};
+                  const isAdjacentLevel = Math.abs(Number(rEmp.nivelHierarquia) - Number(fEmp.nivelHierarquia)) <= 1;
+                  const isRelated = Number(rEmp.id) === Number(fEmp.gestorId) || Number(rEmp.gestorId) === Number(fEmp.id);
+                  return isAdjacentLevel || isRelated;
+                });
+
+                const conflicts = teamBookings.filter(r => r.status === 'Aprovado' || r.status === 'Pendente');
+                const hasConflict = conflicts.length > 0;
+                const booked = teamBookings.length > 0;
+                const conflictDetails = conflicts.map(r => `${shortenName(r.employee?.name) || 'Colega'} (${r.type})`).join(', ');
+                const eventDetails = dayEvents.map(ev => ev.titulo || ev.Titulo || ev.type).join(', ');
+
+                return (
+                  <div 
+                    key={dateKey} 
+                    className={`calendar-day glass ${isSelected ? 'selected' : ''} ${isWeekend ? 'weekend' : ''} ${isHoliday ? 'holiday' : ''} ${dateKey === dateToday ? 'today' : ''}`}
+                    onClick={() => {
+                      if (hasConflict || dayEvents.length > 0) {
+                        let msg = '';
+                        if (hasConflict) msg += `Conflitos: ${conflictDetails}. `;
+                        if (dayEvents.length > 0) msg += `Eventos: ${eventDetails}.`;
+                        setToast({ title: 'Informações do Dia', message: msg, type: hasConflict ? 'warning' : 'info' });
+                      } else if (isHoliday) {
+                        setToast({ title: 'Feriado', message: holidays[dateKey] });
+                      }
+                    }}
+                    style={{ 
+                      position: 'relative',
+                      aspectRatio: '1/1',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: '0.2s',
+                      border: isSelected ? '2px solid var(--primary)' : '1px solid var(--line)',
+                      background: isSelected ? 'rgba(51, 204, 204, 0.15)' : (booked ? 'rgba(245, 158, 11, 0.08)' : 'var(--card)'),
+                      boxSizing: 'border-box',
+                      padding: '2px'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: isSelected ? 'var(--primary)' : 'var(--title)', zIndex: 2, marginTop: dayEvents.length > 0 ? '-4px' : '0' }}>{day.getDate()}</span>
+                    
+                    {dayEvents.length > 0 && (
+                      <div style={{ display: 'flex', gap: '2px', marginTop: '2px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxHeight: '14px', overflow: 'hidden' }}>
+                        {dayEvents.slice(0, 3).map((ev, i) => (
+                          <span key={i} className="material-symbols-outlined" style={{ fontSize: '10px', color: 'var(--primary)', opacity: 0.8 }}>
+                            {ev.icon || 'event'}
+                          </span>
+                        ))}
+                        {dayEvents.length > 3 && <span style={{ fontSize: '7px', fontWeight: 800, color: 'var(--muted)' }}>+{dayEvents.length - 3}</span>}
+                      </div>
+                    )}
+
+                    {(hasConflict || isHoliday) && (
+                      <div style={{ position: 'absolute', top: '4px', right: '4px', width: '4px', height: '4px', borderRadius: '50%', background: hasConflict ? '#ef4444' : 'var(--primary)' }}></div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="calendar-mini-container" style={{ marginTop: '24px', padding: '20px', background: 'var(--panel-strong)', borderRadius: '18px', border: '1px solid var(--line)' }}>
-              <div className="section-title" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--title)', textTransform: 'capitalize' }}>{displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h4>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                   <button className="icon-btn" onClick={() => setRequestMonthOffset(o => o - 1)} style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--title)' }}>chevron_left</span></button>
-                   <button className="icon-btn" onClick={() => setRequestMonthOffset(o => o + 1)} style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '4px' }}><span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--title)' }}>chevron_right</span></button>
-                </div>
+            <div className="calendar-legend" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }}></div>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Conflito</span>
               </div>
-              <div className="calendar-grid small">
-                {weekdayLabels.map(l => <div key={l} className="calendar-label">{l[0]}</div>)}
-                {monthDays.map((day, idx) => {
-                  if (!day) return <div key={`e-${idx}`} className="calendar-day empty"></div>;
-                  const dateKey = formatDateLocal(day);
-                  const isSelected = isWithinRange(dateKey, form.startDate, form.endDate);
-                  const teamBookings = pendingTeamMembers.filter(r => isWithinRange(dateKey, r.startDate, r.endDate));
-                  const conflicts = teamBookings.filter(r => r.employeeId !== Number(form.employeeId));
-                  const hasConflict = conflicts.length > 0;
-                  const booked = teamBookings.length > 0;
-                  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                  const isHoliday = holidays[dateKey];
-                  
-                  const conflictDetails = conflicts.map(r => `${r.employee?.name || 'Colega'} (${r.type})`).join(', ');
-                  const tooltipText = hasConflict ? `Conflito com: ${conflictDetails}` : (isHoliday ? holidays[dateKey] : '');
-
-                  // Map request types to Material Symbols icons
-                  const TYPE_ICON = {
-                    'Férias integrais':    'beach_access',
-                    'Férias fracionadas':  'beach_access',
-                    'Banco de horas':      'schedule',
-                    'Day-off':             'wb_sunny',
-                    'Saúde (Exames/Consultas)': 'medical_services',
-                    'Licença programada':  'event_busy',
-                    'Escala de Trabalho':  'work',
-                    'Ajuste de Escala':    'sync_alt',
-                  };
-
-                  // Unique types booked on this day (excluding own bookings for conflicts)
-                  const bookingTypes = [...new Set(teamBookings.map(r => r.type))];
-
-                  return (
-                    <div 
-                      key={dateKey} 
-                      className={`calendar-day mini ${isSelected ? 'selected' : ''} ${isWeekend ? 'weekend' : ''} ${isHoliday ? 'holiday' : ''} ${booked ? (hasConflict ? 'conflict' : 'booked') : ''}`}
-                      title={tooltipText}
-                      onClick={() => {
-                        if (hasConflict) {
-                          setToast({ title: 'Alerta de Conflito', message: `Neste dia, ${conflictDetails} também possui(em) agendamento.`, type: 'warning' });
-                        } else if (isHoliday) {
-                          setToast({ title: 'Feriado', message: holidays[dateKey] });
-                        }
-                      }}
-                      style={{ cursor: (hasConflict || isHoliday) ? 'pointer' : 'default', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1px', padding: '2px 1px' }}
-                    >
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}>{day.getDate()}</span>
-                      {booked && bookingTypes.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', justifyContent: 'center', maxWidth: '100%' }}>
-                          {bookingTypes.slice(0, 2).map(type => (
-                            <span
-                              key={type}
-                              className="material-symbols-outlined"
-                              title={type}
-                              style={{
-                                fontSize: '9px',
-                                lineHeight: 1,
-                                color: hasConflict ? '#f59e0b' : '#60a5fa',
-                                fontVariationSettings: "'FILL' 1",
-                                display: 'block'
-                              }}
-                            >
-                              {TYPE_ICON[type] || 'event_note'}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {isHoliday && !booked && (
-                        <span className="material-symbols-outlined" style={{ fontSize: '9px', color: '#f59e0b', fontVariationSettings: "'FILL' 1" }}>celebration</span>
-                      )}
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '3px', border: '1.5px solid var(--primary)', background: 'rgba(51, 204, 204, 0.1)' }}></div>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Sua Seleção</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="management-section" style={{ marginTop: '12px' }}>
+      <section id="minhas-solicitacoes-anchor" className="management-section" style={{ marginTop: '12px' }}>
           <div className="card glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--line)' }}>
             <div className="section-title" style={{ marginBottom: '20px' }}>
                <div>
@@ -340,7 +389,20 @@ function RequestView({
                   <tbody>
                      {myRequests.map(req => (
                         <tr key={req.id}>
-                           <td style={{ fontWeight: 600 }}>{req.type}</td>
+                           <td style={{ fontWeight: 600 }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {req.type}
+                                  {req.comentarioAprovacao && req.comentarioAprovacao.trim() !== '' && (
+                                     <span 
+                                       className="material-symbols-outlined" 
+                                       title={`Parecer do Gestor: ${req.comentarioAprovacao}`} 
+                                       style={{ fontSize: '16px', color: 'var(--primary)', cursor: 'help', background: 'var(--primary)15', padding: '2px', borderRadius: '4px' }}
+                                     >
+                                        chat_bubble
+                                     </span>
+                                  )}
+                               </div>
+                            </td>
                            <td style={{ fontSize: '0.85rem' }}>{formatDate(req.startDate)} → {formatDate(req.endDate)}</td>
                            <td>{diffDays(req.startDate, req.endDate)} dias</td>
                            <td><span className={`status-pill ${req.status === 'Aprovado' ? 'done' : req.status === 'Rejeitado' ? 'rejected' : 'working'}`}>{req.status}</span></td>

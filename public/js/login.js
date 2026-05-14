@@ -1,19 +1,8 @@
-function LoginModal({ onLogin }) {
+function LoginModal({ onLogin, isDark, setIsDark }) {
   const [email, setEmail] = React.useState('');
   const [senha, setSenha] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
-
-  const [isDark, setIsDark] = React.useState(() => {
-    const saved = localStorage.getItem('gbi_theme');
-    if (saved) return saved === 'dark';
-    return true; // Default to dark if nothing saved, common in this app
-  });
-
-  React.useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('gbi_theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,6 +43,7 @@ function LoginModal({ onLogin }) {
           {isDark ? 'light_mode' : 'dark_mode'}
         </span>
       </button>
+
       <div className="login-card">
 
         <div className="login-logo">

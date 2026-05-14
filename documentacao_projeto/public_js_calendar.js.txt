@@ -4,7 +4,7 @@ PROPÓSITO: Componente React para o calendário mensal, incluindo escala presenc
 
 CONTEÚDO COMPLETO:
 ========================================================================
-function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast }) {
+function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast, authorizedScope }) {
   const [selectedMonthOffset, setSelectedMonthOffset] = React.useState(0);
   const [loadingToggle, setLoadingToggle] = React.useState(null); // Rastreia qual dia está sendo processado
 
@@ -95,14 +95,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   const [adjustNewValue, setAdjustNewValue] = React.useState('Presencial');
 
   React.useEffect(() => {
-    if (!currentUser.isAdmin && currentUser.colaboradorId) {
-      setSelectedEmployeeId(currentUser.colaboradorId);
-      return;
-    }
+    // Note: We removed the restriction that forced non-admins to only see themselves.
+    // This allows everyone to consult anyone's scale as requested.
 
     if (filteredEmployees.length > 0) {
-      if (!filteredEmployees.find(e => e.id === selectedEmployeeId)) {
-        setSelectedEmployeeId(filteredEmployees[0].id);
+      if (!selectedEmployeeId || !filteredEmployees.find(e => e.id === selectedEmployeeId)) {
+        // Only auto-select if nothing is selected or selected employee is filtered out
+        // If it's the first load, try to select the current user if they are in the list
+        if (!selectedEmployeeId) {
+           const self = filteredEmployees.find(e => Number(e.id) === Number(currentUser?.colaboradorId));
+           setSelectedEmployeeId(self ? self.id : filteredEmployees[0].id);
+        } else {
+           setSelectedEmployeeId(filteredEmployees[0].id);
+        }
       }
     } else {
       setSelectedEmployeeId('');
@@ -126,6 +131,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     d.setHours(0, 0, 0, 0);
     return d < today;
   };
+
+  const todayStr = formatDateLocal(new Date());
 
   const toggleDay = (dateKey) => {
     if (isReadOnly) return;
@@ -367,25 +374,19 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   }, [filteredEmployees, workDays, displayMonthDays, holidays, requests, employees]);
 
   const getComparedPeople = (dateKey) => {
-    if (compareEntity === 'none') return [];
+    if (!compareEntity || compareEntity === 'none') return [];
     if (compareEntity.startsWith('emp_')) {
-      const empId = Number(compareEntity.replace('emp_', ''));
-      if (empId === selectedEmployeeId) return [];
-      const otherData = workDays[empId] || {};
+      const empIdStr = compareEntity.replace('emp_', '');
+      const empIdNum = Number(empIdStr);
+      
+      // Evitar comparar com o próprio selecionado
+      if (empIdNum === Number(selectedEmployeeId)) return [];
+      
+      const otherData = workDays[empIdNum] || {};
       if (otherData[dateKey] === 'Presencial') {
-        const emp = employees.find(e => e.id === empId);
+        const emp = (employees || []).find(e => Number(e.id) === empIdNum);
         return emp ? [emp] : [];
       }
-      return [];
-    }
-    if (compareEntity.startsWith('team_')) {
-      const teamName = compareEntity.replace('team_', '');
-      const teamMembers = (filteredEmployees || []).filter(e => e && e.areaNome === teamName && e.id !== selectedEmployeeId);
-      return teamMembers.filter(member => {
-        if (!member || !member.id) return false;
-        const memberData = workDays[member.id] || {};
-        return memberData[dateKey] === 'Presencial';
-      });
     }
     return [];
   };
@@ -446,105 +447,116 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         </div>
       )}
 
-      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-        <div className="glass-card">
-          {/* Selection Filters */}
-          <div className="field-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Colaborador:</label>
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                style={{ width: '100%' }}
-              >
-                {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
-                {filteredEmployees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name} · {employee.team}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--title)' }}>Comparar com:</label>
-              <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ width: '100%' }}>
-                <option value="none">Nenhum</option>
-                <optgroup label="Áreas / Equipes">
-                  {uniqueAreas.map(area => (
-                    <option key={`team_${area}`} value={`team_${area}`}>Área: {area}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Colaboradores Individuais">
-                  {filteredEmployees.map(employee => (
-                    <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-          </div>
-
+      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+        <div style={{ width: '100%' }}>
           {/* Numeric Indicators Bar */}
-          <div className="calendar-stats-strip" style={{ 
-            display: 'flex', gap: '24px', marginBottom: '8px', 
-            background: 'var(--panel-strong)', padding: '24px 32px', 
+          <div className="calendar-stats-strip glass" style={{ 
+            display: 'flex', gap: '16px', 
+            padding: '16px 20px', 
             borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)',
             boxShadow: 'var(--shadow-sm)',
             alignItems: 'center',
-            flexWrap: 'wrap'
+            justifyContent: 'flex-start',
+            flexWrap: 'wrap',
+            width: '100%'
           }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '24px' }}>calendar_month</span>
+            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '20px' }}>calendar_month</span>
                </div>
-               <div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Dias Disponíveis</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.1 }}>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Dias Disponíveis</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>
                     {businessDaysCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {totalBusinessDays}</span>
                   </div>
                </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', borderRight: '1px solid var(--line)' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px' }}>analytics</span>
+            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>analytics</span>
                </div>
-               <div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Meta (Mínimo 50%)</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.1 }}>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Meta (Mínimo 50%)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>
                     {Math.floor(businessDaysCount / 2)} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {businessDaysCount}</span>
                   </div>
                </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px' }}>verified</span>
+            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
+               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
                </div>
-               <div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>Realizado (Presencial)</div>
-                  <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1.1 }}>{presencialCount}</div>
+               <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Realizado (Presencial)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>{presencialCount}</div>
                </div>
             </div>
           </div>
-
         </div>
 
         <div className="glass-card">
-          <div className="section-title" style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal — <span style={{ textTransform: 'capitalize' }}>{displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span></h3>
-               <p style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 500 }}>Toque nos dias para alternar entre Presencial e Home Office.</p>
+          <div className="section-title" style={{ 
+            marginBottom: '20px', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: '16px', 
+            background: 'var(--bg)', 
+            padding: '12px 16px', 
+            borderRadius: 'var(--radius-lg)', 
+            border: '1px solid var(--line)',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '1 1 250px' }}>
+               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)', margin: 0 }}>Controle Mensal</h3>
+               <p style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 500, margin: 0 }}>Toque nos dias para alternar Presencial/Home Office.</p>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o - 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                 <span className="material-symbols-outlined" style={{ color: 'var(--title)' }}>chevron_left</span>
-               </button>
-               <button className="icon-btn" onClick={() => setSelectedMonthOffset(o => o + 1)} style={{ background: 'var(--panel-strong)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                 <span className="material-symbols-outlined" style={{ color: 'var(--title)' }}>chevron_right</span>
-               </button>
+            
+            <div className="calendar-inline-filters" style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: '12px 20px', 
+              alignItems: 'center', 
+              flex: '2 1 400px', 
+              justifyContent: 'flex-end'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: '240px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap', width: '85px', textAlign: 'right' }}>Colaborador:</label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
+                  style={{ flex: '1 1 180px', maxWidth: '280px', padding: '8px 12px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
+                >
+                  {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
+                  {filteredEmployees.map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {shortenName(employee.name)} · {employee.team}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: '240px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap', width: '85px', textAlign: 'right' }}>Comparar com:</label>
+                <select 
+                  value={compareEntity} 
+                  onChange={(e) => setCompareEntity(e.target.value)} 
+                  style={{ flex: '1 1 160px', maxWidth: '280px', padding: '8px 12px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
+                >
+                  <option value="none">Nenhum</option>
+                  <optgroup label="Colaboradores">
+                    {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
+                      <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
+                        {shortenName(employee.name)}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -560,6 +572,56 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)' }}>
                   <div style={{ width: '12px', height: '12px', borderRadius: '4px', border: '1.5px dashed var(--line)' }}></div> Em Aberto
                 </div>
+              </div>
+              
+              <div className="calendar-month-nav" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '24px', 
+                marginBottom: '20px',
+                padding: '10px',
+                background: 'var(--bg-soft)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--line)'
+              }}>
+                <button 
+                  className="icon-btn-premium" 
+                  onClick={() => setSelectedMonthOffset(o => o - 1)}
+                  style={{ 
+                    background: 'transparent', border: 'none', cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '8px', borderRadius: '50%', transition: 'all 0.2s'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '24px', color: 'var(--primary)' }}>chevron_left</span>
+                </button>
+
+                <h2 style={{ 
+                  margin: 0, 
+                  fontSize: '1.15rem', 
+                  fontWeight: 900, 
+                  color: 'var(--title)', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '0.1em',
+                  fontFamily: "'Outfit', sans-serif",
+                  minWidth: '200px',
+                  textAlign: 'center'
+                }}>
+                  {displayMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}
+                </h2>
+
+                <button 
+                  className="icon-btn-premium" 
+                  onClick={() => setSelectedMonthOffset(o => o + 1)}
+                  style={{ 
+                    background: 'transparent', border: 'none', cursor: 'pointer', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '8px', borderRadius: '50%', transition: 'all 0.2s'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '24px', color: 'var(--primary)' }}>chevron_right</span>
+                </button>
               </div>
 
               <div className="calendar-grid">
@@ -619,7 +681,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   
                   const tooltipParts = [];
                   if (holidayInfo) tooltipParts.push(`Feriado: ${holidayInfo}`);
-                  if (dayEvents.length > 0) tooltipParts.push(`Eventos: ${dayEvents.map(e => e.titulo || e.Titulo).join(', ')}`);
+                  if (dayEvents.length > 0) tooltipParts.push(`Eventos: ${dayEvents.map(e => (e.titulo || e.Titulo) + (e.anos ? ` (${e.anos} anos)` : '')).join(', ')}`);
                   if (isComparedPresent) tooltipParts.push(`Presencial: ${comparedPeople.map(p => p.name).join(', ')}`);
                   if (absenceRequest) tooltipParts.push(`Ausência: ${absenceRequest.type}`);
                   if (pendingAbsence) tooltipParts.push(`Pendente: ${pendingAbsence.type}`);
@@ -640,7 +702,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                           setToast({ title: 'Informação do Dia', message: unifiedTooltip, type: 'info' });
                         }
                       }}
-                      className={`calendar-day glass ${isWeekend ? 'weekend' : ''} ${holidayInfo ? 'holiday' : ''} ${status === 'Presencial' ? 'active' : status === 'Home Office' ? 'active' : ''} ${isPast ? 'past' : ''}`}
+                      className={`calendar-day glass ${isWeekend ? 'weekend' : ''} ${holidayInfo ? 'holiday' : ''} ${status === 'Presencial' ? 'presencial' : status === 'Home Office' ? 'home-office' : ''} ${isPast ? 'past' : ''} ${dateKey === todayStr ? 'today' : ''}`}
+
                       title={unifiedTooltip}
                       style={{ 
                         position: 'relative',
@@ -685,8 +748,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       
                       {/* Event Slot: Top-Right */}
                       {dayEvents.length > 0 && !status && !absenceRequest && (
-                        <div 
-                          title={`${dayEvents.length} evento(s): ${dayEvents.map(e => e.titulo || e.Titulo).join(', ')}`}
+                          <div 
+                          title={`${dayEvents.length} evento(s): ${dayEvents.map(e => (e.titulo || e.Titulo) + (e.anos ? ` (${e.anos} anos)` : '')).join(', ')}`}
                           style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '2px' }}
                         >
                           {(() => {
@@ -701,15 +764,8 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                             
                             return filteredEvents.slice(0, 3).map((ev, i) => {
                               const type = ev.tipo || ev.Tipo || 'Outro';
-                              const iconMap = {
-                                'Reunião': { icon: 'groups', color: 'var(--primary)' },
-                                'Workshop': { icon: 'school', color: '#8b5cf6' },
-                                'Apresentação': { icon: 'present_to_all', color: '#3b82f6' },
-                                'Treinamento': { icon: 'menu_book', color: '#f59e0b' },
-                                'Evento Corporativo': { icon: 'business', color: 'var(--muted)' },
-                                'Aniversário': { icon: 'celebration', color: '#ff3399' }
-                              };
-                              const config = iconMap[type] || { icon: 'event', color: 'var(--primary)' };
+                              const config = EVENT_TYPE_STYLES[type] || EVENT_TYPE_STYLES['Outro'];
+
                               return (
                                 <span key={i} className="material-symbols-outlined" style={{ fontSize: '15px', color: config.color, opacity: 0.9 }}>
                                   {config.icon}
@@ -734,14 +790,22 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                         </div>
                       )}
 
-                      {/* Avatars: Top-Left (Overlaps holiday if both exist, but usually they don't) */}
-                      {isComparedPresent && !isNonWorkingDay && !status && (
-                        <div className="avatar-overlap-group" title={tooltipText} style={{ position: 'absolute', top: '6px', left: '6px', display: 'flex' }}>
+                      {/* Avatars: Bottom-Left (To avoid overlap with markers) */}
+                      {isComparedPresent && !isNonWorkingDay && (
+                        <div className="avatar-overlap-group" title={unifiedTooltip} style={{ position: 'absolute', bottom: '6px', left: '6px', display: 'flex', zIndex: 10 }}>
                           {comparedPeople.slice(0, 2).map((p, idx) => (
                             <img
                               key={p.id}
                               src={p.avatarUrl || `https://ui-avatars.com/api/?name=${p.name}&background=random`}
-                              style={{ zIndex: 10 - idx, width: '16px', height: '16px', borderRadius: '50%', border: '1.5px solid var(--card)', marginLeft: idx > 0 ? '-8px' : 0, boxShadow: 'var(--shadow-sm)' }}
+                              style={{ 
+                                width: '16px', 
+                                height: '16px', 
+                                borderRadius: '50%', 
+                                border: '1.5px solid var(--card)', 
+                                marginLeft: idx > 0 ? '-8px' : 0, 
+                                boxShadow: 'var(--shadow-sm)',
+                                background: 'var(--surface)'
+                              }}
                               alt={p.name}
                             />
                           ))}
@@ -820,24 +884,10 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                     .map((ev, i) => {
                       const date = (ev.dataInicio || ev.inicio || '').slice(8, 10);
                       const month = (ev.dataInicio || ev.inicio || '').slice(5, 7);
-                      const title = ev.titulo || ev.Titulo || ev.name || 'Sem título';
+                      const title = (ev.titulo || ev.Titulo || ev.name || 'Sem título') + (ev.anos ? ` (${ev.anos} anos)` : '');
                       const tipo = ev.tipo || ev.Tipo || 'Evento';
                       
-                      // Color Mapping Logic
-                      const getEventStyle = (t) => {
-                        const low = t.toLowerCase();
-                        if (low.includes('reunião') || low.includes('meeting')) 
-                          return { bg: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6', border: 'rgba(139, 92, 246, 0.2)' };
-                        if (low.includes('workshop')) 
-                          return { bg: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', border: 'rgba(245, 158, 11, 0.2)' };
-                        if (low.includes('treinamento') || low.includes('curso')) 
-                          return { bg: 'rgba(16, 185, 129, 0.08)', color: '#10b981', border: 'rgba(16, 185, 129, 0.2)' };
-                        if (low.includes('aniversário')) 
-                          return { bg: 'rgba(236, 72, 153, 0.08)', color: '#ec4899', border: 'rgba(236, 72, 153, 0.2)' };
-                        return { bg: 'rgba(51, 204, 204, 0.08)', color: 'var(--primary)', border: 'rgba(51, 204, 204, 0.2)' };
-                      };
-                      
-                      const style = getEventStyle(title);
+                      const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];
                       
                       return (
                         <span key={i} className="dash-micro-badge" style={{ 
@@ -845,10 +895,14 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                           padding: '6px 14px', 
                           background: style.bg, 
                           color: style.color, 
-                          border: `1px solid ${style.border}`, 
+                          border: `1px solid ${style.color}33`, 
                           borderRadius: 'var(--radius-md)', 
-                          fontWeight: 700 
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
                         }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{style.icon}</span>
                           {date}/{month} - {title}
                         </span>
                       );

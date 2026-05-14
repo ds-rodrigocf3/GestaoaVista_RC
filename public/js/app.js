@@ -1,3 +1,5 @@
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
 function App() {
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -421,30 +423,116 @@ function App() {
   const selectedDuration = form.startDate && form.endDate && toDate(form.endDate) >= toDate(form.startDate) ? diffDays(form.startDate, form.endDate) : 0;
   const formConflicts = useMemo(() => {
     if (!form.startDate || !form.endDate || !formEmployee) return [];
-    return detailedRequests.filter((request) => {
-      if (!request || request.status === 'Rejeitado') return false;
-      if (request.employeeId === formEmployee.id) return false;
+    return detailedRequests.filter(request => {
+      if (request.status === 'Rejeitado' || Number(request.id) === Number(editingRequestId)) return false;
+      if (Number(request.employeeId) === Number(form.employeeId)) return false;
       
-      // Apenas tipos de aus├â┬¬ncia geram conflito
+      // Apenas tipos de ausência geram conflito
       const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
       if (!absenceTypes.includes(request.type)) return false;
 
       const rLevel = Number(request.employee?.nivelHierarquia);
       const fLevel = Number(formEmployee?.nivelHierarquia);
       
-      // Conflito no raio de visibilidade (+1, -1 ou mesmo n├¡vel)
+      // 1. Conflito por Hierarquia Próxima (+1, -1 ou mesmo nível)
       const isAdjacentLevel = rLevel === fLevel || rLevel === fLevel - 1 || rLevel === fLevel + 1;
-      // OU Gestores e Subordinados Diretos (mesmo que pulem n├¡veis)
+      // 2. OU Gestores e Subordinados Diretos (mesmo que pulem níveis)
       const isMyDirectManager = Number(request.employee?.id) === Number(formEmployee?.gestorId);
       const isMyDirectSubordinate = Number(request.employee?.gestorId) === Number(formEmployee?.id);
+      // 3. OU Mesmo Cargo e Mesma Área (Independente do nível)
+      const isSameRoleAndArea = Number(request.employee?.cargoId) === Number(formEmployee?.cargoId) && 
+                                Number(request.employee?.areaId) === Number(formEmployee?.areaId);
       
-      if (!isAdjacentLevel && !isMyDirectManager && !isMyDirectSubordinate) return false;
+      if (!isAdjacentLevel && !isMyDirectManager && !isMyDirectSubordinate && !isSameRoleAndArea) return false;
 
       return rangesOverlap(form.startDate, form.endDate, request.startDate, request.endDate);
     });
-  }, [detailedRequests, form.startDate, form.endDate, formEmployee]);
+  }, [detailedRequests, form.startDate, form.endDate, formEmployee, editingRequestId]);
 
-  const formConflictLevel = getConflictLevel(formConflicts);
+  const formConflictLevel = (() => {
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+    const requesterCargoId = formEmployee?.cargoId;
+    const requesterAreaId = formEmployee?.areaId;
+    const allColleagues = (dbEmployees || []).filter(e =>
+      Number(e.id) !== Number(form.employeeId) &&
+      e.ativo !== false &&
+      requesterCargoId && Number(e.cargoId) === Number(requesterCargoId) &&
+      requesterAreaId && Number(e.areaId) === Number(requesterAreaId)
+    );
+    const absentColleagues = allColleagues.filter(col =>
+      detailedRequests.some(r =>
+        Number(r.employeeId) === Number(col.id) &&
+        r.status !== 'Rejeitado' &&
+        absenceTypes.includes(r.type) &&
+        rangesOverlap(r.startDate, r.endDate, form.startDate, form.endDate)
+      )
+    );
+    return getConflictLevel(formConflicts, {
+      allColleagues,
+      absentColleagues,
+      coverageEmployeeName: form.coverage || '',
+      allRequests: detailedRequests,
+      requesterId: form.employeeId,
+      currentStartDate: form.startDate,
+      currentEndDate: form.endDate
+    });
+  })();
+
+  const formConflictDetails = useMemo(() => {
+    if (formConflicts.length === 0 || !form.startDate || !form.endDate || !formEmployee) return [];
+
+    const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)'];
+    const requesterCargoId = formEmployee?.cargoId;
+    const requesterAreaId = formEmployee?.areaId;
+    
+    // Todos colegas do mesmo cargo/área
+    const colleaguesInRole = (dbEmployees || []).filter(e =>
+      Number(e.id) !== Number(form.employeeId) &&
+      e.ativo !== false &&
+      requesterCargoId && Number(e.cargoId) === Number(requesterCargoId) &&
+      requesterAreaId && Number(e.areaId) === Number(requesterAreaId)
+    );
+
+    return formConflicts.map(request => {
+      const overlap = getOverlapDescription(form.startDate, form.endDate, request.startDate, request.endDate);
+      
+      // Calcula o nível individual para ESTE colega específico
+      // Simulamos um cenário onde apenas este conflito existe para saber o peso dele
+      const otherAbsenteesInRole = colleaguesInRole.filter(col => 
+        Number(col.id) === Number(request.employeeId)
+      );
+
+      const individualLevel = getConflictLevel([request], {
+        allColleagues: colleaguesInRole,
+        absentColleagues: otherAbsenteesInRole,
+        coverageEmployeeName: form.coverage || '',
+        allRequests: detailedRequests,
+        requesterId: form.employeeId,
+        currentStartDate: form.startDate,
+        currentEndDate: form.endDate
+      });
+
+      // Define o motivo textual
+      let reason = 'Sobreposição hierárquica';
+      const isSameRole = requesterCargoId && Number(request.employee?.cargoId) === Number(requesterCargoId);
+      if (isSameRole) {
+        const total = colleaguesInRole.length + 1;
+        reason = total <= 2 ? 'Toda a equipe do cargo estará ausente' : 'Área com cobertura reduzida';
+      } else if (Number(request.employee?.id) === Number(formEmployee?.gestorId)) {
+        reason = 'Sobreposição com Gestor Direto';
+      } else if (Number(request.employee?.gestorId) === Number(formEmployee?.id)) {
+        reason = 'Sobreposição com Subordinado Direto';
+      }
+
+      return {
+        id: request.id,
+        name: request.employee?.name || 'Colega',
+        period: overlap,
+        level: individualLevel,
+        reason: reason
+      };
+    });
+  }, [formConflicts, form.startDate, form.endDate, formEmployee, dbEmployees, detailedRequests]);
 
   const stats = useMemo(() => {
     const defaultStats = { totalRequests: 0, pending: 0, approvedDays: 0, concurrentApril: 0, highRiskPending: 0 };
@@ -493,7 +581,7 @@ function App() {
       status: 'Pendente', 
       note: form.note || 'Sem observações adicionais.', 
       coverage: form.coverage || 'A definir', 
-      priority: formConflicts.length >= 2 ? 'Alta' : formConflicts.length === 1 ? 'Média' : 'Baixa' 
+      priority: formConflictLevel === 'Crítico' || formConflictLevel === 'Alto' ? 'Alta' : formConflictLevel === 'Média' ? 'Média' : 'Baixa'
     };
     const method = editingRequestId ? 'PUT' : 'POST';
     const url = editingRequestId ? `${API_BASE}/api/requests/${editingRequestId}` : `${API_BASE}/api/requests`;
@@ -510,7 +598,7 @@ function App() {
           setEditingRequestId(null);
         } else {
           setRequests(current => [...current, data]);
-          setToast({ title: 'Solicitação enviada', message: formConflicts.length ? `Pedido criado com ${formConflicts.length} conflitos detectados.` : 'Pedido criado com sucesso.' });
+          setToast({ title: 'Solicitação enviada', message: formConflictLevel !== 'Nenhum' ? `Pedido criado com conflito ${formConflictLevel} detectado.` : 'Pedido criado com sucesso.' });
         }
         
         // Em vez de mudar de tela, apenas scrolla para a tabela de solicitações
@@ -612,7 +700,8 @@ function App() {
       body: JSON.stringify({
         status: decision,
         aprovadorId: currentUser.colaboradorId,
-        comentarioAprovacao: finalNote
+        comentarioAprovacao: finalNote,
+        updatedAt: new Date().toISOString()
       })
     })
       .then(async res => {
@@ -649,7 +738,7 @@ function App() {
       .finally(() => setProcessingApprovalId(null));
   };
 
-  if (!currentUser) return <LoginModal onLogin={handleLogin} />;
+  if (!currentUser) return <LoginModal onLogin={handleLogin} isDark={isDark} setIsDark={setIsDark} />;
   if (loading) return <div style={{ background: '#0f172a', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', gap: '20px' }}><div className="modern-spinner"></div><div style={{ fontSize: '1.2rem', fontWeight: 600 }}>CONTROLLER MAESTRO</div></div>;
 
   return (
@@ -722,6 +811,7 @@ function App() {
               approvals: { title: 'Aprovações', description: 'Central de solicitações pendentes e histórico de decisões hierárquicas.' },
               scale: { title: 'Escala Mensal', description: 'Planejamento de dias presenciais e remotos da equipe.' },
               eventos: { title: 'Eventos', description: 'Agenda corporativa, reuniões e compromissos da equipe.' },
+              structure: { title: 'Estrutura Organizacional', description: 'Explore a hierarquia da área e conheça o perfil profissional de cada colaborador.' },
             };
             const meta = PAGE_META[activeView] || { title: '', description: '' };
             return (
@@ -817,11 +907,12 @@ function App() {
           })()}
 
           {activeView === 'dashboard' && <DashboardView stats={stats} requests={detailedRequests} pendingRequests={pendingRequests} rejectedRequests={rejectedRequests} timelineItems={timelineItems} tasks={filteredTasks} workDays={workDays} employees={dbEmployees} demandas={demandas} setDemandas={setDemandas} eventos={eventos} areas={areas} globalFilters={globalFilters} currentUser={currentUser} onAddTask={handleAdd} authorizedScope={authorizedScope} />}
-          {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} eventos={eventos} setToast={setToast} />}
+          {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} formConflictDetails={formConflictDetails} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} eventos={eventos} setToast={setToast} />}
           {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} authorizedScope={authorizedScope} />}
           {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} dbEmployees={dbEmployees} authToken={authToken} fetchAll={fetchAll} setToast={setToast} />}
           {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} calendarViewDate={calendarViewDate} setCalendarViewDate={setCalendarViewDate} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} />}
           {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
+          {activeView === 'structure' && <StructureView employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} fetchAll={fetchAll} setToast={setToast} />}
         </main>
       </div>
       {toast && (

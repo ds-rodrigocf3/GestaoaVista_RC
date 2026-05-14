@@ -192,6 +192,17 @@ O arquivo `src/config/database.js` já suporta Azure automaticamente:
 
 Confirme que `.env` está no `.gitignore` (já está). **Nunca commite credenciais**.
 
+### 4.5 — Organização de Pastas para Deploy
+
+Para garantir um deploy limpo, o projeto foi organizado da seguinte forma:
+- **`src/`**: Contém toda a lógica do backend (rotas, controllers, middlewares).
+- **`public/`**: Contém o frontend estático e assets.
+- **`database/`**: Contém scripts de schema, migração e setup inicial.
+- **`scripts/`**: Reservado apenas para utilitários de sistema (ex: `generate_docs.js`).
+- **`scratch/`**: Pasta mapeada no `.gitignore` que contém todos os arquivos intermediários, scripts de teste, backups e validações pontuais. **Estes arquivos não são enviados para o servidor de produção.**
+
+> 💡 **Dica**: Se precisar criar um script de teste rápido, salve-o na pasta `scratch/` para evitar poluir a estrutura de produção.
+
 ---
 
 ## 5. Criar o App Service

@@ -491,19 +491,39 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         </div>
 
         <div className="glass-card">
-          <div className="section-title" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: 'var(--bg)', padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '1 1 200px' }}>
-               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)' }}>Controle Mensal</h3>
-               <p style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 500 }}>Toque nos dias para alternar Presencial/Home Office.</p>
+          <div className="section-title" style={{ 
+            marginBottom: '20px', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: '16px', 
+            background: 'var(--bg)', 
+            padding: '12px 16px', 
+            borderRadius: 'var(--radius-lg)', 
+            border: '1px solid var(--line)',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '1 1 250px' }}>
+               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)', margin: 0 }}>Controle Mensal</h3>
+               <p style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 500, margin: 0 }}>Toque nos dias para alternar Presencial/Home Office.</p>
             </div>
             
-            <div className="calendar-inline-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', flex: '2 1 400px', justifyContent: 'flex-end' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)', whiteSpace: 'nowrap' }}>Colaborador:</label>
+            <div className="calendar-inline-filters" style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: '12px 20px', 
+              alignItems: 'center', 
+              flex: '2 1 400px', 
+              justifyContent: 'flex-end'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: '240px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap', width: '85px', textAlign: 'right' }}>Colaborador:</label>
                 <select
                   value={selectedEmployeeId}
                   onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                  style={{ minWidth: '180px', padding: '6px 12px', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--surface)' }}
+                  style={{ flex: '1 1 180px', maxWidth: '280px', padding: '8px 12px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
                 >
                   {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
                   {filteredEmployees.map((employee) => (
@@ -514,9 +534,13 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--title)', whiteSpace: 'nowrap' }}>Comparar com:</label>
-                <select value={compareEntity} onChange={(e) => setCompareEntity(e.target.value)} style={{ minWidth: '160px', padding: '6px 12px', fontSize: '0.8rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: '240px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap', width: '85px', textAlign: 'right' }}>Comparar com:</label>
+                <select 
+                  value={compareEntity} 
+                  onChange={(e) => setCompareEntity(e.target.value)} 
+                  style={{ flex: '1 1 160px', maxWidth: '280px', padding: '8px 12px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
+                >
                   <option value="none">Nenhum</option>
                   <optgroup label="Colaboradores">
                     {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
@@ -527,8 +551,6 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   </optgroup>
                 </select>
               </div>
-
-              <div style={{ marginLeft: 'auto' }}></div>
             </div>
           </div>
 

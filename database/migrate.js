@@ -4,7 +4,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 async function runMigration() {
     const isAzure = process.env.DB_ENVIRONMENT === 'azure';
-    const databaseName = process.env.DB_DATABASE || 'DB_TESTE';
+    const databaseName = process.env.DB_DATABASE || process.env.LOCAL_DB_NAME || 'DB_TESTE';
 
     console.log(`🚀 Iniciando Migração Segura em modo: ${isAzure ? 'AZURE' : 'LOCAL'}`);
 
@@ -17,7 +17,7 @@ async function runMigration() {
             server: process.env.AZURE_SQL_SERVER || process.env.DB_SERVER,
             options: {
                 encrypt: true,
-                trustServerCertificate: false,
+                trustServerCertificate: true,
                 enableArithAbort: true
             }
         };
@@ -110,6 +110,21 @@ async function runMigration() {
         // 7. Garantir que NivelHierarquia aceita NULL
         await request.query(`
             ALTER TABLE BI_Colaboradores ALTER COLUMN NivelHierarquia INT NULL;
+        `);
+
+        // 8. Colunas de Perfil Profissional
+        await request.query(`
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'ResumoProfissional')
+                ALTER TABLE BI_Colaboradores ADD ResumoProfissional NVARCHAR(MAX) NULL;
+            
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'TimelineRealizacoes')
+                ALTER TABLE BI_Colaboradores ADD TimelineRealizacoes NVARCHAR(MAX) NULL;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'Formacoes')
+                ALTER TABLE BI_Colaboradores ADD Formacoes NVARCHAR(MAX) NULL;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BI_Colaboradores') AND name = 'MeritosPromocoes')
+                ALTER TABLE BI_Colaboradores ADD MeritosPromocoes NVARCHAR(MAX) NULL;
         `);
 
         console.log('✨ Migração finalizada com sucesso!');

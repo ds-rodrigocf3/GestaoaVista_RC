@@ -19,8 +19,9 @@ exports.getAll = async (req, res) => {
     if (isAdmin) {
       query = `
         SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
-               t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
-               c.Nome as ResponsavelNome
+               t.Status, t.Prioridade, t.Inicio, t.Final, t.InicioRealizado, t.FimRealizado, t.DataCriacao, t.Ativo,
+               c.Nome as ResponsavelNome,
+               (SELECT StatusNovo as status, DataInicio as startDate, DataFim as endDate, Comentario as comment FROM StatusHistorico WHERE TipoEntidade = 'Tarefa' AND EntidadeId = t.Id ORDER BY DataInicio ASC FOR JSON PATH) as StatusHistoryJson
         FROM Tarefas t
         LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
         WHERE t.Ativo = 1
@@ -35,12 +36,15 @@ exports.getAll = async (req, res) => {
             INNER JOIN HierarquiaCTE h ON c.GestorId = h.Id
         )
         SELECT t.Id, t.DemandaId, t.Titulo, t.Descricao, t.ResponsavelId, 
-               t.Status, t.Prioridade, t.Inicio, t.Final, t.DataCriacao, t.Ativo,
-               c.Nome as ResponsavelNome
+               t.Status, t.Prioridade, t.Inicio, t.Final, t.InicioRealizado, t.FimRealizado, t.DataCriacao, t.Ativo,
+               c.Nome as ResponsavelNome,
+               (SELECT StatusNovo as status, DataInicio as startDate, DataFim as endDate, Comentario as comment FROM StatusHistorico WHERE TipoEntidade = 'Tarefa' AND EntidadeId = t.Id ORDER BY DataInicio ASC FOR JSON PATH) as StatusHistoryJson
         FROM Tarefas t
         LEFT JOIN BI_Colaboradores c ON t.ResponsavelId = c.Id
         WHERE t.Ativo = 1 
-          AND (t.ResponsavelId IS NULL OR c.AreaId IN (SELECT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL))
+          AND (t.ResponsavelId IS NULL 
+               OR c.AreaId IN (SELECT DISTINCT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+               OR t.ResponsavelId IN (SELECT Id FROM HierarquiaCTE))
         ORDER BY t.DataCriacao DESC
       `;
     }
@@ -58,6 +62,9 @@ exports.getAll = async (req, res) => {
       priority: t.Prioridade,
       startDate: t.Inicio ? formatDateYYYYMMDD(t.Inicio) : '',
       endDate: t.Final ? formatDateYYYYMMDD(t.Final) : '',
+      inicioRealizado: t.InicioRealizado ? formatDateYYYYMMDD(t.InicioRealizado) : null,
+      fimRealizado: t.FimRealizado ? formatDateYYYYMMDD(t.FimRealizado) : null,
+      statusHistory: t.StatusHistoryJson ? JSON.parse(t.StatusHistoryJson) : [],
       dataCriacao: t.DataCriacao,
       ativo: t.Ativo,
       responsavelNome: t.ResponsavelNome
@@ -99,8 +106,11 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { titulo, descricao, responsavelId, status, prioridade, inicio, final, demandaId, statusAnterior, registrarHistorico, comentarioStatus } = req.body;
+    const { titulo, descricao, responsavelId, status, prioridade, inicio, final, demandaId, statusAnterior, registrarHistorico, comentarioStatus, statusDate } = req.body;
     const pool = await poolPromise;
+    
+    // Status date definition
+    const resolvedStatusDate = statusDate || new Date().toISOString();
     
     // Update Tarefa
     await pool.request()
@@ -113,12 +123,26 @@ exports.update = async (req, res) => {
       .input('Prioridade', sql.NVARCHAR(50), prioridade)
       .input('Inicio', sql.DATE, inicio || null)
       .input('Final', sql.DATE, final || null)
+      .input('StatusDate', sql.DATETIME, resolvedStatusDate)
       .query(`UPDATE Tarefas SET DemandaId=@DemandaId, Titulo=@Titulo, Descricao=@Descricao, 
               ResponsavelId=@ResponsavelId, Status=@Status, Prioridade=@Prioridade, 
-              Inicio=@Inicio, Final=@Final, DataModificacao=GETDATE() WHERE Id=@Id`);
+              Inicio=@Inicio, Final=@Final, 
+              InicioRealizado = CASE WHEN @Status = 'Em Andamento' AND InicioRealizado IS NULL THEN @StatusDate ELSE InicioRealizado END,
+              FimRealizado = CASE WHEN @Status = 'Concluído' AND FimRealizado IS NULL THEN @StatusDate 
+                                  WHEN @Status <> 'Concluído' THEN NULL 
+                                  ELSE FimRealizado END,
+              DataModificacao=GETDATE() WHERE Id=@Id`);
 
     // Log History if status changed
     if (registrarHistorico || (statusAnterior && statusAnterior !== status)) {
+      // Fecha o status anterior com a data informada
+      await pool.request()
+        .input('Id', sql.INT, id)
+        .input('StatusDate', sql.DATETIME, resolvedStatusDate)
+        .query(`UPDATE StatusHistorico SET DataFim = @StatusDate
+                WHERE TipoEntidade = 'Tarefa' AND EntidadeId = @Id AND DataFim IS NULL`);
+
+      // Inicia novo status
       await pool.request()
         .input('Tipo', sql.NVARCHAR(20), 'Tarefa')
         .input('EntidadeId', sql.INT, id)
@@ -126,8 +150,9 @@ exports.update = async (req, res) => {
         .input('StatusNovo', sql.NVARCHAR(50), status)
         .input('Comentario', sql.NVARCHAR(1000), comentarioStatus || 'Transição de status')
         .input('UserId', sql.INT, req.user.userId)
+        .input('StatusDate', sql.DATETIME, resolvedStatusDate)
         .query(`INSERT INTO StatusHistorico (TipoEntidade, EntidadeId, StatusAnterior, StatusNovo, Comentario, UsuarioId, DataInicio)
-                VALUES (@Tipo, @EntidadeId, @StatusAnt, @StatusNovo, @Comentario, @UserId, GETDATE())`);
+                VALUES (@Tipo, @EntidadeId, @StatusAnt, @StatusNovo, @Comentario, @UserId, @StatusDate)`);
     }
 
     res.json({ success: true });

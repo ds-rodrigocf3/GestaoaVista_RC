@@ -20,6 +20,22 @@ Este documento lista todas as melhorias de performance, estabilização de UI/UX
 2. **KPIs Centralizados**: Os indicadores de "Fila Operacional" tiveram sua estrutura visual centralizada, removendo os alinhamentos à esquerda para uma apresentação mais simétrica e profissional.
 3. **Sintaxe CSS Corrigida**: Limpeza no `styles.css` eliminando blocos de estilo órfãos e seletores duplicados que quebravam a renderização de componentes específicos (como os cartões de eventos em modo escuro).
 
+## 🌳 Estrutura Organizacional e Hierarquia
+1. **Organograma Dinâmico**: Implementação de visualização hierárquica em árvore com conexões visuais estáveis e layouts responsivos para diferentes níveis de gestão.
+2. **Gestão de Subordinados**: Módulo de configuração de hierarquia que permite definir fluxos de aprovação de forma intuitiva.
+
+## 📅 Refinamento de Agendamentos e Escalas
+1. **Estabilização de Interface**: Normalização de campos de entrada e seletores no módulo de agendamento, garantindo consistência visual e funcional.
+2. **Histórico de Auditoria**: Implementação de modal de histórico para acompanhamento de mudanças em agendamentos e aprovações.
+
+## 👤 Perfil Profissional (Sobre Mim)
+1. **Timeline de Conquistas**: Novo layout de perfil com timeline para Realizações, Formação Acadêmica e Méritos.
+2. **UX de Edição**: Fluxo de edição baseado em modais para garantir foco e clareza na inserção de dados profissionais.
+
+## 🏗️ Preparação para Deploy
+1. **Organização de Pastas**: Limpeza da pasta `scripts/` e isolamento de arquivos de teste/validação na pasta `scratch/`.
+2. **Configurações de Ambiente**: Padronização de variáveis de ambiente para facilitar a transição entre ambientes Local e Azure.
+
 ---
 **Status:** ✅ Homologado e Atualizado
-**Data da Revisão:** 06 de Maio de 2026
+**Data da Revisão:** 14 de Maio de 2026

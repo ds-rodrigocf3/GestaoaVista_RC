@@ -8,15 +8,17 @@ exports.getAll = async (req, res) => {
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
     const result = await pool.request().query(`
-      SELECT r.*, c.Nome as EmployeeName
+      SELECT r.*, c.Nome as EmployeeName, a.Nome as ApproverName
       FROM Requests r
       LEFT JOIN BI_Colaboradores c ON r.EmployeeId = c.Id
+      LEFT JOIN BI_Colaboradores a ON r.AprovadorId = a.Id
       ORDER BY r.DataCriacao DESC
     `);
     res.json(result.recordset.map(r => ({
       id: r.Id,
       employeeId: r.EmployeeId,
       employeeName: r.EmployeeName,
+      approverName: r.ApproverName,
       type: r.Type,
       status: r.Status,
       startDate: formatDateYYYYMMDD(r.StartDate),
@@ -95,10 +97,11 @@ exports.create = async (req, res) => {
         .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')
         .input('Loc', sql.NVARCHAR(50), localTrabalho || null)
         .query(`INSERT INTO Requests (EmployeeId, Type, Status, StartDate, EndDate, Note, Coverage, Priority, LocalTrabalho, DataCriacao, DataModificacao)
-                OUTPUT Inserted.Id VALUES (@EmpId, @Type, @Status, @Start, @End, @Note, @Cov, @Pri, @Loc, GETDATE(), GETDATE())`);
+                OUTPUT Inserted.Id, Inserted.DataCriacao, Inserted.DataModificacao 
+                VALUES (@EmpId, @Type, @Status, @Start, @End, @Note, @Cov, @Pri, @Loc, GETDATE(), GETDATE())`);
     }
     
-    const newId = result.recordset[0].Id;
+    const newRecord = result.recordset[0];
 
     if (finalStatus === 'Aprovado' && (type === 'Escala de Trabalho' || type === 'Ajuste de Escala')) {
       const dateKey = startDate ? formatDateYYYYMMDD(startDate) : null;
@@ -106,7 +109,7 @@ exports.create = async (req, res) => {
     }
 
     res.json({ 
-      id: Number(newId), 
+      id: Number(newRecord.Id), 
       employeeId: empId, 
       type, 
       status: finalStatus, 
@@ -116,7 +119,9 @@ exports.create = async (req, res) => {
       note: note || '',
       comentarioAprovacao: null,
       coverage: coverage || '',
-      priority: priority || 'Baixa'
+      priority: priority || 'Baixa',
+      dataCriacao: newRecord.DataCriacao,
+      dataModificacao: newRecord.DataModificacao
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -170,18 +175,26 @@ exports.update = async (req, res) => {
       .input('Cov', sql.NVARCHAR(100), coverage || '')
       .input('Pri', sql.NVARCHAR(50), priority || 'Baixa')
       .input('Loc', sql.NVARCHAR(50), loc)
+      .input('Aprovador', sql.INT, req.user.colaboradorId) // Adicionado ID do aprovador
       .input('Comentario', sql.NVARCHAR(1000), comentarioAprovacao || original.ComentarioAprovacao || null)
-      .query(`UPDATE Requests SET Status=@Status, StartDate=@Start, EndDate=@End, Note=@Note, Coverage=@Cov, Priority=@Pri, LocalTrabalho=@Loc, ComentarioAprovacao=@Comentario, DataModificacao=GETDATE() WHERE Id=@Id`);
+      .query(`UPDATE Requests SET Status=@Status, StartDate=@Start, EndDate=@End, Note=@Note, Coverage=@Cov, Priority=@Pri, LocalTrabalho=@Loc, AprovadorId=@Aprovador, ComentarioAprovacao=@Comentario, DataModificacao=GETDATE() WHERE Id=@Id`);
 
     const fullRequest = await pool.request()
       .input('Id', sql.INT, id)
-      .query('SELECT r.*, c.Nome as EmployeeName FROM Requests r LEFT JOIN BI_Colaboradores c ON r.EmployeeId = c.Id WHERE r.Id = @Id');
+      .query(`
+        SELECT r.*, c.Nome as EmployeeName, a.Nome as ApproverName 
+        FROM Requests r 
+        LEFT JOIN BI_Colaboradores c ON r.EmployeeId = c.Id 
+        LEFT JOIN BI_Colaboradores a ON r.AprovadorId = a.Id 
+        WHERE r.Id = @Id
+      `);
 
     const updated = fullRequest.recordset[0];
     res.json({
       id: updated.Id,
       employeeId: updated.EmployeeId,
       employeeName: updated.EmployeeName,
+      approverName: updated.ApproverName,
       type: updated.Type,
       status: updated.Status,
       startDate: formatDateYYYYMMDD(updated.StartDate),

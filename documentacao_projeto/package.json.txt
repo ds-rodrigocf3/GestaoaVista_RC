@@ -13,12 +13,16 @@ CONTEÚDO COMPLETO:
     "start": "node src/server.js",
     "build": "echo 'No build needed'",
     "setup-db": "node database/setup.js",
+    "migrate-db": "node database/migrate.js",
     "test": "echo \"No tests for now\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "dependencies": {
     "@babel/standalone": "^7.29.2",
     "bcryptjs": "^3.0.3",
@@ -26,9 +30,9 @@ CONTEÚDO COMPLETO:
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "msnodesqlv8": "^4.5.0",
     "mssql": "^12.4.0",
-    "multer": "^2.1.1",
-    "node-fetch": "^3.3.2"
+    "multer": "^2.1.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
@@ -36,3 +40,4 @@ CONTEÚDO COMPLETO:
     "typescript": "^6.0.2"
   }
 }
+

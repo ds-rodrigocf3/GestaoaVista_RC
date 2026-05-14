@@ -5,10 +5,12 @@ PROPÓSITO: Ponto de entrada do backend Express, configura rotas e middlewares g
 CONTEÚDO COMPLETO:
 ========================================================================
 // Modular server entrypoint - mounts route modules
+// Carrega variáveis de ambiente (.env.local tem prioridade sobre .env)
+require('dotenv').config({ path: '.env.local' });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('node:path');
 const { poolPromise } = require('./config/database');
 const { loggerMiddleware } = require('./middleware/logger');
 
@@ -28,7 +30,8 @@ const app = express();
 
 app.use(loggerMiddleware);
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // API Routes
 app.use('/api/auth', authRouter);
@@ -38,7 +41,8 @@ app.use('/api/cargos', cargosRouter);
 app.use('/api/demandas', demandasRouter);
 app.use(['/api/tarefas', '/api/tasks'], tarefasRouter); // Handle both names
 app.use('/api/requests', requestsRouter);
-app.use(['/api/colaboradores', '/api/employees'], colaboradoresRouter); // Handle both names
+app.use(['/api/colaboradores', '/api/employees'], colaboradoresRouter); 
+app.get('/api/colaboradores/:id/profile', authRouter); // Temporary fix to allow direct access if needed, but router handles it better
 app.use('/api/eventos', eventosRouter);
 app.use('/api/status-tipos', statusTiposRouter);
 
@@ -81,9 +85,34 @@ poolPromise.then(() => {
     return acc + r.stack.filter(l => l.route).length;
   }, 0);
 
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`Servidor rodando na porta ${PORT}`);
     console.log(`Total de routes: ${routeCount}`);
+
+    // Verificação de Schema Automática (In-App Migration)
+    try {
+      const pool = await poolPromise;
+      const request = pool.request();
+      console.log('🛠️ Verificando colunas de Perfil Profissional...');
+      await request.query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='BI_ColaboradorPerfis' AND xtype='U')
+        BEGIN
+          CREATE TABLE BI_ColaboradorPerfis (
+            ColaboradorId INT PRIMARY KEY,
+            ResumoProfissional NVARCHAR(MAX) NULL,
+            TimelineRealizacoes NVARCHAR(MAX) NULL,
+            Formacoes NVARCHAR(MAX) NULL,
+            MeritosPromocoes NVARCHAR(MAX) NULL,
+            AvatarFull NVARCHAR(MAX) NULL,
+            FOREIGN KEY (ColaboradorId) REFERENCES BI_Colaboradores(Id) ON DELETE CASCADE
+          );
+          PRINT 'Criada: Tabela BI_ColaboradorPerfis';
+        END
+      `);
+      console.log('✅ Schema de Colaboradores e Perfis atualizado/verificado.');
+    } catch (e) {
+      console.error('⚠️ Falha ao verificar schema:', e.message);
+    }
   });
 }).catch(err => {
   console.error('Erro ao conectar ao banco:', err.message || err);

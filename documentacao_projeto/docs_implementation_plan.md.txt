@@ -1,0 +1,76 @@
+NOME DO ARQUIVO: implementation_plan.md
+CAMINHO: docs/implementation_plan.md
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+# Review de Performance, Bugs, Node.js 24 e Organização para Deploy
+
+Este plano detalha as etapas para transformar a base de código homologada em uma versão "Pronta para Produção" (Deploy). O foco foi expandido para incluir arquitetura de pastas, limpeza profunda de lixo digital (artifacts) e otimização visual/responsiva (GPU acceleration).
+
+## User Review Required
+
+> [!WARNING]
+> **Deleção de Arquivos**: O plano inclui a exclusão da pasta `scratch/`, `public/backups/`, e arquivos temporários como `styles_utf8.css`. Por favor, confirme se há algo em `scratch/` que deva ser mantido antes de prosseguirmos.
+>
+> **Migração de Documentos**: Arquivos avulsos (`.md`, `.zip`) na raiz do projeto serão movidos para uma pasta `docs/` para limpar a raiz e seguir os padrões de mercado.
+
+## Proposed Changes
+
+---
+
+### 1. Organização de Pastas e Limpeza para Deploy
+
+A raiz do projeto deve conter apenas configurações essenciais.
+
+#### [NEW] `docs/` (Diretório)
+- Criar diretório e mover todos os arquivos `.md` (exceto o README principal, se houver) e o `documentacao_projeto.zip`. Arquivos como `CHECKLIST_TESTE.md`, `DEPLOY.md`, `PERSISTENCIA_FIX.md` e `RESUMO_CORRECAO.md` ficarão aqui.
+
+#### [MODIFY] Diretório Raiz (`/`)
+- Mover scripts avulsos como `generate_docs.js` para a pasta `scripts/`.
+
+#### [DELETE] Lixo Digital
+- **`scratch/`**: Excluir este diretório gerado por execuções anteriores (contém +30 scripts temporários inúteis para produção).
+- **`public/backups/`**: Remover backups velhos do frontend.
+- **`public/styles_utf8.css`**: Avaliar e excluir a versão redundante do CSS, garantindo que o arquivo principal `public/styles.css` esteja na codificação correta e unificado.
+
+---
+
+### 2. Alta Performance no Front-End e Visual Sem Bugs (UI/UX)
+
+Garantir fluidez nas animações a 60fps, responsividade impecável e trocas suaves entre os modos Claro e Escuro.
+
+#### [MODIFY] `public/styles.css`
+- **Aceleração por GPU (Hardware Acceleration)**: Refatorar animações que atualmente alteram propriedades pesadas (como `margin`, `top`, `left`, `width`) para usarem `transform` (ex: `translateY`, `scale`) e `opacity`. Isso evita _layout thrashing_ (re-cálculo de pintura da tela pelo navegador).
+- **Otimização do DOM com CSS Containment**: Aplicar a propriedade `contain: content` ou `contain: paint` nos _cards_ pesados do Dashboard (`.glass-card`). Isso sinaliza ao navegador que a renderização do card é isolada, aumentando absurdamente a performance ao fazer _scroll_ na página.
+- **Refinamento Claro/Escuro (Theming)**: Revisar as variáveis CSS (`var(--bg)`, `var(--text)`) para garantir que as transições de cor base do `[data-theme="dark"]` não causem anomalias visuais ou flashes de fundo branco. 
+- **Design Responsivo sem Bugs**: Revisar todas as `@media queries` para as quebras em Desktop, Tablet e Mobile. Garantir que Tabelas (`.table-responsive`) não quebrem o layout (overflow horizontal correto) e modais respeitem `max-height: 90vh` no mobile para evitar perda de botões de fechar fora da tela.
+
+---
+
+### 3. Backend (Node.js 24) e Performance (`src/` e `package.json`)
+
+#### [MODIFY] package.json e Controladores
+- **Definir Engine**: Adicionar `"engines": { "node": ">=24.0.0" }`.
+- **Remover Dependência Legada**: Remover `node-fetch` e usar o `fetch` nativo do Node.js 24.
+- **Uso de Prefixos de Módulos Core (`node:`)**: Atualizar imports para usar o prefixo explícito `node:` (ex: `require('node:fs')`), o que otimiza o loop de eventos e a segurança.
+- **Conexões do Banco**: Revisar conexões do MSSQL no `server.js` e em `src/controllers/` garantindo que o `pool` feche adequadamente e queries não estejam gargalando (Memory Leaks).
+
+---
+
+### 4. JavaScript Moderno e Seguro (`public/js/`)
+
+#### [MODIFY] utils.js, tasks.js, app.js, etc.
+- **Igualdade Estrita**: Substituição global e cautelosa de `==` por `===` para ganho sutil de CPU e evasão de bugs com IDs.
+- **Top-Level Await e Optional Chaining**: Simplificar códigos como `obj && obj.prop && obj.prop.id` para `obj?.prop?.id`.
+- **Prevenção de Re-renders (React)**: Checar gargalos em `app.js` assegurando que listas longas de tarefas/eventos usem `useMemo` adequadamente.
+
+## Verification Plan
+
+### Automated Tests
+- Validação do package rodando em um ambiente isolado Node 24 (`node src/server.js`).
+
+### Manual Verification
+- **Stress Test UI**: Realizar transições contínuas de Claro/Escuro e redimensionar agressivamente a tela do navegador para monitorar saltos de layout ou CSS quebrado.
+- **Dashboard Data**: Validar se o carregamento massivo de demandas em mobile está renderizando de forma suave.
+

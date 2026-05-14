@@ -101,4 +101,4 @@ Por estarmos sem um framework complexo de state management (como Redux), utiliza
 
 ---
 **Documento Atualizado em:** Maio de 2026.
-**Mantenedores:** Equipe de Tecnologia (Controller / Gestão à Vista).
+**Mantenedores:** Rodrigo Freitas - BI EloPar Controller - Grestão à Vista

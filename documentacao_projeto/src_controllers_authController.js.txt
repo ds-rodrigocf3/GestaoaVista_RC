@@ -22,7 +22,7 @@ exports.login = async (req, res) => {
       .query(`
         SELECT u.Id, u.Email, u.SenhaHash, u.IsAdmin, u.Ativo, u.ColaboradorId,
                c.Nome, c.Cargo, c.CargoId, c.NivelHierarquia, c.Color, c.AvatarUrl, c.AreaId,
-               c.Gestor, c.Tp_contrato,
+               c.Gestor, c.Tp_contrato, c.ExibirIdade,
                nh.Descricao as NivelDescricao,
                car.Nome as CargoNome
         FROM BI_Usuarios u
@@ -67,7 +67,8 @@ exports.login = async (req, res) => {
         nivelHierarquia: user.NivelHierarquia,
         nivelDescricao: user.NivelDescricao,
         color: user.Color,
-        avatarUrl: user.AvatarUrl
+        avatarUrl: user.AvatarUrl,
+        exibirIdade: user.ExibirIdade === true
       }
     });
   } catch (err) {
@@ -113,20 +114,64 @@ exports.updateProfile = async (req, res) => {
     
     if (req.file) {
       avatarUrl = 'data:' + req.file.mimetype + ';base64,' + req.file.buffer.toString('base64');
-    } else if (!avatarUrl) {
-      return res.status(400).json({ error: 'Nenhuma imagem enviada' });
     }
+    
+    const exibirIdade = req.body && req.body.exibirIdade !== undefined ? (req.body.exibirIdade === 'true' || req.body.exibirIdade === true) : null;
+
 
     const { colaboradorId } = req.user;
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
 
-    await pool.request()
-      .input('ColabId', sql.INT, colaboradorId)
-      .input('AvatarUrl', sql.VarChar(sql.MAX), avatarUrl || null)
-      .query('UPDATE BI_Colaboradores SET AvatarUrl = @AvatarUrl WHERE Id = @ColabId');
+    const updates = [];
+    const request = pool.request().input('ColabId', sql.INT, colaboradorId);
+    
+    if (avatarUrl) {
+      request.input('AvatarUrl', sql.VarChar(sql.MAX), avatarUrl);
+      updates.push('AvatarUrl = @AvatarUrl');
+    }
+    
+    if (exibirIdade !== null) {
+      request.input('ExibirIdade', sql.BIT, exibirIdade ? 1 : 0);
+      updates.push('ExibirIdade = @ExibirIdade');
+    }
+    if (updates.length > 0) {
+      const query = `UPDATE BI_Colaboradores SET ${updates.join(', ')} WHERE Id = @ColabId`;
+      await request.query(query);
+    }
+    
+    res.json({ success: true, avatarUrl, exibirIdade });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
-    res.json({ success: true, avatarUrl });
+exports.updateDelegation = async (req, res) => {
+  try {
+    const { colaboradorId } = req.user;
+    const { delegadoId, delegacaoInicio, delegacaoFim, delegacaoAtiva } = req.body;
+
+    const pool = await poolPromise;
+    if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+
+    const query = `
+      UPDATE BI_Colaboradores 
+      SET DelegadoId = @DelegadoId,
+          DelegacaoInicio = @DelegacaoInicio,
+          DelegacaoFim = @DelegacaoFim,
+          DelegacaoAtiva = @DelegacaoAtiva
+      WHERE Id = @ColabId
+    `;
+    
+    await pool.request()
+      .input('DelegadoId', sql.INT, delegadoId || null)
+      .input('DelegacaoInicio', sql.DATE, delegacaoInicio || null)
+      .input('DelegacaoFim', sql.DATE, delegacaoFim || null)
+      .input('DelegacaoAtiva', sql.BIT, delegacaoAtiva ? 1 : 0)
+      .input('ColabId', sql.INT, colaboradorId)
+      .query(query);
+
+    res.json({ success: true, message: 'Delegação atualizada com sucesso' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

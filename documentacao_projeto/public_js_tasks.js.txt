@@ -4,18 +4,50 @@ PROPÓSITO: Componente React para o módulo de gestão de tarefas/demandas e con
 
 CONTEÚDO COMPLETO:
 ========================================================================
-function TaskView({ tasks, setTasks, employees: initialEmployees, requests, demandas, setDemandas, currentUser, authToken, globalFilters, onAddTask, onAddDemanda, requestedModal, setRequestedModal }) {
+function TaskView({ tasks, setTasks, employees: initialEmployees, requests, demandas, setDemandas, currentUser, authToken, globalFilters, onAddTask, onAddDemanda, requestedModal, setRequestedModal, authorizedScope }) {
   const [dbEmployees, setDbEmployees] = React.useState(initialEmployees || []);
   const holidays = React.useMemo(() => getBrazilianHolidays(2026), []);
   const [statusModal, setStatusModal] = React.useState(null); // {taskId, newStatus, oldStatus}
   const [statusComment, setStatusComment] = React.useState('');
-  const [demandaModal, setDemandaModal] = React.useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado }
+  const [statusDate, setStatusDate] = React.useState('');
+  const [demandaModal, setDemandaModal] = React.useState(null); // { id, titulo, responsavelId, inicioPlanjado, fimPlanejado, descricao, criadorId }
+  const [taskDescriptionModal, setTaskDescriptionModal] = React.useState(null); // { taskId, description }
+
+  // Ajuste automático de altura das textareas de título
+  React.useLayoutEffect(() => {
+    const textareas = document.querySelectorAll('.title-wrap-cell textarea');
+    textareas.forEach(ta => {
+      ta.style.height = '0'; // Reset first to get correct scrollHeight
+      ta.style.height = (ta.scrollHeight) + 'px';
+    });
+  }, [tasks]);
+
+  // Auto-scroll para novas tarefas
+  React.useEffect(() => {
+    const hasNewTask = tasks.some(t => t.id < 0);
+    if (hasNewTask) {
+      setTimeout(() => {
+        const table = document.querySelector('.tasks-table');
+        if (table) {
+          const rows = table.querySelectorAll('tbody tr');
+          const lastRow = rows[rows.length - 1];
+          if (lastRow) {
+            lastRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Focar no textarea do título da nova linha
+            const textarea = lastRow.querySelector('textarea');
+            if (textarea) textarea.focus();
+          }
+        }
+      }, 150);
+    }
+  }, [tasks.length]);
 
   // Novos filtros locais
   const [taskStatusFilter, setTaskStatusFilter] = React.useState('');
   const [taskResponsibleFilter, setTaskResponsibleFilter] = React.useState('');
   const [localDemandaStatusFilter, setLocalDemandaStatusFilter] = React.useState('');
   const [demandaResponsibleFilter, setDemandaResponsibleFilter] = React.useState('');
+  const [selectedDemandaId, setSelectedDemandaId] = React.useState(null);
 
   // Largura das colunas (não persistente conforme solicitado)
   // Largura das colunas (otimizadas para 100% da tela sem scroll)
@@ -26,6 +58,15 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   const [modalSize, setModalSize] = React.useState({ width: 800, height: 600 });
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
 
+  const getSubordinateIds = React.useCallback((allEmps, managerId) => {
+    const direct = allEmps.filter(e => String(e.gestorId) === String(managerId));
+    let ids = direct.map(e => e.id);
+    direct.forEach(sub => {
+      ids = [...ids, ...getSubordinateIds(allEmps, sub.id)];
+    });
+    return Array.from(new Set(ids));
+  }, []);
+
   const filteredTasks = React.useMemo(() => {
     if (!tasks || !Array.isArray(tasks)) return [];
     
@@ -34,12 +75,20 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     // Filtros locais (Avançados)
     if (taskStatusFilter) list = list.filter(t => t.status === taskStatusFilter);
     if (taskResponsibleFilter) list = list.filter(t => String(t.ownerId) === String(taskResponsibleFilter));
+    if (selectedDemandaId) list = list.filter(t => t.demandaId === selectedDemandaId);
 
     if (!globalFilters) return list;
 
     return list.filter(task => {
       const emp = dbEmployees?.find(e => String(e.id) === String(task.ownerId));
       if (!emp) return true;
+
+      // Rule: Authorization Scope (if not Admin)
+      if (authorizedScope) {
+        const isAllowed = authorizedScope.colabIds.includes(Number(emp.id)) || 
+                          authorizedScope.areaIds.includes(Number(emp.areaId));
+        if (!isAllowed) return false;
+      }
 
       // Filter by Colaborador
       if (globalFilters.colaboradorId && String(emp.id) !== String(globalFilters.colaboradorId)) return false;
@@ -57,7 +106,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
 
       return true;
     });
-  }, [tasks, dbEmployees, globalFilters, getSubordinateIds, taskStatusFilter, taskResponsibleFilter]);
+  }, [tasks, dbEmployees, globalFilters, getSubordinateIds, taskStatusFilter, taskResponsibleFilter, selectedDemandaId]);
 
   const filteredDemandas = React.useMemo(() => {
     if (!demandas || !Array.isArray(demandas)) return [];
@@ -136,9 +185,16 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   React.useEffect(() => {
     fetch(`${API_BASE}/api/employees`, { headers: apiHeaders(authToken) })
       .then(res => res.json())
-      .then(data => setDbEmployees(data || []))
+      .then(data => {
+        let list = data || [];
+        // Apply scope restriction to the internal list used for dropdowns
+        if (authorizedScope) {
+          list = list.filter(e => authorizedScope.colabIds.includes(Number(e.id)) || authorizedScope.areaIds.includes(Number(e.areaId)));
+        }
+        setDbEmployees(list);
+      })
       .catch(err => console.error('Failed to fetch employees in TaskView', err));
-  }, [authToken]);
+  }, [authToken, authorizedScope]);
 
   React.useEffect(() => {
     if (requestedModal && requestedModal.type === 'demanda') {
@@ -147,14 +203,6 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     }
   }, [requestedModal, setRequestedModal]);
 
-  const getSubordinateIds = React.useCallback((allEmps, managerId) => {
-    const direct = allEmps.filter(e => String(e.gestorId) === String(managerId));
-    let ids = direct.map(e => e.id);
-    direct.forEach(sub => {
-      ids = [...ids, ...getSubordinateIds(allEmps, sub.id)];
-    });
-    return Array.from(new Set(ids));
-  }, []);
 
 
 
@@ -176,10 +224,11 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     return array[(idx + 1) % array.length];
   };
 
-  const syncTask = async (task, oldStatus = null, comment = '') => {
+  const syncTask = async (task, oldStatus = null, comment = '', sDate = null) => {
     try {
       const payload = { 
         titulo: task.title, 
+        descricao: task.description || null,
         responsavelId: task.ownerId, 
         status: task.status, 
         prioridade: task.priority, 
@@ -188,6 +237,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         demandaId: task.demandaId || null,
         statusAnterior: oldStatus,
         comentarioStatus: comment,
+        statusDate: sDate,
         registrarHistorico: !!oldStatus
       };
 
@@ -217,28 +267,27 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
   };
 
   const updateTask = (id, field, value) => {
-    let updatedTask = null;
     setTasks(prev => {
-      const next = prev.map(t => {
+      return prev.map(t => {
         if (t.id === id) {
-          updatedTask = { ...t, [field]: value };
-          return updatedTask;
+          return { ...t, [field]: value };
         }
         return t;
       });
-      return next;
     });
 
-    // Use a slight timeout to send the updated state values (especially important for async render)
-    setTimeout(() => {
-      setTasks(current => {
-        const t = current.find(x => x.id === id);
-        if (t && (field === 'status' || field === 'priority' || field === 'startDate' || field === 'endDate' || field === 'title' || field === 'ownerId')) {
-          syncTask(t);
-        }
-        return current;
-      });
-    }, 100);
+    // For fields that are not text inputs, sync immediately
+    if (field !== 'title') {
+      setTimeout(() => {
+        setTasks(current => {
+          const t = current.find(x => x.id === id);
+          if (t && (field === 'status' || field === 'priority' || field === 'startDate' || field === 'endDate' || field === 'ownerId' || field === 'demandaId')) {
+            syncTask(t);
+          }
+          return current;
+        });
+      }, 100);
+    }
   };
 
   const deleteTask = (id) => {
@@ -308,7 +357,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
   });
-  const [selectedDemandaId, setSelectedDemandaId] = React.useState(null);
+  const [ganttHoverX, setGanttHoverX] = React.useState(null);
   const [demandaStatusFilter, setDemandaStatusFilter] = React.useState('');
 
 
@@ -319,18 +368,39 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     if (newStatus === task.status) return;
     setStatusModal({ taskId: task.id, newStatus, oldStatus: task.status });
     setStatusComment('');
+    setStatusDate(new Date().toISOString().slice(0, 10));
   };
 
   const confirmStatusChange = () => {
     if (!statusModal) return;
     const { taskId, newStatus, oldStatus } = statusModal;
     
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
-    
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      let newHistory = t.statusHistory ? [...t.statusHistory] : [];
+      if (newHistory.length > 0) {
+        newHistory[newHistory.length - 1] = { ...newHistory[newHistory.length - 1], endDate: statusDate + 'T12:00:00' };
+      } else if (t.startDate) {
+        // Se não tinha histórico ainda, cria o bloco do status anterior desde o início
+        newHistory.push({
+          startDate: t.startDate + 'T12:00:00',
+          endDate: statusDate + 'T12:00:00',
+          status: oldStatus,
+          comment: 'Status inicial'
+        });
+      }
+      newHistory.push({
+        startDate: statusDate + 'T12:00:00',
+        endDate: null,
+        status: newStatus,
+        comment: statusComment
+      });
+      return { ...t, status: newStatus, statusHistory: newHistory };
+    }));
     setTimeout(() => {
       const t = tasks.find(x => x.id === taskId);
       if (t) {
-        syncTask({ ...t, status: newStatus }, oldStatus, statusComment);
+        syncTask({ ...t, status: newStatus }, oldStatus, statusComment, statusDate);
 
         // Business rule: Auto-start demand when a task becomes active
         const activeStatuses = ['Em Andamento', 'Pausado', 'Bloqueio'];
@@ -393,22 +463,17 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         prioridade: form.prioridade || 'Média',
         inicioPlanjado: form.inicioPlanjado || null,
         fimPlanejado: form.fimPlanejado || null,
+        descricao: form.descricao || null,
         responsavelAnterior: form.responsavelAnterior,
         inicioAnterior: form.inicioAnterior,
         fimAnterior: form.fimAnterior,
-        justificativa: form.justificativa
+        justificativa: form.justificativa,
+        statusAnterior: form.statusAnterior,
+        statusDate: form.statusDate
       })
     })
     .then(async res => {
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        // Se não for JSON, mostra o começo do HTML retornado para diagnóstico.
-        throw new Error(`Resposta do servidor não é JSON (HTTP ${res.status}): ${text.substring(0, 100)}...`);
-      }
-      
+      const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Falha no servidor');
       return data;
     })
@@ -417,16 +482,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         const newDemanda = { 
           Id: data.id, id: data.id, 
           Titulo: form.titulo, titulo: form.titulo, 
+          Descricao: form.descricao, descricao: form.descricao,
           ResponsavelId: form.responsavelId ? Number(form.responsavelId) : null, 
           Status: form.status || 'Não Iniciado', status: form.status || 'Não Iniciado', 
           Prioridade: form.prioridade || 'Média', prioridade: form.prioridade || 'Média', 
           InicioPlanjado: form.inicioPlanjado || null, inicioPlanjado: form.inicioPlanjado || null, 
           FimPlanejado: form.fimPlanejado || null, fimPlanejado: form.fimPlanejado || null, 
+          CriadoPor: data.criadorId, criadorId: data.criadorId,
           TotalTarefas: 0, TarefasConcluidas: 0 
         };
         setDemandas(prev => [newDemanda, ...prev]);
       } else {
-        setDemandas(prev => prev.map(d => (d.Id || d.id) === form.id ? { ...d, ...form, Titulo: form.titulo, ResponsavelId: Number(form.responsavelId), Status: form.status, Prioridade: form.prioridade, InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado } : d));
+        setDemandas(prev => prev.map(d => (d.Id || d.id) === form.id ? { ...d, ...form, Titulo: form.titulo, ResponsavelId: Number(form.responsavelId), Status: form.status, Prioridade: form.prioridade, InicioPlanjado: form.inicioPlanjado, FimPlanejado: form.fimPlanejado, Descricao: form.descricao } : d));
       }
       setDemandaModal(null);
     })
@@ -451,10 +518,14 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
       fimPlanejado: pEnd ? pEnd.slice(0, 10) : '',
       status: d.Status || d.status,
       prioridade: d.Prioridade || d.prioridade,
+      descricao: d.Descricao || d.descricao || '',
+      criadorId: d.CriadoPor || d.criadorId,
       // Original values for change detection
       responsavelAnterior: rId,
       inicioAnterior: pStart,
       fimAnterior: pEnd,
+      statusAnterior: d.Status || d.status,
+      statusDate: new Date().toISOString().slice(0, 10),
       justificativa: ''
     });
   };
@@ -522,7 +593,19 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         </div>
 
         <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', width: '100%' }}>
-          <div style={{ minWidth: 'min-content' }}>
+          <div 
+            style={{ minWidth: 'min-content', position: 'relative' }}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              if (x > 240) {
+                setGanttHoverX(x);
+              } else {
+                setGanttHoverX(null);
+              }
+            }}
+            onMouseLeave={() => setGanttHoverX(null)}
+          >
             <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '12px 0', background: 'var(--panel-strong)' }}>
               <div style={{ minWidth: '240px', width: '240px', fontWeight: 800, position: 'sticky', left: 0, background: 'var(--panel-strong)', zIndex: 10, paddingLeft: '16px', color: 'var(--title)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tarefas</div>
               {days.map((d, i) => (
@@ -535,24 +618,80 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
             <div style={{ padding: '8px 0' }}>
               {filteredTasks.map(t => {
                 const employee = dbEmployees?.find(e => e.id === t.ownerId) || dbEmployees?.[0] || {};
-                let offsetDays = 0;
-                let lengthDays = 0;
-                let isVisible = false;
+                const linkedDemanda = t.demandaId ? demandas.find(d => (d.Id || d.id) === t.demandaId) : null;
+                let demandaGhost = null;
+                if (linkedDemanda && (linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado) && (linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado)) {
+                  const dStartStr = linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado;
+                  const dEndStr = linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado;
+                  const dStart = new Date(dStartStr.slice(0, 10) + 'T12:00:00');
+                  const dEnd = new Date(dEndStr.slice(0, 10) + 'T12:00:00');
+                  const dOffset = Math.floor((dStart - baseDateObj) / (1000 * 60 * 60 * 24));
+                  const dLength = Math.floor((dEnd - dStart) / (1000 * 60 * 60 * 24)) + 1;
+                  
+                  const dLeft = Math.max(0, dOffset) * colWidth;
+                  const dEndOffset = dOffset + dLength;
+                  const dWidth = Math.max(0, (Math.min(daysCount, dEndOffset) - Math.max(0, dOffset)) * colWidth);
+                  
+                  if (dWidth > 0 && dOffset < daysCount && dEndOffset > 0) {
+                    demandaGhost = { left: dLeft, width: dWidth, title: linkedDemanda.Titulo || linkedDemanda.titulo };
+                  }
+                }
 
-                if (t.startDate && t.endDate) {
+                let isOutOfBounds = false;
+                if (linkedDemanda && (linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado) && (linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado)) {
+                  const dStart = new Date((linkedDemanda.InicioPlanjado || linkedDemanda.inicioPlanjado).slice(0, 10) + 'T12:00:00');
+                  const dEnd = new Date((linkedDemanda.FimPlanejado || linkedDemanda.fimPlanejado).slice(0, 10) + 'T12:00:00');
+                  
+                  if (t.statusHistory && t.statusHistory.length > 0) {
+                    t.statusHistory.forEach(hist => {
+                      const isMilestone = hist.status === 'Concluído' || hist.status === 'Cancelado';
+                      const hStart = new Date(hist.startDate.slice(0, 10) + 'T12:00:00');
+                      const endStr = isMilestone ? hist.startDate : (hist.endDate || new Date().toISOString());
+                      const hEnd = new Date(endStr.slice(0, 10) + 'T12:00:00');
+                      if (hStart < dStart || hEnd > dEnd) isOutOfBounds = true;
+                    });
+                  } else if (t.startDate && t.endDate) {
+                    const tStart = new Date(t.startDate + 'T12:00:00');
+                    const tEnd = new Date(t.endDate + 'T12:00:00');
+                    if (tStart < dStart || tEnd > dEnd) isOutOfBounds = true;
+                  }
+                }
+
+                let segments = [];
+                if (t.statusHistory && t.statusHistory.length > 0) {
+                  t.statusHistory.forEach(hist => {
+                    const isMilestone = hist.status === 'Concluído' || hist.status === 'Cancelado';
+                    const hStart = new Date(hist.startDate.slice(0, 10) + 'T12:00:00');
+                    const hEndStr = isMilestone ? hist.startDate : (hist.endDate || new Date().toISOString());
+                    const hEnd = new Date(hEndStr.slice(0, 10) + 'T12:00:00');
+                    
+                    const hOffset = Math.floor((hStart - baseDateObj) / (1000 * 60 * 60 * 24));
+                    const hLength = Math.floor((hEnd - hStart) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    const hLeft = Math.max(0, hOffset) * colWidth;
+                    const hEndOffset = hOffset + hLength;
+                    const hWidth = Math.max(0, (Math.min(daysCount, hEndOffset) - Math.max(0, hOffset)) * colWidth);
+                    
+                    if (hWidth > 0 && hOffset < daysCount && hEndOffset > 0) {
+                      const fStart = hist.startDate.slice(0, 10).split('-').reverse().join('/');
+                      const fEnd = hist.endDate ? hist.endDate.slice(0, 10).split('-').reverse().join('/') : 'Atual';
+                      segments.push({ left: hLeft, width: hWidth, status: hist.status, comment: hist.comment, fStart, fEnd, isCurrent: !hist.endDate });
+                    }
+                  });
+                } else if (t.startDate && t.endDate) {
                   const startObj = new Date(t.startDate + 'T12:00:00');
                   const endObj = new Date(t.endDate + 'T12:00:00');
-                  offsetDays = Math.floor((startObj - baseDateObj) / (1000 * 60 * 60 * 24));
-                  lengthDays = Math.floor((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
+                  const offsetDays = Math.floor((startObj - baseDateObj) / (1000 * 60 * 60 * 24));
+                  const lengthDays = Math.floor((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
 
                   const visualLeft = Math.max(0, offsetDays) * colWidth;
                   const endOffset = offsetDays + lengthDays;
-                  const visualEnd = Math.min(daysCount, endOffset);
-                  const visualStart = Math.max(0, offsetDays);
-                  const visualWidth = Math.max(0, (visualEnd - visualStart) * colWidth);
+                  const visualWidth = Math.max(0, (Math.min(daysCount, endOffset) - Math.max(0, offsetDays)) * colWidth);
 
                   if (visualWidth > 0 && offsetDays < daysCount && endOffset > 0) {
-                    isVisible = { left: visualLeft, width: visualWidth };
+                    const fStart = t.startDate.slice(0, 10).split('-').reverse().join('/');
+                    const fEnd = t.endDate.slice(0, 10).split('-').reverse().join('/');
+                    segments.push({ left: visualLeft, width: visualWidth, status: t.status, comment: 'Plano base', fStart, fEnd, isCurrent: true });
                   }
                 }
 
@@ -578,30 +717,122 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       borderRight: '1px solid var(--line)'
                     }}>
                       {employee.AvatarUrl || employee.avatarUrl ? <img src={employee.AvatarUrl || employee.avatarUrl} loading="lazy" style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', flexShrink: 0, objectFit: 'cover', border: '1px solid var(--line)' }} alt="Avatar" /> : <div style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-sm)', flexShrink: 0, background: employee.color || '#ccc', border: '1px solid var(--line)' }} />}
-                      <span style={{ flex: 1 }}>{t.title || 'Sem título'}</span>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <span>
+                          {t.title || 'Sem título'}
+                          {isOutOfBounds && <span title="Tarefa estrapola o período planejado da Demanda" style={{ marginLeft: '6px', fontSize: '12px' }}>⚠️</span>}
+                        </span>
+                        {!selectedDemandaId && linkedDemanda && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--muted)', background: 'var(--panel-strong)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block', width: 'fit-content', border: '1px solid var(--line)' }}>
+                            📁 {linkedDemanda.Titulo || linkedDemanda.titulo}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', position: 'relative', height: '24px', flex: 1, minWidth: `${daysCount * colWidth}px` }}>
-                      {isVisible && (
+                      {demandaGhost && (
                         <div style={{
                           position: 'absolute',
-                          left: `${isVisible.left}px`,
-                          width: `${isVisible.width}px`,
-                          height: '14px',
-                          background: STATUS_COLORS[t.status] || 'var(--primary)',
+                          left: `${demandaGhost.left}px`,
+                          width: `${demandaGhost.width}px`,
+                          height: '20px',
+                          border: '1px dashed var(--primary)',
+                          background: 'rgba(51, 204, 204, 0.05)',
                           borderRadius: 'var(--radius-sm)',
-                          top: '5px',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }} title={`${t.title} (${t.status}): ${t.startDate} a ${t.endDate}`}>
+                          top: '2px',
+                          pointerEvents: 'none'
+                        }} title={`Planejado Demanda: ${demandaGhost.title}`}>
                         </div>
                       )}
+                      {segments.map((seg, idx) => {
+                        const baseColor = STATUS_COLORS[seg.status] || 'var(--primary)';
+                        const isFinished = seg.status === 'Concluído' || seg.status === 'Cancelado';
+                        const showActiveGlow = seg.isCurrent && !isFinished;
+                        const bgStyle = showActiveGlow ? `repeating-linear-gradient(45deg, ${baseColor}, ${baseColor} 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)` : baseColor;
+                        
+                        if (isFinished) {
+                          const iconName = seg.status === 'Concluído' ? 'check_circle' : 'cancel';
+                          return (
+                            <div key={idx} style={{
+                              position: 'absolute',
+                              left: `${seg.left}px`,
+                              width: `${Math.max(seg.width, 24)}px`,
+                              height: '14px',
+                              top: '5px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 6
+                            }} title={`Status: ${seg.status}\nData: ${seg.fStart}\nObservação: ${seg.comment || '-'}`}>
+                              <span className="material-symbols-outlined" style={{ 
+                                color: baseColor, 
+                                fontSize: '18px', 
+                                background: 'var(--surface)', 
+                                borderRadius: '50%', 
+                                boxShadow: `0 0 0 2px var(--surface), 0 0 8px ${baseColor}`,
+                                zIndex: 6
+                              }}>
+                                {iconName}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div key={idx} style={{
+                            position: 'absolute',
+                            left: `${seg.left}px`,
+                            width: `${seg.width}px`,
+                            height: '14px',
+                            background: bgStyle,
+                            borderRadius: 'var(--radius-sm)',
+                            top: '5px',
+                            boxShadow: showActiveGlow ? `0 0 6px ${baseColor}` : '0 1px 3px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(255,255,255,0.2)'
+                          }} title={`Status: ${seg.status}\nInício: ${seg.fStart}\nFim: ${seg.fEnd}\nObservação: ${seg.comment || '-'}`}>
+                            {showActiveGlow && (
+                              <div style={{
+                                position: 'absolute',
+                                left: '100%',
+                                top: '50%',
+                                transform: 'translate(4px, -50%)',
+                                background: baseColor,
+                                color: '#fff',
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                zIndex: 5
+                              }}>
+                                {seg.status}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
               })}
             </div>
+            {ganttHoverX !== null && (
+              <div style={{
+                position: 'absolute',
+                left: `${ganttHoverX}px`,
+                top: 0,
+                bottom: 0,
+                width: '1px',
+                backgroundColor: 'rgba(51, 204, 204, 0.5)',
+                pointerEvents: 'none',
+                zIndex: 20,
+                borderLeft: '1px dashed rgba(51, 204, 204, 0.8)'
+              }} />
+            )}
           </div>
         </div>
       </div>
@@ -622,26 +853,38 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
     return { 
       background: STATUS_COLORS[s] || '#64748b', 
       color: '#fff', 
-      fontWeight: 700,
-      padding: '4px 12px', // Added horizontal padding for better spacing
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      fontWeight: 800,
+      padding: '0 8px',
+      width: '100%',
+      height: '100%',
+      borderRadius: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.68rem',
+      textTransform: 'uppercase',
+      border: 'none',
+      appearance: 'none',
+      cursor: 'pointer',
+      textAlign: 'center'
     };
   };
   const prioritySelectStyle = (p) => {
-    const map = { 'Crítica': '#e2445c', 'Alta': '#784bd1', 'Média': '#579bfc', 'Baixa': '#c4c4c4' };
+    const map = { 'Crítica': '#e2445c', 'Alta': '#784bd1', 'Média': '#579bfc', 'Baixa': '#94a3b8' };
     return { 
       background: map[p] || '#c4c4c4', 
-      color: p === 'Baixa' ? '#555' : '#fff', 
-      fontWeight: 700, 
-      fontSize: '.75rem', 
+      color: '#fff', 
+      fontWeight: 800, 
+      fontSize: '0.68rem', 
       border: 'none', 
-      borderRadius: 'var(--radius-lg)', 
-      padding: '6px 12px', 
+      borderRadius: '12px', 
+      padding: '0 8px', 
       cursor: 'pointer', 
       textAlign: 'center', 
-      width: '100%', 
+      width: '100%',
+      height: '100%',
       textTransform: 'uppercase', 
-      letterSpacing: '.03em',
+      letterSpacing: '.02em',
       appearance: 'none',
       display: 'flex',
       alignItems: 'center',
@@ -685,6 +928,16 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
               </div>
 
               <div className="field" style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Descrição / Detalhes</label>
+                <textarea 
+                  value={demandaModal.descricao || ''} 
+                  onChange={e => setDemandaModal({ ...demandaModal, descricao: e.target.value })} 
+                  placeholder="Detalhes complementares sobre o objetivo desta demanda..." 
+                  style={{ width: '100%', minHeight: '80px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '10px 14px', resize: 'vertical', fontSize: '0.9rem' }}
+                />
+              </div>
+
+              <div className="field" style={{ marginBottom: '16px' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '6px', display: 'block' }}>Responsável Líder</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <select 
@@ -696,10 +949,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     {dbEmployees?.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
                   </select>
                   {demandaModal.responsavelId && (
-                    <img
-                      src={dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => e.id == demandaModal.responsavelId)?.name}&background=random`}
-                      style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      {dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.avatarUrl ? (
+                        <img
+                          src={dbEmployees.find(e => String(e.id) === String(demandaModal.responsavelId)).avatarUrl}
+                          style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', background: 'var(--panel-strong)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: '1rem', fontWeight: 800 }}>
+                          {(dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.name || 'A').charAt(0)}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -734,17 +995,25 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 </div>
               </div>
               {demandaModal.id && (
-                (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
-                (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
-                (demandaModal.fimPlanejado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''))
+                (String(demandaModal.responsavelId) !== String(demandaModal.responsavelAnterior)) ||
+                (demandaModal.inicioPlanjado !== (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
+                (demandaModal.fimPlanejado !== (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : '')) ||
+                (demandaModal.status !== demandaModal.statusAnterior)
               ) && (
                   <div className="field" style={{ marginBottom: '20px', animation: 'fadeIn 0.3s ease' }}>
                     <label style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Justificativa da Alteração (Obrigatório)</label>
                     <textarea
                       style={{ minHeight: '60px', borderColor: 'var(--warning)', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', width: '100%', padding: '10px 14px', fontSize: '0.9rem' }}
-                      placeholder="Descreva o motivo da mudança estratégica de responsável ou prazos..."
+                      placeholder="Descreva o motivo da mudança estratégica de responsável, status ou prazos..."
                       value={demandaModal.justificativa}
                       onChange={e => setDemandaModal({ ...demandaModal, justificativa: e.target.value })}
+                    />
+                    <label style={{ color: 'var(--warning)', fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', margin: '16px 0 8px 0', display: 'block' }}>Data da Alteração</label>
+                    <input 
+                      type="date" 
+                      value={demandaModal.statusDate || ''} 
+                      onChange={e => setDemandaModal({ ...demandaModal, statusDate: e.target.value })} 
+                      style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--warning)', padding: '10px 14px', color: 'var(--title)' }} 
                     />
                   </div>
                 )}
@@ -754,11 +1023,12 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 <button
                   className="btn-primary"
                   onClick={() => {
-                    const hasChanges = (demandaModal.responsavelId != demandaModal.responsavelAnterior) ||
-                      (demandaModal.inicioPlanjado != (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
-                      (demandaModal.fimPlanejado != (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : ''));
+                    const hasChanges = (String(demandaModal.responsavelId) !== String(demandaModal.responsavelAnterior)) ||
+                      (demandaModal.inicioPlanjado !== (demandaModal.inicioAnterior ? demandaModal.inicioAnterior.slice(0, 10) : '')) ||
+                      (demandaModal.fimPlanejado !== (demandaModal.fimAnterior ? demandaModal.fimAnterior.slice(0, 10) : '')) ||
+                      (demandaModal.status !== demandaModal.statusAnterior);
                     if (demandaModal.id && hasChanges && !demandaModal.justificativa?.trim()) {
-                      alert('Por favor, preencha a justificativa para as alterações de responsável ou prazos.');
+                      alert('Por favor, preencha a justificativa para as alterações realizadas.');
                       return;
                     }
                     saveDemanda(demandaModal);
@@ -773,30 +1043,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         </div>
       )}
 
-      {statusModal && (
-        <div className="status-modal-overlay">
-          <div className="status-modal glass-card" style={{ padding: '32px', borderRadius: '28px', maxWidth: '540px', width: '90%', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
-            <div className="section-title" style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, background: 'var(--glass-title)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Transição de Status</h3>
-            </div>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '24px' }}>
-              Movendo para: <span className="status-pill working" style={{ fontSize: '0.75rem', padding: '4px 12px', marginLeft: '6px' }}>{statusModal.newStatus}</span>
-            </p>
-            
-            <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '10px', display: 'block' }}>Comentário / Justificativa</label>
-            <textarea
-              value={statusComment}
-              onChange={e => setStatusComment(e.target.value)}
-              placeholder="Ex: Aguardando aprovação técnica final ou retorno do cliente..."
-              style={{ width: '100%', minHeight: '120px', marginBottom: '28px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', padding: '16px' }}
-            />
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>Voltar</button>
-              <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '12px 32px', borderRadius: 'var(--radius-md)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff', boxShadow: '0 8px 20px rgba(51, 204, 204, 0.3)' }}>Confirmar Mudança</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <div className="glass-card" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', marginBottom: '32px', padding: '20px 28px', borderRadius: 'var(--radius-xl)', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -884,39 +1131,44 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
         <div className="horizontal-scroll-container">
           <table className="custom-table demandas-table" style={{ borderSpacing: '0 4px', tableLayout: 'fixed', width: 'max-content', minWidth: '100%', borderCollapse: 'separate' }}>
             <thead>
-              <tr style={{ background: 'var(--table-header-bg)' }}>
-                <th style={{ width: '40px', textAlign: 'center' }}></th>
+              <tr style={{ background: 'var(--table-header-bg)', height: '40px' }}>
+                <th style={{ width: '40px', textAlign: 'center', verticalAlign: 'middle' }}></th>
                 <ResizableHeader 
                   label="Nome da Demanda" 
                   idPrefix="demand-"
                   width={demandColWidths.title} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, title: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, title: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '12px' }}
                 />
                 <ResizableHeader 
                   label="Responsável" 
                   idPrefix="demand-"
                   width={demandColWidths.owner} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, owner: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, owner: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '12px' }}
                 />
                 <ResizableHeader 
                   label="Cronograma" 
                   idPrefix="demand-"
                   width={demandColWidths.dates} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, dates: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, dates: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'center' }}
                 />
                 <ResizableHeader 
                   label="Progresso" 
                   idPrefix="demand-"
                   width={demandColWidths.progress} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, progress: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, progress: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'left', paddingLeft: '12px' }}
                 />
                 <ResizableHeader 
                   label="Status" 
                   idPrefix="demand-"
                   width={demandColWidths.status} 
-                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, status: w }))} 
+                  onResize={(w) => setDemandColWidths(prev => ({ ...prev, status: w }))}
+                  style={{ verticalAlign: 'middle', textAlign: 'center' }}
                 />
-                <th style={{ width: '60px', textAlign: 'center', fontSize: '0.7rem', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Ações</th>
+                <th style={{ width: '60px', textAlign: 'center', verticalAlign: 'middle', fontSize: '0.7rem', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -928,7 +1180,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
                 const isSelected = selectedDemandaId === demandaId;
                 const dStatus = d.Status || d.status || 'Não Iniciado';
-                const owner = dbEmployees?.find(e => e.id == (d.ResponsavelId || d.responsavelId));
+                const owner = dbEmployees?.find(e => String(e.id) === String(d.ResponsavelId || d.responsavelId));
 
                 const taskStarts = dTasks.filter(t => t.startDate).map(t => t.startDate).sort();
                 const taskEnds = dTasks.filter(t => t.endDate).map(t => t.endDate).sort();
@@ -951,20 +1203,34 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       </span>
                     </td>
                     <td style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--title)', padding: '12px' }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.Titulo || d.titulo}>
-                        {d.Titulo || d.titulo}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }} title={d.Titulo || d.titulo}>
+                          {d.Titulo || d.titulo}
+                          {dStatus !== 'Concluído' && pEnd && toDate(pEnd).getTime() < toDate(new Date()).getTime() && (
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', fontWeight: '900', animation: 'pulse 2s infinite' }} title="PRAZO CRÍTICO: Entrega atrasada!">priority_high</span>
+                          )}
+                        </div>
+                        {(d.Descricao || d.descricao) && (
+                          <span 
+                            className="material-symbols-outlined" 
+                            style={{ fontSize: '16px', color: 'var(--primary)', cursor: 'help' }}
+                            title={d.Descricao || d.descricao}
+                          >
+                            info
+                          </span>
+                        )}
                       </div>
                     </td>
-                    <td onClick={(e) => { e.stopPropagation(); handleEditDemanda(d); }} style={{ cursor: 'pointer', padding: '12px' }}>
+                    <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img 
-                          src={owner?.avatarUrl || `https://ui-avatars.com/api/?name=${owner?.name || 'User'}&background=random`} 
-                          style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} 
-                        />
-                        <span style={{ fontSize: '.8rem', fontWeight: 600 }}>{owner?.name?.split(' ')[0] || 'Sem resp.'}</span>
+                        {owner?.avatarUrl 
+                          ? <img src={owner.avatarUrl} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} />
+                          : <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--panel-strong)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: '10px', fontWeight: 700 }}>{(owner?.name || 'A').charAt(0)}</div>
+                        }
+                        <span style={{ fontSize: '.8rem', fontWeight: 600 }}>{shortenName(owner?.name)}</span>
                       </div>
                     </td>
-                    <td onClick={(e) => { e.stopPropagation(); handleEditDemanda(d); }} style={{ cursor: 'pointer', textAlign: 'center', padding: '8px' }}>
+                    <td style={{ textAlign: 'center', padding: '8px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '.7rem' }}>
                         <div style={{ fontWeight: 800, color: 'var(--title)' }}>{pStart ? formatDate(pStart) : '—'}</div>
                         <div style={{ fontWeight: 800, color: 'var(--title)', opacity: 0.7 }}>{pEnd ? formatDate(pEnd) : '—'}</div>
@@ -980,24 +1246,65 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                       </div>
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px' }}>
-                      <select
-                        className="status-pill-select"
-                        value={dStatus}
-                        onChange={e => { e.stopPropagation(); handleDemandaStatusChange(d, e.target.value); }}
-                        onClick={e => e.stopPropagation()}
-                        style={{ ...statusSelectStyle(dStatus), fontSize: '.72rem', borderRadius: 'var(--radius-lg)', padding: '4px 12px', width: '100%' }}
-                      >
-                        {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                      <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100px', height: '24px', margin: '0 auto' }}>
+                        <div 
+                          style={{ 
+                            ...statusSelectStyle(dStatus), 
+                            position: 'absolute', 
+                            inset: 0, 
+                            pointerEvents: 'none',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {demandColWidths.status < 100 ? STATUS_INITIALS[dStatus] || dStatus : dStatus}
+                        </div>
+                        <select
+                          value={dStatus}
+                          onChange={e => { e.stopPropagation(); handleDemandaStatusChange(d, e.target.value); }}
+                          onClick={e => e.stopPropagation()}
+                          style={{ 
+                            position: 'absolute', 
+                            inset: 0, 
+                            opacity: 0, 
+                            cursor: 'pointer',
+                            width: '100%',
+                            height: '100%'
+                          }}
+                        >
+                          {demandStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
                     </td>
                     <td style={{ textAlign: 'center', padding: '12px' }}>
-                      <button 
-                        className="icon-btn danger" 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteDemanda(d); }}
-                        style={{ padding: '6px', color: '#ef4444', background: 'transparent' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        {(currentUser?.isAdmin || String(d.CriadoPor || d.criadorId) === String(currentUser?.colaboradorId)) && (
+                          <>
+                            <button 
+                              className="icon-btn" 
+                              onClick={(e) => { e.stopPropagation(); handleEditDemanda(d); }}
+                              style={{ padding: '4px', color: 'var(--primary)', background: 'transparent' }}
+                              title="Editar Demanda"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                            </button>
+                            <button 
+                              className="icon-btn danger" 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteDemanda(d); }}
+                              style={{ padding: '4px', color: '#ef4444', background: 'transparent' }}
+                              title="Excluir Demanda"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1061,7 +1368,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
               <span className="material-symbols-outlined" style={{ color: 'var(--primary)' }}>view_list</span>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Lista de Entregas</h3>
             </div>
-            <button className="dash-micro-badge glass" onClick={() => onAddTask('Não Iniciado')} style={{ cursor: 'pointer', background: 'var(--primary)', color: 'var(--primary-txt)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: '0.85rem' }}>
+            <button className="dash-micro-badge glass" onClick={() => onAddTask('Não Iniciado', selectedDemandaId)} style={{ cursor: 'pointer', background: 'var(--primary)', color: 'var(--primary-txt)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: '0.85rem' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_task</span>
               <span style={{ fontWeight: 700 }}>Nova Tarefa</span>
             </button>
@@ -1077,30 +1384,60 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   <ResizableHeader label="Prioridade" idPrefix="task-" width={taskColWidths.priority} onResize={w => setTaskColWidths(c => ({ ...c, priority: w }))} className="text-center" />
                   <ResizableHeader label="Status" idPrefix="task-" width={taskColWidths.status} onResize={w => setTaskColWidths(c => ({ ...c, status: w }))} className="text-center" />
                   <ResizableHeader label="Cronograma" idPrefix="task-" width={taskColWidths.dates} onResize={w => setTaskColWidths(c => ({ ...c, dates: w }))} className="text-center" />
-                  <th style={{ width: '100px', fontSize: '.7rem', textAlign: 'center', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Dias úteis</th>
+                  <th style={{ width: '100px', fontSize: '.7rem', textAlign: 'center', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Dias</th>
                   <ResizableHeader label="Ações" idPrefix="task-" width={taskColWidths.actions} onResize={w => setTaskColWidths(c => ({ ...c, actions: w }))} className="text-center" />
                 </tr>
               </thead>
               <tbody>
-                {filteredTasks
-                  .filter(task => !selectedDemandaId || task.demandaId === selectedDemandaId)
-                  .map(task => {
+                {filteredTasks.map(task => {
                     const availableDays = calculateAvailableDays(task.ownerId, task.startDate, task.endDate);
                     const isOverloaded = task.startDate && task.endDate && availableDays === 0;
                     const emp = dbEmployees?.find(e => e.id === task.ownerId) || dbEmployees?.[0] || {};
   
                     return (
-                      <tr key={task.id}>
+                      <tr key={task.localKey || task.id}>
                         <td className="title-wrap-cell">
-                          <textarea
-                            value={task.title}
-                            onChange={(e) => updateTask(task.id, 'title', e.target.value)}
-                            className="glass"
-                            placeholder="Título da tarefa..."
-                            rows={1}
-                            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                            style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontWeight: 600, padding: '4px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', overflow: 'hidden', minHeight: '24px' }}
-                          />
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <textarea
+                              value={task.title}
+                              onChange={(e) => updateTask(task.id, 'title', e.target.value)}
+                              onBlur={() => {
+                                const t = tasks.find(x => x.id === task.id);
+                                if (t) syncTask(t);
+                              }}
+                              className="glass"
+                              placeholder="Título da tarefa..."
+                              rows={1}
+                              onInput={(e) => { 
+                                e.target.style.height = '0'; 
+                                e.target.style.height = e.target.scrollHeight + 'px'; 
+                              }}
+                              style={{ 
+                                width: '100%', 
+                                border: 'none', 
+                                background: 'transparent', 
+                                outline: 'none', 
+                                fontWeight: 600, 
+                                padding: '4px 28px 4px 4px', 
+                                borderRadius: '4px', 
+                                fontSize: '0.8rem', 
+                                resize: 'none', 
+                                overflow: 'hidden', 
+                                minHeight: '28px',
+                                lineHeight: '1.4',
+                                display: 'block'
+                              }}
+                            />
+                            <button 
+                              onClick={() => setTaskDescriptionModal({ taskId: task.id, description: task.description || '' })}
+                              style={{ position: 'absolute', right: '4px', background: 'transparent', border: 'none', color: task.description ? 'var(--primary)' : 'var(--muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: task.description ? 1 : 0.5 }}
+                              title={task.description || "Adicionar descrição..."}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                                {task.description ? 'description' : 'add_comment'}
+                              </span>
+                            </button>
+                          </div>
                         </td>
                         <td>
                           <select
@@ -1114,8 +1451,11 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                           </select>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <img src={emp?.avatarUrl || `https://ui-avatars.com/api/?name=${emp?.name || 'User'}&background=random`} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {emp?.avatarUrl 
+                              ? <img src={emp.avatarUrl} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
+                              : <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--panel-strong)', border: '1px solid var(--glass-border)', display: 'grid', placeItems: 'center', fontSize: '9px', fontWeight: 700 }}>{(emp?.name || 'A').charAt(0)}</div>
+                            }
                             <select
                               value={task.ownerId}
                               onChange={(e) => updateTask(task.id, 'ownerId', Number(e.target.value))}
@@ -1123,61 +1463,75 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                               style={{ flex: 1, border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-sm)', fontSize: '.7rem', padding: '4px', background: 'transparent', color: 'var(--title)' }}
                             >
                               {dbEmployees?.map(e => (
-                                <option key={e.id} value={e.id}>{e.name.split(' ')[0]}</option>
+                                <option key={e.id} value={e.id}>{shortenName(e.name)}</option>
                               ))}
                             </select>
                           </div>
                         </td>
                         <td className="text-center">
-                          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100px', height: '24px', margin: '0 auto' }}>
+                            <div 
+                              style={{ 
+                                ...prioritySelectStyle(task.priority), 
+                                position: 'absolute', 
+                                inset: 0, 
+                                pointerEvents: 'none',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {task.priority}
+                            </div>
                             <select
-                              className="status-pill-select"
                               value={task.priority}
                               onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                              style={{ ...prioritySelectStyle(task.priority), maxWidth: '100px' }}
+                              style={{ 
+                                position: 'absolute', 
+                                inset: 0, 
+                                opacity: 0, 
+                                cursor: 'pointer',
+                                width: '100%',
+                                height: '100%'
+                              }}
                             >
                               {priorities.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                           </div>
                         </td>
                         <td className="text-center" style={{ width: `${taskColWidths.status}px` }}>
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ position: 'relative', width: '100%', maxWidth: '110px', height: '32px' }}>
-                              <div 
-                                className="status-pill-select" 
-                                style={{ 
-                                  ...statusSelectStyle(task.status), 
-                                  padding: '4px 16px',
-                                  position: 'absolute', 
-                                  inset: 0, 
-                                  pointerEvents: 'none', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  borderRadius: 'var(--radius-lg)', 
-                                  fontSize: '0.72rem', 
-                                  fontWeight: 700,
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden'
-                                }}
-                              >
-                                {taskColWidths.status < 95 ? STATUS_INITIALS[task.status] : task.status}
-                              </div>
-                              <select
-                                value={task.status}
-                                onChange={e => handleStatusChange(task, e.target.value)}
-                                style={{ 
-                                  position: 'absolute', 
-                                  inset: 0, 
-                                  opacity: 0, 
-                                  cursor: 'pointer', 
-                                  width: '100%',
-                                  height: '100%'
-                                }}
-                              >
-                                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
+                          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100px', height: '24px', margin: '0 auto' }}>
+                            <div 
+                              style={{ 
+                                ...statusSelectStyle(task.status), 
+                                borderRadius: '12px',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                position: 'absolute', 
+                                inset: 0, 
+                                pointerEvents: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {taskColWidths.status < 100 ? STATUS_INITIALS[task.status] : task.status}
                             </div>
+                            <select
+                              value={task.status}
+                              onChange={e => handleStatusClick(task.id, e.target.value, task.status)}
+                              style={{ 
+                                position: 'absolute', 
+                                inset: 0, 
+                                opacity: 0, 
+                                cursor: 'pointer',
+                                width: '100%',
+                                height: '100%'
+                              }}
+                            >
+                              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
                           </div>
                         </td>
                         <td className="text-center" style={{ minWidth: '110px' }}>
@@ -1252,10 +1606,56 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                 />
               </div>
 
+              <div className="field" style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Data da Transição</label>
+                <input
+                  type="date"
+                  value={statusDate}
+                  onChange={e => setStatusDate(e.target.value)}
+                  style={{ width: '100%', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '12px', fontSize: '0.9rem', color: 'var(--title)' }}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid var(--line)' }}>
                 <button className="btn-secondary" onClick={() => setStatusModal(null)} style={{ padding: '10px 20px', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>Voltar</button>
                 <button className="btn-primary" onClick={confirmStatusChange} style={{ padding: '10px 28px', borderRadius: 'var(--radius-sm)', fontWeight: 700, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', border: 'none', color: '#fff' }}>Confirmar</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Task Description Modal */}
+      {taskDescriptionModal && (
+        <div className="status-modal-overlay">
+          <div className="status-modal glass" style={{ maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--title)', margin: 0 }}>Descrição da Tarefa</h3>
+              <button onClick={() => setTaskDescriptionModal(null)} style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '8px', display: 'block' }}>Detalhamento</label>
+              <textarea 
+                value={taskDescriptionModal.description} 
+                onChange={(e) => setTaskDescriptionModal({ ...taskDescriptionModal, description: e.target.value })}
+                placeholder="Insira detalhes sobre esta tarefa..."
+                style={{ width: '100%', minHeight: '150px', background: 'var(--panel-strong)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', padding: '12px', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setTaskDescriptionModal(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={() => {
+                const updatedTask = tasks.find(t => t.id === taskDescriptionModal.taskId);
+                if (updatedTask) {
+                  const taskWithDesc = { ...updatedTask, description: taskDescriptionModal.description };
+                  updateTask(taskDescriptionModal.taskId, 'description', taskDescriptionModal.description);
+                  syncTask(taskWithDesc);
+                }
+                setTaskDescriptionModal(null);
+              }}>Salvar Descrição</button>
             </div>
           </div>
         </div>

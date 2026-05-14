@@ -500,7 +500,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                 ) : (
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     {a.emp?.avatarUrl 
-                      ? <img src={a.emp.avatarUrl} className="workload-avatar" /> 
+                      ? <img src={a.emp.avatarUrl} className="workload-avatar" style={{ objectFit: 'cover' }} /> 
                       : <div className="workload-avatar">{(a.emp?.name || 'A').charAt(0).toUpperCase()}</div>
                     }
                     <div style={{ 
@@ -685,7 +685,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                       <tr key={emp.id} style={{ borderBottom: '1px solid var(--line)' }}>
                         <td style={{ padding: '12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                             {emp.avatarUrl ? <img src={emp.avatarUrl} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid var(--line)' }} /> : <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--panel-strong)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: '10px' }}>{emp.name.charAt(0)}</div>}
+                             {emp.avatarUrl 
+                               ? <img src={emp.avatarUrl} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid var(--line)', objectFit: 'cover' }} /> 
+                               : <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--panel-strong)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: '10px', fontWeight: 700 }}>{emp.name.charAt(0)}</div>
+                             }
                              <span style={{ fontWeight: 600, color: 'var(--title)' }}>{emp.name}</span>
                           </div>
                         </td>
@@ -733,7 +736,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   border: '1px solid var(--line)', position: 'relative', overflow: 'hidden'
                 }}>
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    {w.emp.avatarUrl ? <img src={w.emp.avatarUrl} style={{ width: '52px', height: '52px', borderRadius: 'var(--radius-md)' }} /> : <div style={{ width: '52px', height: '52px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', color: 'var(--primary-txt)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '1.2rem' }}>{w.emp.name.charAt(0)}</div>}
+                    {w.emp.avatarUrl 
+                      ? <img src={w.emp.avatarUrl} style={{ width: '52px', height: '52px', borderRadius: 'var(--radius-md)', objectFit: 'cover', border: '1px solid var(--line)' }} /> 
+                      : <div style={{ width: '52px', height: '52px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%)', color: 'var(--primary-txt)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: '1.2rem' }}>{w.emp.name.charAt(0)}</div>
+                    }
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--title)', marginBottom: '4px' }}>{w.emp.name}</div>
                       <div style={{ display: 'flex', gap: '8px' }}>
@@ -991,7 +997,10 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                       
                       <div className="dash-360-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {t.emp?.avatarUrl ? <img src={t.emp.avatarUrl} className="dash-360-avatar" style={{ width: '22px', height: '22px' }} /> : <div className="dash-360-avatar" style={{ background: bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade, width: '22px', height: '22px', fontSize: '10px' }}>{(t.emp?.name || 'A').charAt(0)}</div>}
+                          {t.emp?.avatarUrl 
+                            ? <img src={t.emp.avatarUrl} className="dash-360-avatar" style={{ width: '22px', height: '22px', objectFit: 'cover' }} /> 
+                            : <div className="dash-360-avatar" style={{ background: bucket.id === 'concluidas' ? '#10b981' : t.corPrioridade, width: '22px', height: '22px', fontSize: '10px', fontWeight: 700 }}>{(t.emp?.name || 'A').charAt(0)}</div>
+                          }
                           <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{t.emp?.name?.split(' ')[0]}</span>
                         </div>
                         <div style={{ textAlign: 'right' }}>

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const IGNORE_DIRS = ['node_modules', '.git', '.gemini', 'project_analysis', 'scripts', 'database', 'documentacao_projeto'];
+const IGNORE_DIRS = ['node_modules', '.git', '.gemini', 'project_analysis', 'scripts', 'database', 'documentacao_projeto', 'scratch'];
 const IGNORE_EXTS = ['.png', '.jpg', '.jpeg', '.ico', '.db', '.sqlite', '.pdf', '.docx'];
 const OUTPUT_DIR = path.join(__dirname, 'documentacao_projeto');
 

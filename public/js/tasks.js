@@ -943,10 +943,18 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     {dbEmployees?.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
                   </select>
                   {demandaModal.responsavelId && (
-                    <img
-                      src={dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.avatarUrl || `https://ui-avatars.com/api/?name=${dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.name}&background=random`}
-                      style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      {dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.avatarUrl ? (
+                        <img
+                          src={dbEmployees.find(e => String(e.id) === String(demandaModal.responsavelId)).avatarUrl}
+                          style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', boxShadow: 'var(--shadow)', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', background: 'var(--panel-strong)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: '1rem', fontWeight: 800 }}>
+                          {(dbEmployees?.find(e => String(e.id) === String(demandaModal.responsavelId))?.name || 'A').charAt(0)}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1209,10 +1217,10 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img 
-                          src={owner?.avatarUrl || `https://ui-avatars.com/api/?name=${owner?.name || 'User'}&background=random`} 
-                          style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} 
-                        />
+                        {owner?.avatarUrl 
+                          ? <img src={owner.avatarUrl} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--line)' }} />
+                          : <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--panel-strong)', border: '1px solid var(--line)', display: 'grid', placeItems: 'center', fontSize: '10px', fontWeight: 700 }}>{(owner?.name || 'A').charAt(0)}</div>
+                        }
                         <span style={{ fontSize: '.8rem', fontWeight: 600 }}>{shortenName(owner?.name)}</span>
                       </div>
                     </td>
@@ -1370,7 +1378,7 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                   <ResizableHeader label="Prioridade" idPrefix="task-" width={taskColWidths.priority} onResize={w => setTaskColWidths(c => ({ ...c, priority: w }))} className="text-center" />
                   <ResizableHeader label="Status" idPrefix="task-" width={taskColWidths.status} onResize={w => setTaskColWidths(c => ({ ...c, status: w }))} className="text-center" />
                   <ResizableHeader label="Cronograma" idPrefix="task-" width={taskColWidths.dates} onResize={w => setTaskColWidths(c => ({ ...c, dates: w }))} className="text-center" />
-                  <th style={{ width: '100px', fontSize: '.7rem', textAlign: 'center', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Dias úteis</th>
+                  <th style={{ width: '100px', fontSize: '.7rem', textAlign: 'center', color: 'var(--title)', fontWeight: 800, textTransform: 'uppercase' }}>Dias</th>
                   <ResizableHeader label="Ações" idPrefix="task-" width={taskColWidths.actions} onResize={w => setTaskColWidths(c => ({ ...c, actions: w }))} className="text-center" />
                 </tr>
               </thead>
@@ -1437,8 +1445,11 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
                           </select>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <img src={emp?.avatarUrl || `https://ui-avatars.com/api/?name=${emp?.name || 'User'}&background=random`} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {emp?.avatarUrl 
+                              ? <img src={emp.avatarUrl} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--glass-border)' }} />
+                              : <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--panel-strong)', border: '1px solid var(--glass-border)', display: 'grid', placeItems: 'center', fontSize: '9px', fontWeight: 700 }}>{(emp?.name || 'A').charAt(0)}</div>
+                            }
                             <select
                               value={task.ownerId}
                               onChange={(e) => updateTask(task.id, 'ownerId', Number(e.target.value))}

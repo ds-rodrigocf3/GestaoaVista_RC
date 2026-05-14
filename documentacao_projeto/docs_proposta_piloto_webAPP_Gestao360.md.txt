@@ -1,0 +1,109 @@
+NOME DO ARQUIVO: proposta_piloto_webAPP_Gestao360.md
+CAMINHO: docs/proposta_piloto_webAPP_Gestao360.md
+PROPÓSITO: Arquivo de código fonte ou configuração auxiliar do projeto.
+
+CONTEÚDO COMPLETO:
+========================================================================
+# Proposta Técnica e Funcional: WebApp CONTROLLER - Gestão À Vista (Piloto)
+
+Este documento apresenta a fundamentação técnica e funcional da aplicação piloto **CONTROLLER - Gestão À Vista**, buscando trazer um estudo de iniciativa de inovação praticado por meio do Baú de Ideias da área de BI, em observância ao atendimento das diretrizes estabelecidas nas normas corporativas de Ciclo de Vida, Arquitetura e Segurança de Sistemas.
+
+---
+
+## 1. Ciclo de Vida do Sistema (Ref. Item 7.1 - Norma Interna de Sistemas Corporativos)
+
+A iniciativa piloto **CONTROLLER - Gestão À Vista** foi concebida sob um ciclo de vida estruturado para garantir a entrega de valor contínuo:
+
+*   **Entendimento de Requisitos**: Levantamento realizado com foco na centralização de indicadores de performance de área (KPIs), gestão de escalas de equipe e acompanhamento de demandas operacionais.
+*   **Prospecção Tecnológica**: Seleção de stack moderna (Node.js 24) e arquitetura leve para garantir alta performance e baixa latência.
+*   **Desenvolvimento**: Metodologia ágil com foco em UX/UI premium e responsividade mobile-first.
+*   **Implantação**: Estratégia de deploy contínuo (Git-based) com ambiente de homologação e produção segregados.
+*   **Sustentação e Evolução**: Arquitetura modular que permite a inclusão de novos módulos (ex: analytics avançado) sem impactar o core do sistema.
+*   **Descontinuidade**: Plano de exportação de dados via SQL para garantir a integridade histórica em caso de migração futura.
+
+## 2. Atualização e Implementação (Ref. Item 7.2 - Norma Interna de Sistemas Corporativos)
+
+A aplicação segue rigorosamente os processos de **Gestão de Mudança**:
+
+*   **Versionamento**: Todo o código é gerido via Git, com mensagens de commit descritivas e tags de versão.
+*   **Análise de Impacto**: Cada nova funcionalidade (ex: filtros rápidos de eventos) passou por validação de compatibilidade entre navegadores e performance mobile.
+*   **AMS (Sustentação)**: Estrutura preparada para suporte técnico AMS, com logs de erro centralizados e documentação técnica detalhada.
+
+## 3. Arquitetura de Sistemas Corporativa (Ref. Item 7.3)
+
+A solução técnica proposta fundamenta-se nos seguintes pilares:
+
+*   **Plataforma**: Node.js 24 (Runtime de alta performance) com Express.
+*   **Front-end**: Interface rica (Glassmorphism) utilizando React (Babel Standalone) para componentização sem necessidade de build complexo, facilitando a manutenção.
+*   **Banco de Dados**: Microsoft SQL Server, garantindo robustez, transacionalidade e conformidade com os padrões de infraestrutura corporativa.
+*   **Gestão de Acesso**: Implementação de autenticação via **JWT (JSON Web Tokens)** e criptografia de senhas com **BcryptJS**. Sistema de permissões baseado em níveis (Admin/Operacional) e escopo de área.
+*   **Sustentação**: Código desacoplado e uso de variáveis de ambiente (.env) para configuração dinâmica.
+
+## 4. Integração de Sistemas e Aplicativos (Ref. Item 7.4)
+
+A arquitetura da Gestão 360 é **API-First**:
+
+*   **Interfaces**: Endpoints RESTful documentados para integração com outros sistemas corporativos (ERP, CRM, etc).
+*   **Padronização**: Uso de JSON como formato de troca de dados, seguindo os padrões de arquitetura recomendados pela área de Sistemas Corporativos EloPar.
+
+## 5. Arquitetura de Dados e LGPD (Ref. Item 7.5)
+
+O tratamento de dados na aplicação observa as melhores práticas de governança:
+
+*   **Privacidade (LGPD)**: O sistema armazena dados de colaboradores (nome, cargo, área). Recomenda-se a consulta ao DPO para validação do termo de consentimento, caso os dados sejam utilizados para finalidades além da gestão operacional interna.
+*   **Segurança de Dados**: Implementação de middlewares de proteção, prevenção contra SQL Injection e sanitização de inputs.
+*   **Data Lake Ready**: A estrutura do banco de dados permite o consumo por ferramentas de BI e exportação para Data Lakes corporativos seguindo fluxos de ETL padronizados.
+
+## 6. Infraestrutura e Operação na Nuvem (Azure)
+
+Para garantir a escalabilidade e disponibilidade corporativa, a aplicação foi projetada para operar no ecossistema **Microsoft Azure**:
+
+### 6.1. Azure App Service (Hospedagem e Dimensionamento)
+*   **Perfil de Uso**: Baixo volume de tráfego, focado em consultas e inputs de texto para um grupo restrito de usuários.
+*   **Modelo Recomendado**: Utilização do **Azure App Service (Linux)** com o plano **Basic (B1)**. Este nível oferece recursos dedicados, suporte a domínios customizados e certificados SSL, sendo o ponto de entrada ideal para aplicações corporativas com baixo custo.
+*   **Inovação**: A adoção deste serviço introduz o conceito de *Platform as a Service* (PaaS) para soluções de gestão interna de área, reduzindo drasticamente o esforço de manutenção de servidores e infraestrutura de rede.
+
+## 7. Análise Estimativa de Custos (Cenário Piloto)
+
+Considerando o perfil de uso restrito e a natureza leve da aplicação (predomínio de textos e consultas), a estimativa mensal de custos na Azure para um ambiente dedicado é reduzida:
+
+| Recurso | Nível Recomendado | Estimativa Mensal (USD) | Observação |
+| :--- | :--- | :--- | :--- |
+| **App Service** | Basic B1 (Linux) | ~$13.00 | Recurso dedicado para hospedagem segura do WebApp. |
+| **Azure SQL** | Basic (5 DTUs) | ~$5.00 | Suficiente para bases de texto de pequeno/médio porte. |
+| **Key Vault / Logs** | Consumo | ~$1.00 | Cobrança por transação (mínima para este volume). |
+| **TOTAL ESTIMADO** | | **~$19.00 / mês** | **Aprox. R$ 100,00/mês (câmbio atual-maio/2026).** | - Valores podem variar dependendo do contrato com a Empresa, e aproveitamento de recursos que possam ser compartilhados, reduzindo a estimativa mensal.
+
+### 7.1. Justificativa Técnica
+A escolha pelo Azure App Service em vez de uma Máquina Virtual (VM) justifica-se pela economia de tempo em gerenciamento de SO e segurança. A aplicação utiliza uma arquitetura *Single Page Application* (SPA) parcial, onde o processamento ocorre predominantemente no navegador do cliente, minimizando a carga nos recursos contratados da Azure.
+
+### 7.2. Conectividade e Banco de Dados
+*   **Autenticação Atual (Piloto)**: O sistema foi pilotado utilizando **SQL Authentication** via Connection String parametrizada em variáveis de ambiente (Estudo de Caso Acadêmico).
+*   **Prontidão para Managed Identity**: A arquitetura está preparada para evoluir para **Managed Identity (Passwordless)**, eliminando a necessidade de credenciais estáticas e aumentando a conformidade com as políticas de segurança da informação.
+*   **Azure SQL Database**: Recomenda-se o uso do Azure SQL (PaaS) para garantir backups automáticos, alta disponibilidade e criptografia em repouso (TDE).
+
+### 7.3. Autenticação SSO (Microsoft Entra ID)
+*   **Preparação Tecnológica**: Embora o piloto utilize JWT nativo para agilidade inicial, a arquitetura é **SSO Ready**. 
+*   **Integração**: O backend está desacoplado, permitindo a integração com o provedor de identidade **Microsoft Entra ID (antigo Azure AD)** via protocolos OAuth2/OpenID Connect (OIDC). Isso permitirá que os colaboradores acessem a solução utilizando suas credenciais corporativas padrão da EloPar.
+
+### 7.4. Parametrização e Segurança na Azure
+*   **Azure Key Vault**: Recomenda-se o uso do Key Vault para gestão de segredos (chaves de API, JWT Secret) em vez de arquivos `.env` locais em produção. (Opcional, apenas citado por já ser de uso na solução MAPR)
+*   **App Settings**: Todas as configurações de ambiente devem ser migradas para a seção "Configuration > Application Settings" do App Service para isolamento e segurança.
+*   **Networking**: Configuração de *Service Endpoints* ou *Private Links* para garantir que o tráfego entre a aplicação e o banco de dados ocorra exclusivamente dentro da rede privada da Azure.
+
+## 8. Inovação e Metodologia de Desenvolvimento Assistido por IA
+
+Um diferencial estratégico deste projeto piloto foi a adoção de metodologias de desenvolvimento auxiliado por agentes de IA, desenvolvendo a aplicação através do entendimento da demanda convertendo em algotítmo narrativo (em linguagem natural) com alta precisão.
+
+*   **Desenvolvimento Assistido por IA**: O projeto foi construído com o auxílio de agentes de inteligência artificial (AI Agents) - **GitHub Copilot**, o que permitiu uma aceleração significativa na escrita de código, refatoração e implementação de funcionalidades complexas em tempo reduzido e ajustes pontuais conforme testes parciais de funcionalidades.
+
+*   **Oportunidade para Times de Tecnologia**: Esta abordagem demonstra a viabilidade do uso do **Visual Studio Code** potencializado por agentes de IA como um padrão para as áreas de tecnologia e inovação da companhia. Tal modelo permite que times pequenos entreguem aplicações de pequeno porte robustas e seguras com maior agilidade.
+*   **Fomento à Cultura Data Driven**: O desenvolvimento de aplicações personalizadas para processos específicos de áreas (como este controlador de gestão) cria uma vantagem competitiva na **coleta de dados padronizados**. 
+*   **Integração com Data Lake**: Ao capturar informações na fonte por meio de interfaces estruturadas, eliminamos silos de dados e planilhas isoladas, garantindo que as informações fluam diretamente para o **Data Lake Corporativo**, colaborando na comunicação e na evolução da companhia rumo a uma cultura plenamente orientada a dados (*Data Driven*).
+
+---
+
+**Responsável**: Rodrigo Freitas por meio de programação agenciada.  
+**Data**: Maio de 2026  
+**Status**: Versão de Piloto (em Homologação Funcional)
+

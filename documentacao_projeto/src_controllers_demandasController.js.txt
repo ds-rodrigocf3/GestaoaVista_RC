@@ -19,7 +19,7 @@ exports.getAll = async (req, res) => {
       query = `
         SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
                d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
-               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
+               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, d.CriadoPor, c.Nome as ResponsavelNome,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
         FROM Demandas d
@@ -36,13 +36,14 @@ exports.getAll = async (req, res) => {
         )
         SELECT d.Id, d.Titulo, d.Descricao, d.ResponsavelId, d.Status, d.Prioridade, 
                d.InicioPlanjado, d.FimPlanejado, d.InicioRealizado, d.FimRealizado,
-               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, c.Nome as ResponsavelNome,
+               d.ComentarioStatus, d.DataCriacao, d.DataModificacao, d.CriadoPor, c.Nome as ResponsavelNome,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Ativo = 1) as TotalTarefas,
                (SELECT COUNT(*) FROM Tarefas WHERE DemandaId = d.Id AND Status = 'Concluído' AND Ativo = 1) as TarefasConcluidas
         FROM Demandas d
         LEFT JOIN BI_Colaboradores c ON d.ResponsavelId = c.Id
         WHERE d.ResponsavelId IS NULL 
-           OR c.AreaId IN (SELECT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+           OR c.AreaId IN (SELECT DISTINCT AreaId FROM HierarquiaCTE WHERE AreaId IS NOT NULL)
+           OR d.ResponsavelId IN (SELECT Id FROM HierarquiaCTE)
         ORDER BY d.DataModificacao DESC
       `;
     }
@@ -63,8 +64,10 @@ exports.getAll = async (req, res) => {
       comentarioStatus: d.ComentarioStatus,
       dataCriacao: d.DataCriacao,
       dataModificacao: d.DataModificacao,
+      criadorId: d.CriadoPor,
       totalTarefas: d.TotalTarefas,
-      tarefasConcluidas: d.TarefasConcluidas
+      tarefasConcluidas: d.TarefasConcluidas,
+      fimRealizado: d.FimRealizado ? new Date(d.FimRealizado).toISOString().slice(0, 10) : null
     })));
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -82,8 +85,9 @@ exports.create = async (req, res) => {
       .input('Prioridade', sql.NVARCHAR(50), prioridade || 'Média')
       .input('InicioPlanjado', sql.DATE, inicioPlanjado || null)
       .input('FimPlanejado', sql.DATE, fimPlanejado || null)
-      .query(`INSERT INTO Demandas (Titulo, Descricao, ResponsavelId, Status, Prioridade, InicioPlanjado, FimPlanejado, DataCriacao, DataModificacao)
-              OUTPUT Inserted.Id VALUES (@Titulo, @Descricao, @ResponsavelId, @Status, @Prioridade, @InicioPlanjado, @FimPlanejado, GETDATE(), GETDATE())`);
+      .input('CriadoPor', sql.INT, req.user.colaboradorId || null)
+      .query(`INSERT INTO Demandas (Titulo, Descricao, ResponsavelId, Status, Prioridade, InicioPlanjado, FimPlanejado, CriadoPor, DataCriacao, DataModificacao)
+              OUTPUT Inserted.Id VALUES (@Titulo, @Descricao, @ResponsavelId, @Status, @Prioridade, @InicioPlanjado, @FimPlanejado, @CriadoPor, GETDATE(), GETDATE())`);
     res.json({ 
       id: result.recordset[0].Id, 
       titulo, 
@@ -93,6 +97,7 @@ exports.create = async (req, res) => {
       prioridade, 
       inicioPlanjado: inicioPlanjado ? new Date(inicioPlanjado).toISOString().slice(0, 10) : null, 
       fimPlanejado: fimPlanejado ? new Date(fimPlanejado).toISOString().slice(0, 10) : null,
+      criadorId: req.user.colaboradorId,
       totalTarefas: 0,
       tarefasConcluidas: 0
     });
@@ -102,8 +107,20 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { titulo, descricao, responsavelId, status, prioridade, inicioPlanjado, fimPlanejado, comentarioStatus, statusAnterior, registrarHistorico } = req.body;
+    const { titulo, descricao, responsavelId, status, prioridade, inicioPlanjado, fimPlanejado, comentarioStatus, statusAnterior, registrarHistorico, statusDate } = req.body;
     const pool = await poolPromise;
+
+    // Status date definition
+    const resolvedStatusDate = statusDate || new Date().toISOString();
+
+    // Verificar permissão
+    const checkRes = await pool.request().input('Id', sql.INT, id).query('SELECT CriadoPor FROM Demandas WHERE Id = @Id');
+    const demanda = checkRes.recordset[0];
+    if (!demanda) return res.status(404).json({ error: 'Demanda não encontrada' });
+    
+    if (!req.user.isAdmin && demanda.CriadoPor && String(demanda.CriadoPor) !== String(req.user.colaboradorId)) {
+      return res.status(403).json({ error: 'Você não tem permissão para editar esta demanda. Somente o criador ou um administrador podem editá-la.' });
+    }
     
     // Update Demanda
     await pool.request()
@@ -116,12 +133,26 @@ exports.update = async (req, res) => {
       .input('InicioPlanjado', sql.DATE, inicioPlanjado || null)
       .input('FimPlanejado', sql.DATE, fimPlanejado || null)
       .input('ComentarioStatus', sql.NVARCHAR(1000), comentarioStatus || null)
+      .input('StatusDate', sql.DATETIME, resolvedStatusDate)
       .query(`UPDATE Demandas SET Titulo=@Titulo, Descricao=@Descricao, ResponsavelId=@ResponsavelId, 
               Status=@Status, Prioridade=@Prioridade, InicioPlanjado=@InicioPlanjado, FimPlanejado=@FimPlanejado, 
-              ComentarioStatus=@ComentarioStatus, DataModificacao=GETDATE() WHERE Id=@Id`);
+              ComentarioStatus=@ComentarioStatus, 
+              InicioRealizado = CASE WHEN @Status = 'Em Andamento' AND InicioRealizado IS NULL THEN @StatusDate ELSE InicioRealizado END,
+              FimRealizado = CASE WHEN @Status = 'Concluído' AND FimRealizado IS NULL THEN @StatusDate 
+                                  WHEN @Status <> 'Concluído' THEN NULL 
+                                  ELSE FimRealizado END,
+              DataModificacao=GETDATE() WHERE Id=@Id`);
 
     // Log History if status changed or explicitly requested
     if (registrarHistorico || (statusAnterior && statusAnterior !== status)) {
+      // Fecha o status anterior
+      await pool.request()
+        .input('Id', sql.INT, id)
+        .input('StatusDate', sql.DATETIME, resolvedStatusDate)
+        .query(`UPDATE StatusHistorico SET DataFim = @StatusDate
+                WHERE TipoEntidade = 'Demanda' AND EntidadeId = @Id AND DataFim IS NULL`);
+
+      // Inicia novo status
       await pool.request()
         .input('Tipo', sql.NVARCHAR(20), 'Demanda')
         .input('EntidadeId', sql.INT, id)
@@ -129,8 +160,9 @@ exports.update = async (req, res) => {
         .input('StatusNovo', sql.NVARCHAR(50), status)
         .input('Comentario', sql.NVARCHAR(1000), comentarioStatus || 'Alteração manual')
         .input('UserId', sql.INT, req.user.userId)
+        .input('StatusDate', sql.DATETIME, resolvedStatusDate)
         .query(`INSERT INTO StatusHistorico (TipoEntidade, EntidadeId, StatusAnterior, StatusNovo, Comentario, UsuarioId, DataInicio)
-                VALUES (@Tipo, @EntidadeId, @StatusAnt, @StatusNovo, @Comentario, @UserId, GETDATE())`);
+                VALUES (@Tipo, @EntidadeId, @StatusAnt, @StatusNovo, @Comentario, @UserId, @StatusDate)`);
     }
 
     res.json({ success: true });
@@ -142,6 +174,15 @@ exports.delete = async (req, res) => {
     const { id } = req.params;
     const pool = await poolPromise;
     if (!pool) return res.status(500).json({ error: 'Banco indisponível' });
+
+    // Verificar permissão
+    const checkRes = await pool.request().input('Id', sql.INT, id).query('SELECT CriadoPor FROM Demandas WHERE Id = @Id');
+    const demanda = checkRes.recordset[0];
+    if (!demanda) return res.status(404).json({ error: 'Demanda não encontrada' });
+    
+    if (!req.user.isAdmin && demanda.CriadoPor && String(demanda.CriadoPor) !== String(req.user.colaboradorId)) {
+      return res.status(403).json({ error: 'Você não tem permissão para excluir esta demanda. Somente o criador ou um administrador podem excluí-la.' });
+    }
     await pool.request()
       .input('Id', sql.INT, id)
       .query('DELETE FROM Tarefas WHERE DemandaId = @Id');
