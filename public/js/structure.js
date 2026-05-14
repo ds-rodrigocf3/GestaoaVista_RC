@@ -253,14 +253,16 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
         </div>
         <div className="structure-legend">
           <div className="legend-item"><span className="dot" style={{background: 'var(--primary)'}}></span> Ativo</div>
-          <div className="flex gap-2">
-            <button className="btn-action-exe" onClick={() => setExpandedNodes(new Set(employees.map(e => e.id)))}>
-              <span className="material-symbols-outlined">unfold_more</span> Expandir Tudo
-            </button>
-            <button className="btn-action-exe" onClick={() => setExpandedNodes(new Set())}>
-              <span className="material-symbols-outlined">unfold_less</span> Recolher Tudo
-            </button>
-          </div>
+          <div className="structure-controls">
+          <button className="btn-action-exe" onClick={() => window.MaestroTree?.expandAll()}>
+            <span className="material-symbols-outlined">unfold_more</span>
+            <span>Expandir Tudo</span>
+          </button>
+          <button className="btn-action-exe" onClick={() => window.MaestroTree?.collapseAll()}>
+            <span className="material-symbols-outlined">unfold_less</span>
+            <span>Recolher Tudo</span>
+          </button>
+        </div>
         </div>
       </div>
       <div 

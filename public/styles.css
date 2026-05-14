@@ -226,7 +226,7 @@
 .login-logo h1 {
   font-size: 1.25rem;
   margin: 0;
-  color: var(--title);
+  color: var(--text);
 }
 
 .login-logo p {
@@ -717,7 +717,7 @@ button {
 .user-badge-name {
   font-weight: 700;
   font-size: 0.9rem;
-  color: var(--title);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -799,7 +799,7 @@ button {
   display: none;
   font-size: clamp(0.95rem, 3.5vw, 1.25rem);
   font-weight: 700;
-  color: var(--title);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1036,7 +1036,7 @@ button {
 
 .data-table th {
   background: var(--table-header-bg);
-  color: var(--title);
+  color: var(--text);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -2313,7 +2313,7 @@ button {
   padding: 6px 8px;
   font-size: 0.8rem;
   background: var(--bg);
-  color: var(--title);
+  color: var(--text);
   width: 100%;
   cursor: pointer;
 }
@@ -2452,7 +2452,7 @@ button {
 .demand-title-col {
   font-weight: 600;
   font-size: 0.8rem;
-  color: var(--title);
+  color: var(--text);
   gap: 10px;
 }
 
@@ -2751,7 +2751,7 @@ button {
 .dash-header h3 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--title);
+  color: var(--text);
   margin: 0 0 4px 0;
   display: flex;
   align-items: center;
@@ -2787,7 +2787,7 @@ button {
 .dash-kpi-val {
   font-size: 2.2rem;
   font-weight: 800;
-  color: var(--title);
+  color: var(--text);
   line-height: 1;
 }
 
@@ -2958,7 +2958,7 @@ button {
   font-weight: 600;
   color: var(--text);
 }
-.dash-micro-badge strong { font-size: 1.1rem; color: var(--title); }
+.dash-micro-badge strong { font-size: 1.1rem; color: var(--text); }
 
 .dash-360-container {
   display: grid;
@@ -3184,7 +3184,7 @@ button {
   font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--title);
+  color: var(--text);
   margin: 0;
 }
 
@@ -4035,7 +4035,7 @@ select:focus, input:focus, textarea:focus {
     .custom-table th { 
       padding: 16px; 
       text-align: left; 
-      color: var(--title); 
+      color: var(--text); 
       font-size: 0.7rem; 
       text-transform: uppercase; 
       letter-spacing: 0.08em; 
@@ -4691,7 +4691,7 @@ select:focus, input:focus, textarea:focus {
 .toast-title {
   font-weight: 800;
   font-size: 0.95rem;
-  color: var(--title);
+  color: var(--text);
   margin-bottom: 2px;
 }
 
@@ -5069,13 +5069,12 @@ select:focus, input:focus, textarea:focus {
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-soft);
     border: 1px solid var(--line);
     border-radius: 10px;
-    color: var(--title);
+    color: var(--text);
     font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
+    font-weight: 600; cursor: pointer;
     transition: all 0.2s ease;
 }
 
@@ -5187,7 +5186,7 @@ select:focus, input:focus, textarea:focus {
 .org-name {
     font-weight: 800;
     font-size: 0.88rem;
-    color: var(--title);
+    color: var(--text);
     line-height: 1.25;
     margin-bottom: 4px;
     word-break: break-word;
@@ -5595,7 +5594,7 @@ select:focus, input:focus, textarea:focus {
 .stats-summary-value {
     font-size: 1.8rem;
     font-weight: 900;
-    color: var(--title);
+    color: var(--text);
     line-height: 1;
 }
 
@@ -6192,19 +6191,83 @@ select:focus, input:focus, textarea:focus {
     color: var(--primary) !important;
 }
 
-/* Fix Mobile Topbar Sticky */
-.topbar-header, .topbar {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 1000 !important;
-    background: #ffffff !important; /* White for Light Mode */
-    backdrop-filter: blur(10px) !important;
-    border-bottom: 1px solid var(--line) !important;
+/* Fix Mobile Topbar - Refactored to Fixed to guarantee "locked" behavior */
+@media (max-width: 768px) {
+    .topbar-header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        z-index: 1001 !important;
+        background: #ffffff !important;
+        backdrop-filter: blur(10px) !important;
+        border-bottom: 1px solid var(--line) !important;
+        display: flex !important;
+        padding: 12px 16px !important;
+        height: 60px !important;
+        align-items: center !important;
+    }
+    
+    [data-theme="dark"] .topbar-header {
+        background: var(--bg) !important;
+    }
+
+    /* Prevent content from hiding under the fixed header */
+    .main-content {
+        padding-top: 80px !important;
+    }
 }
 
-[data-theme="dark"] .topbar-header, 
-[data-theme="dark"] .topbar {
-    background: var(--bg) !important; /* Deep Blue (#0f172a) for Dark Mode */
+/* Desktop Sticky Header */
+@media (min-width: 769px) {
+    .topbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1000 !important;
+        background: #ffffff !important;
+        backdrop-filter: blur(10px) !important;
+        border-bottom: 1px solid var(--line) !important;
+    }
+    
+    [data-theme="dark"] .topbar {
+        background: var(--bg) !important;
+    }
 }
 
+/* Structure Page Mobile Polish */
+.structure-controls { 
+    display: flex; 
+    gap: 10px; 
+}
 
+@media (max-width: 768px) { 
+    .structure-header-actions { 
+        flex-direction: column !important; 
+        align-items: stretch !important; 
+        padding: 15px !important; 
+        gap: 12px !important; 
+    } 
+    .structure-search { 
+        width: 100% !important; 
+        max-width: none !important; 
+    } 
+    .structure-legend { 
+        flex-direction: column !important; 
+        align-items: stretch !important; 
+        gap: 12px !important; 
+        width: 100% !important; 
+    } 
+    .structure-controls { 
+        display: grid !important; 
+        grid-template-columns: 1fr 1fr !important; 
+        gap: 8px !important; 
+        width: 100% !important; 
+    } 
+    .structure-controls button { 
+        justify-content: center !important; 
+        padding: 10px 5px !important; 
+        font-size: 0.75rem !important; 
+        width: 100% !important; 
+    } 
+}
