@@ -818,7 +818,7 @@ function App() {
             <span className="sidebar-text">{isDark ? 'Modo Claro' : 'Modo Escuro'}</span>
           </button>
           <div className="sidebar-user-area">
-            <div className="user-badge" onClick={() => setShowSettings(true)} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
+            <div className="user-badge" onClick={() => { setShowSettings(true); setIsSidebarOpen(false); }} style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}>
               <div className="user-badge-content">
                 {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }} /> : <div className="user-badge-avatar" style={{ background: currentUser.color || 'var(--primary)' }}>{(currentUser.name || currentUser.nome || 'A').charAt(0)}</div>}
                 <div className="user-badge-info"><div className="user-badge-name">{(() => { const n = (currentUser.name || currentUser.nome || "").trim(); const parts = n.split(" ").filter(Boolean); return parts.length > 2 ? `${parts[0]} ${parts[parts.length - 1]}` : n; })()}</div><div className="user-badge-role">{currentUser.isAdmin ? 'Admin' : (currentUser.cargoNome || currentUser.cargo || 'Usuário')}</div></div>
@@ -826,7 +826,7 @@ function App() {
             </div>
             <button
               className="logout-btn"
-              onClick={handleLogout}
+              onClick={() => { handleLogout(); setIsSidebarOpen(false); }}
             >
               <span className="material-symbols-outlined">logout</span>
               <span className="sidebar-text">Sair</span>
