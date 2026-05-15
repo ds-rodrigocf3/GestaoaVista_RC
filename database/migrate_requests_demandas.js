@@ -49,7 +49,7 @@ async function migrate() {
             END
         `);
 
-        // 2. Adicionar ComentarioAprovacao em Requests
+        // 2. Adicionar ComentarioAprovacao e AprovadorId em Requests
         await pool.request().query(`
             IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Requests') AND name = 'ComentarioAprovacao')
             BEGIN
@@ -59,6 +59,16 @@ async function migrate() {
             ELSE
             BEGIN
                 PRINT 'Coluna ComentarioAprovacao já existe na tabela Requests.';
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Requests') AND name = 'AprovadorId')
+            BEGIN
+                ALTER TABLE Requests ADD AprovadorId INT NULL;
+                PRINT 'Coluna AprovadorId adicionada à tabela Requests.';
+            END
+            ELSE
+            BEGIN
+                PRINT 'Coluna AprovadorId já existe na tabela Requests.';
             END
         `);
 

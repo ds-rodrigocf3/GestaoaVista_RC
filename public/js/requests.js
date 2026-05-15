@@ -114,7 +114,7 @@ function RequestView({
   return (
     <div className="dashboard-grid requests-page-container" style={{ gap: '24px' }}>
 
-      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', alignItems: 'start' }}>
+      <section className="form-grid-layout requests-layout-grid" style={{ display: 'grid', gap: '24px', alignItems: 'start' }}>
         {/* Bloco de Parâmetros da Solicitação */}
         <div className="card glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--line)', height: '100%' }}>
           <div className="section-title" style={{ marginBottom: '24px' }}>

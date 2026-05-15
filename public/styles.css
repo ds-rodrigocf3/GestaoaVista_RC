@@ -6382,3 +6382,27 @@ select:focus, input:focus, textarea:focus {
         margin-bottom: 20px !important;
     }
 }
+
+/* Responsive Grid for Delegation Form */
+.delegation-form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+/* Responsive Grid for Requests Layout */
+.requests-layout-grid {
+  grid-template-columns: 1.2fr 0.8fr; /* Desktop */
+}
+
+@media (max-width: 1024px) {
+  .requests-layout-grid {
+    grid-template-columns: 1fr; /* Mobile/Tablet */
+  }
+}
+
+/* Fix Sidebar Logout Button Visibility on Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; /* Ensure Sair button is not hidden by mobile browser bars */
+    overflow-y: auto !important;
+  }
+}

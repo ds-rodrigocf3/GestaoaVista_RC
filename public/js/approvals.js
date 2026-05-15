@@ -107,9 +107,8 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
             </div>
           </div>
           
-          <div className="form-grid" style={{ 
+          <div className="form-grid delegation-form-grid" style={{ 
             display: 'grid',
-            gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto', 
             gap: '12px', 
             alignItems: 'flex-end'
           }}>

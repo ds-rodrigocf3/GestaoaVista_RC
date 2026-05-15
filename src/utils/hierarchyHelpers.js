@@ -29,6 +29,33 @@ async function canApproveFor(pool, user, targetEmpId) {
     // Regra 1: Superior Direto (mesmo que horizontal)
     if (Number(user.colaboradorId) === Number(targetData.GestorId)) return true;
 
+    // Regra de Delegação: O usuário logado é o delegado ativo do gestor da pessoa?
+    if (targetData.GestorId) {
+      const gestorResult = await pool.request()
+        .input('GestorId', sql.INT, targetData.GestorId)
+        .query('SELECT DelegadoId, DelegacaoInicio, DelegacaoFim, DelegacaoAtiva FROM BI_Colaboradores WHERE Id = @GestorId');
+      
+      if (gestorResult.recordset.length > 0) {
+        const gData = gestorResult.recordset[0];
+        if (gData.DelegacaoAtiva && Number(gData.DelegadoId) === Number(user.colaboradorId)) {
+          const now = new Date();
+          const start = gData.DelegacaoInicio ? new Date(gData.DelegacaoInicio) : null;
+          const end = gData.DelegacaoFim ? new Date(gData.DelegacaoFim) : null;
+          
+          if (start && end) {
+            // Ajustar o fim para o final do dia
+            end.setHours(23, 59, 59, 999);
+            start.setHours(0, 0, 0, 0);
+            if (now >= start && now <= end) {
+              return true; // Delegação válida e dentro do prazo
+            }
+          } else if (!start && !end) {
+            return true; // Delegação válida sem restrição de datas (fallback)
+          }
+        }
+      }
+    }
+
     // Regra 2: Superior Hierárquico (Nível menor = Hierarquia maior)
     if (userData.NivelHierarquia && targetData.NivelHierarquia && userData.NivelHierarquia < targetData.NivelHierarquia) {
       return true;

@@ -56,12 +56,18 @@ async function runMigration() {
             END
         `);
 
-        // 2. Garantir que ComentarioAprovacao existe em Requests
+        // 2. Garantir que ComentarioAprovacao e AprovadorId existem em Requests
         await request.query(`
             IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Requests') AND name = 'ComentarioAprovacao')
             BEGIN
                 ALTER TABLE Requests ADD ComentarioAprovacao NVARCHAR(1000) NULL;
                 PRINT 'Adicionado: Requests.ComentarioAprovacao';
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Requests') AND name = 'AprovadorId')
+            BEGIN
+                ALTER TABLE Requests ADD AprovadorId INT NULL;
+                PRINT 'Adicionado: Requests.AprovadorId';
             END
         `);
 
