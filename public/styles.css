@@ -428,6 +428,7 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow-y: auto; 
@@ -3558,6 +3559,7 @@ button {
     width: 280px;
     max-width: 85vw;
     height: 100vh;
+    height: 100dvh;
     z-index: 9995;
     transform: translateX(-100%);
     box-shadow: 4px 0 32px rgba(0, 0, 0, 0.15);

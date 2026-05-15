@@ -291,7 +291,7 @@ function App() {
         setRequests(rRequests);
         const initialWorkDays = {};
         rRequests.forEach(r => {
-          if (r.type === 'Escala de Trabalho' && r.status === 'Aprovado' && r.localTrabalho && r.startDate) {
+          if ((r.type === 'Escala de Trabalho' || r.type === 'Ajuste de Escala') && r.status === 'Aprovado' && r.localTrabalho && r.startDate) {
             if (!initialWorkDays[r.employeeId]) initialWorkDays[r.employeeId] = {};
             initialWorkDays[r.employeeId][r.startDate] = r.localTrabalho;
           }
@@ -454,7 +454,7 @@ function App() {
       if (Number(request.employeeId) === Number(form.employeeId)) return false;
       
       // Apenas tipos de ausência geram conflito
-      const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde'];
+      const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde', 'Afastamento'];
       if (!absenceTypes.includes(request.type)) return false;
 
       const rLevel = Number(request.employee?.nivelHierarquia);

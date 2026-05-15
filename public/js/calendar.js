@@ -10,11 +10,12 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     if (requests && requests.length > 0) {
       // Ordenar por ID crescente para que o mais recente ganhe
       const sortedRequests = [...requests]
-        .filter(r => (r.type === 'Escala de Trabalho' || r.type === 'Ajuste de Escala') && r.status === 'Aprovado' && r.localTrabalho && r.startDate)
+        .filter(r => (r.type === 'Escala de Trabalho' || r.type === 'Ajuste de Escala') && (r.status === 'Aprovado' || r.status === 'Pendente') && r.localTrabalho && r.startDate)
         .sort((a, b) => Number(a.id) - Number(b.id));
 
       sortedRequests.forEach(r => {
-        if (!newWorkDays[r.employeeId]) newWorkDays[r.employeeId] = {};
+        const empId = Number(r.employeeId);
+        if (!newWorkDays[empId]) newWorkDays[empId] = {};
         
         // Iterar por todos os dias entre startDate e endDate para preencher a escala corretamente
         const start = toDate(r.startDate);
@@ -138,7 +139,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
     const absenceRequest = requests && requests.find(r => {
       if (r.employeeId !== selectedEmployeeId) return false;
       if (r.status === 'Rejeitado') return false;
-      if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)'].includes(r.type)) return false;
+      if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde', 'Banco de horas', 'Licença programada', 'Afastamento'].includes(r.type)) return false;
       return isWithinRange(dateKey, r.startDate, r.endDate);
     });
 
@@ -296,7 +297,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
       const hasAbsence = requests && requests.some(r => {
         if (r.employeeId !== selectedEmployeeId) return false;
         if (r.status === 'Rejeitado') return false;
-        if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)'].includes(r.type)) return false;
+        if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde', 'Banco de horas', 'Licença programada', 'Afastamento'].includes(r.type)) return false;
         return isWithinRange(dateKey, r.startDate, r.endDate);
       });
       if (!hasAbsence) count++;
@@ -327,7 +328,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
       const hasAbsence = requests && requests.some(r => {
         if (Number(r.employeeId) !== Number(selectedEmployeeId)) return false;
         if (r.status !== 'Aprovado') return false;
-        if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)'].includes(r.type)) return false;
+        if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde', 'Banco de horas', 'Licença programada', 'Afastamento'].includes(r.type)) return false;
         return isWithinRange(k, r.startDate, r.endDate);
       });
       return !hasAbsence;
@@ -355,7 +356,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         const hasAbsence = requests && requests.some(r => {
           if (Number(r.employeeId) !== Number(emp.id)) return false;
           if (r.status !== 'Aprovado') return false;
-          if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)'].includes(r.type)) return false;
+          if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde', 'Banco de horas', 'Licença programada', 'Afastamento'].includes(r.type)) return false;
           return isWithinRange(dk, r.startDate, r.endDate);
         });
         if (hasAbsence) continue;
@@ -631,7 +632,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   const absenceRequest = requests && requests.find(r => {
                     if (Number(r.employeeId) !== Number(selectedEmployeeId)) return false;
                     if (r.status !== 'Aprovado') return false;
-                    if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)'].includes(r.type)) return false;
+                    if (!['Férias integrais', 'Férias fracionadas', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde', 'Banco de horas', 'Licença programada', 'Afastamento'].includes(r.type)) return false;
                     return isWithinRange(dateKey, r.startDate, r.endDate);
                   });
 
@@ -703,7 +704,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                         position: 'relative',
                         background: pendingAbsence ? 'rgba(245, 158, 11, 0.08)' : '',
                         borderRadius: 'var(--radius-md)',
-                        border: status ? '1.5px solid var(--line)' : (pendingAbsence ? '1.5px dashed rgba(245, 158, 11, 0.4)' : ''),
+                        border: pendingAbsence ? '1.5px dashed rgba(245, 158, 11, 0.6)' : (status ? '1.5px solid var(--line)' : ''),
                         color: 'var(--title)',
                         cursor: isReadOnly || absenceRequest || pendingAbsence ? 'default' : 'pointer',
                         transition: 'all 0.2s ease',
@@ -713,10 +714,10 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                     >
                       <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--title)', opacity: 0.9, zIndex: 2 }}>{day.getDate()}</span>
                       
-                      {!absenceRequest && status === 'Presencial' && <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px', marginTop: '4px' }}>check_circle</span>}
-                      {!absenceRequest && status === 'Home Office' && <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px', marginTop: '4px' }}>home</span>}
+                      {!absenceRequest && status === 'Presencial' && !pendingAbsence && <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px', marginTop: '4px' }}>check_circle</span>}
+                      {!absenceRequest && status === 'Home Office' && !pendingAbsence && <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px', marginTop: '4px' }}>home</span>}
 
-                      {!status && pendingAbsence && (
+                      {!absenceRequest && pendingAbsence && (
                         <>
                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.9 }}>
                               <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '22px', marginTop: '4px' }}>
