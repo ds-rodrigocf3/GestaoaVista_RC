@@ -1075,7 +1075,8 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           <select
             value={localDemandaStatusFilter}
             onChange={e => setLocalDemandaStatusFilter(e.target.value)}
-            style={{ border: 'none', background: 'transparent', color: 'var(--title)', fontSize: '0.9rem', fontWeight: 500, outline: 'none', width: '100%', cursor: 'pointer' }}
+            className="glass"
+            style={{ border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--title)', fontSize: '0.85rem', fontWeight: 600, outline: 'none', width: '100%', cursor: 'pointer', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}
           >
             <option value=''>Todos os status de demanda</option>
             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1088,7 +1089,8 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           <select
             value={demandaResponsibleFilter}
             onChange={e => setDemandaResponsibleFilter(e.target.value)}
-            style={{ border: 'none', background: 'transparent', color: 'var(--title)', fontSize: '0.9rem', fontWeight: 500, outline: 'none', width: '100%', cursor: 'pointer' }}
+            className="glass"
+            style={{ border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--title)', fontSize: '0.85rem', fontWeight: 600, outline: 'none', width: '100%', cursor: 'pointer', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}
           >
             <option value=''>Todos os responsáveis</option>
             {(dbEmployees || []).map(e => (
@@ -1322,7 +1324,8 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           <select
             value={taskStatusFilter}
             onChange={e => setTaskStatusFilter(e.target.value)}
-            style={{ background: 'transparent', color: 'var(--title)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', width: '100%', cursor: 'pointer', border: 'none' }}
+            className="glass"
+            style={{ border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--title)', fontSize: '0.85rem', fontWeight: 600, outline: 'none', width: '100%', cursor: 'pointer', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}
           >
             <option value=''>Todos os status de tarefa</option>
             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1335,7 +1338,8 @@ function TaskView({ tasks, setTasks, employees: initialEmployees, requests, dema
           <select
             value={taskResponsibleFilter}
             onChange={e => setTaskResponsibleFilter(e.target.value)}
-            style={{ background: 'transparent', color: 'var(--title)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', width: '100%', cursor: 'pointer', border: 'none' }}
+            className="glass"
+            style={{ border: '1px solid var(--glass-border)', background: 'var(--surface)', color: 'var(--title)', fontSize: '0.85rem', fontWeight: 600, outline: 'none', width: '100%', cursor: 'pointer', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}
           >
             <option value=''>Todos os responsáveis</option>
             {(dbEmployees || []).map(e => (

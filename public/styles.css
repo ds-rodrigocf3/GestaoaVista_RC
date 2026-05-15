@@ -6406,3 +6406,11 @@ select:focus, input:focus, textarea:focus {
     overflow-y: auto !important;
   }
 }
+
+/* Fix for Delegation Form Grid Mobile Alignment */
+@media (min-width: 769px) {
+  .delegation-form-grid { align-items: flex-end; }
+}
+@media (max-width: 768px) {
+  .delegation-form-grid { align-items: flex-start !important; }
+}

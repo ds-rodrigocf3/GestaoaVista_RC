@@ -108,9 +108,7 @@ function ApprovalView({ pendingRequests, allRequests, handleApproval, currentUse
           </div>
           
           <div className="form-grid delegation-form-grid" style={{ 
-            display: 'grid',
-            gap: '12px', 
-            alignItems: 'flex-end'
+            gap: '12px'
           }}>
             <div className="field">
               <label style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '4px', display: 'block' }}>Delegar para</label>
