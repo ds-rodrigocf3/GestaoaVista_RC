@@ -365,7 +365,7 @@ function RequestView({
                 });
 
                 const teamBookings = (requests || []).filter(r => {
-                  if (r.status === 'Rejeitado' || !isWithinRange(dateKey, r.startDate, r.endDate) || Number(r.employeeId) === Number(form.employeeId)) return false;
+                  if (r.status === 'Rejeitado' || !isWithinRange(dateKey, r.startDate, r.endDate)) return false;
                   const absenceTypes = ['Férias integrais', 'Férias fracionadas', 'Banco de horas', 'Licença programada', 'Day-off', 'Saúde (Exames/Consultas)', 'Folga', 'Férias', 'Saúde'];
                   if (!absenceTypes.includes(r.type)) return false;
                   
@@ -395,7 +395,7 @@ function RequestView({
                     onClick={() => {
                       if (hasConflict || dayEvents.length > 0) {
                         let msg = '';
-                        if (hasConflict) msg += `Conflitos: ${conflictDetails}. `;
+                        if (hasConflict) msg += `Agendamentos: ${conflictDetails}. `;
                         if (dayEvents.length > 0) msg += `Eventos: ${eventDetails}.`;
                         setToast({ title: 'Informações do Dia', message: msg, type: hasConflict ? 'warning' : 'info' });
                       } else if (isHoliday) {
