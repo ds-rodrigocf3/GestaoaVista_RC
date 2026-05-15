@@ -670,7 +670,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
           {filteredEmployees.length === 0 ? (
             <div className="empty-state">Nenhum colaborador corresponde aos filtros.</div>
           ) : (
-              <div className="requests-table-container glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: 'none', background: 'transparent', boxShadow: 'none' }}>
+              <div className="requests-table-container glass" style={{ borderRadius: 'var(--radius-lg)', overflowX: 'auto', overflowY: 'hidden', border: 'none', background: 'transparent', boxShadow: 'none' }}>
                 <table className="custom-table" style={{ margin: 0, borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--table-header-bg)', borderBottom: '2px solid var(--line)' }}>

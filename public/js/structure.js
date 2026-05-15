@@ -307,9 +307,9 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
         <div className="zoom-controls" style={{
           position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000,
           display: 'flex', flexDirection: 'column', gap: '8px',
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
-          padding: '8px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.6)'
+          background: 'var(--surface)', backdropFilter: 'blur(12px)',
+          padding: '8px', borderRadius: '12px', border: '1px solid var(--line)',
+          boxShadow: 'var(--shadow)'
         }}>
           <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomIn} title="Aumentar Zoom"><span className="material-symbols-outlined">add</span></button>
           <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={resetZoom} title="Centralizar e Resetar Zoom"><span className="material-symbols-outlined">center_focus_strong</span></button>

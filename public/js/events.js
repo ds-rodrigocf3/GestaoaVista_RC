@@ -352,7 +352,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
 
       {/* Modal de Cadastro/Edição de Evento */}
       {showModal && (
-        <div className="status-modal-overlay" style={{ zIndex: 1000 }}>
+        <div className="status-modal-overlay" style={{ zIndex: 10005 }}>
           <div className="glass-card" style={{ 
             width: '95%', 
             maxWidth: '900px', 
