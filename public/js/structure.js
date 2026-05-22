@@ -23,6 +23,7 @@ const parseDateToComparable = (dateStr) => {
 
 function StructureView({ employees, areas, currentUser, authToken, fetchAll, setToast }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [viewMode, setViewMode] = useState('tree'); // 'tree' | 'cards'
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const viewportRef = useRef(null);
@@ -249,6 +250,53 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
     setExpandedNodes(new Set());
   };
 
+  // Group and sort employees for the card directory view mode
+  const filteredEmployeesForCards = useMemo(() => {
+    if (!employees) return [];
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return employees;
+    return employees.filter(emp =>
+      (emp.name || '').toLowerCase().includes(query) ||
+      (emp.cargoNome || '').toLowerCase().includes(query) ||
+      (emp.areaNome || '').toLowerCase().includes(query)
+    );
+  }, [employees, searchQuery]);
+
+  const groupedAndSortedAreas = useMemo(() => {
+    const groups = {};
+    filteredEmployeesForCards.forEach(emp => {
+      const areaId = emp.areaId || emp.AreaId || 'sem-area';
+      const areaNome = emp.areaNome || 'Sem Área';
+      const areaObj = areas ? areas.find(a => String(a.id) === String(areaId)) : null;
+      const color = areaObj?.cor || '#94a3b8'; // default slate color
+      
+      if (!groups[areaId]) {
+        groups[areaId] = {
+          areaId,
+          areaNome,
+          color,
+          members: []
+        };
+      }
+      groups[areaId].members.push(emp);
+    });
+
+    // Sort members within each area: hierarchy level ascending, then alphabetically by name
+    return Object.values(groups).map(g => {
+      g.members.sort((a, b) => {
+        const hA = a.nivelHierarquia !== undefined ? Number(a.nivelHierarquia) : 99;
+        const hB = b.nivelHierarquia !== undefined ? Number(b.nivelHierarquia) : 99;
+        if (hA !== hB) return hA - hB;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+      return g;
+    }).sort((a, b) => {
+      if (a.areaId === 'sem-area') return 1;
+      if (b.areaId === 'sem-area') return -1;
+      return a.areaNome.localeCompare(b.areaNome);
+    });
+  }, [filteredEmployeesForCards, areas]);
+
   if (selectedProfile) {
     return (
       <ProfileFeed 
@@ -262,84 +310,293 @@ function StructureView({ employees, areas, currentUser, authToken, fetchAll, set
     );
   }
 
+  const renderCardView = () => {
+    if (groupedAndSortedAreas.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-500" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', color: 'var(--muted)' }}>
+          <span className="material-symbols-outlined text-5xl mb-3" style={{ fontSize: '48px', marginBottom: '12px' }}>group_off</span>
+          <p className="text-sm font-bold uppercase tracking-wider" style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nenhum colaborador encontrado</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-8 pb-10" style={{ display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px', maxHeight: 'calc(100vh - 240px)', overflowY: 'auto', paddingRight: '4px' }}>
+        {groupedAndSortedAreas.map(group => (
+          <div key={group.areaId} className="glass-card p-6 rounded-[2rem] border border-line" style={{ background: 'var(--card)', padding: '24px', borderRadius: '24px', border: '1px solid var(--line)' }}>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-line" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--line)' }}>
+              <span className="w-2.5 h-6 rounded-full" style={{ width: '10px', height: '24px', borderRadius: '999px', backgroundColor: group.color }}></span>
+              <h3 className="text-base font-extrabold text-title uppercase tracking-wide" style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--title)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{group.areaNome}</h3>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-panel-strong text-muted font-bold ml-auto md:ml-0" style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '999px', background: 'var(--panel-strong)', color: 'var(--muted)', fontWeight: 700, marginLeft: 'auto' }}>
+                {group.members.length} {group.members.length === 1 ? 'colaborador' : 'colaboradores'}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+              {group.members.map(emp => {
+                const gestor = employees.find(e => e.id === emp.gestorId);
+                return (
+                  <CollaboratorCard 
+                    key={emp.id} 
+                    employee={emp} 
+                    gestor={gestor}
+                    onOpenProfile={handleOpenProfile} 
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="structure-container animate-fade-in">
-      <div className="structure-header-actions glass-card">
+      <div className="structure-header-actions glass-card" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="structure-search">
           <span className="material-symbols-outlined">search</span>
           <input type="text" placeholder="Buscar colaborador ou área..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
-        <div className="structure-legend">
-          <div className="legend-item"><span className="dot" style={{background: 'var(--primary)'}}></span> Ativo</div>
-          <div className="structure-controls">
-          <button className="btn-action-exe" onClick={expandAll}>
-            <span className="material-symbols-outlined">unfold_more</span>
-            <span>Expandir Tudo</span>
+
+        {/* Segmented View Mode Toggle */}
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-soft)', padding: '4px', borderRadius: '12px', border: '1px solid var(--line)' }}>
+          <button 
+            className="cursor-pointer"
+            style={{
+              background: viewMode === 'tree' ? 'var(--primary)' : 'transparent',
+              color: viewMode === 'tree' ? '#fff' : 'var(--muted)',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setViewMode('tree')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>schema</span>
+            Organograma
           </button>
-          <button className="btn-action-exe" onClick={collapseAll}>
-            <span className="material-symbols-outlined">unfold_less</span>
-            <span>Recolher Tudo</span>
+          <button 
+            className="cursor-pointer"
+            style={{
+              background: viewMode === 'cards' ? 'var(--primary)' : 'transparent',
+              color: viewMode === 'cards' ? '#fff' : 'var(--muted)',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setViewMode('cards')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>grid_view</span>
+            Lista de Cards
           </button>
-        </div>
-        </div>
-      </div>
-      <div 
-        className="organogram-viewport" 
-        ref={viewportRef}
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ 
-          cursor: isDragging ? 'grabbing' : 'grab',
-          overflow: 'hidden',
-          position: 'relative',
-          userSelect: 'none',
-          touchAction: 'none',
-          height: 'calc(100vh - 240px)',
-          minHeight: '400px'
-        }}
-      >
-        <div className="zoom-controls" style={{
-          position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000,
-          display: 'flex', flexDirection: 'column', gap: '8px',
-          background: 'var(--surface)', backdropFilter: 'blur(12px)',
-          padding: '8px', borderRadius: '12px', border: '1px solid var(--line)',
-          boxShadow: 'var(--shadow)'
-        }}>
-          <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomIn} title="Aumentar Zoom"><span className="material-symbols-outlined">add</span></button>
-          <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={resetZoom} title="Centralizar e Resetar Zoom"><span className="material-symbols-outlined">center_focus_strong</span></button>
-          <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomOut} title="Diminuir Zoom"><span className="material-symbols-outlined">remove</span></button>
         </div>
 
+        {viewMode === 'tree' ? (
+          <div className="structure-legend">
+            <div className="legend-item"><span className="dot" style={{background: 'var(--primary)'}}></span> Ativo</div>
+            <div className="structure-controls">
+              <button className="btn-action-exe" onClick={expandAll}>
+                <span className="material-symbols-outlined">unfold_more</span>
+                <span>Expandir Tudo</span>
+              </button>
+              <button className="btn-action-exe" onClick={collapseAll}>
+                <span className="material-symbols-outlined">unfold_less</span>
+                <span>Recolher Tudo</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="structure-legend">
+            <div className="legend-item">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>group</span>
+              <span>{filteredEmployeesForCards.length} colaboradores</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {viewMode === 'tree' ? (
         <div 
-          className="organogram-tree" 
-          ref={treeRef}
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            transformOrigin: 'top center',
-            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-            willChange: 'transform'
+          className="organogram-viewport" 
+          ref={viewportRef}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ 
+            cursor: isDragging ? 'grabbing' : 'grab',
+            overflow: 'hidden',
+            position: 'relative',
+            userSelect: 'none',
+            touchAction: 'none',
+            height: 'calc(100vh - 240px)',
+            minHeight: '400px'
           }}
         >
-          {treeData.map(root => (
-            <OrganogramNode 
-              key={root.id} 
-              node={root} 
-              expandedNodes={expandedNodes} 
-              expandedLevels={expandedLevels}
-              toggleNode={toggleNode} 
-              onOpenProfile={handleOpenProfile} 
-              searchQuery={searchQuery} 
-              level={0}
-            />
-          ))}
+          <div className="zoom-controls" style={{
+            position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000,
+            display: 'flex', flexDirection: 'column', gap: '8px',
+            background: 'var(--surface)', backdropFilter: 'blur(12px)',
+            padding: '8px', borderRadius: '12px', border: '1px solid var(--line)',
+            boxShadow: 'var(--shadow)'
+          }}>
+            <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomIn} title="Aumentar Zoom"><span className="material-symbols-outlined">add</span></button>
+            <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={resetZoom} title="Centralizar e Resetar Zoom"><span className="material-symbols-outlined">center_focus_strong</span></button>
+            <button className="btn-action-exe !p-2 !min-w-0 flex items-center justify-center hover:scale-110 transition-transform" onClick={zoomOut} title="Diminuir Zoom"><span className="material-symbols-outlined">remove</span></button>
+          </div>
+
+          <div 
+            className="organogram-tree" 
+            ref={treeRef}
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transformOrigin: 'top center',
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+              willChange: 'transform'
+            }}
+          >
+            {treeData.map(root => (
+              <OrganogramNode 
+                key={root.id} 
+                node={root} 
+                expandedNodes={expandedNodes} 
+                expandedLevels={expandedLevels}
+                toggleNode={toggleNode} 
+                onOpenProfile={handleOpenProfile} 
+                searchQuery={searchQuery} 
+                level={0}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        renderCardView()
+      )}
+    </div>
+  );
+}
+
+function CollaboratorCard({ employee, gestor, onOpenProfile }) {
+  const isActive = employee.ativo !== false;
+  return (
+    <div 
+      className="collaborator-card glass-card" 
+      style={{ 
+        width: '100%', 
+        minHeight: 'unset', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '16px', 
+        padding: '20px', 
+        borderRadius: '24px', 
+        border: '1px solid var(--line)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        background: 'var(--glass-bg)',
+        boxSizing: 'border-box'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--line)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+            {employee.avatarUrl ? (
+              <img 
+                src={`${API_BASE}/api/colaboradores/${employee.id}/avatar`} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                alt={employee.name}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div className="avatar-placeholder-exe" style={{ width: '100%', height: '100%', display: employee.avatarUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, color: 'var(--primary)', background: 'var(--panel-strong)' }}>
+              {(employee.name || '?').charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <span 
+            style={{ 
+              position: 'absolute', 
+              bottom: '-2px', 
+              right: '-2px', 
+              width: '12px', 
+              height: '12px', 
+              borderRadius: '50%', 
+              background: isActive ? '#10b981' : '#94a3b8', 
+              border: '2px solid var(--card)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }} 
+            title={isActive ? 'Ativo' : 'Inativo'}
+          ></span>
+        </div>
+        
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800, color: 'var(--title)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={employee.name}>
+            {employee.name}
+          </h4>
+          <span style={{ display: 'inline-block', marginTop: '4px', fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'rgba(51, 204, 204, 0.1)', color: 'var(--primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+            {employee.cargoNome || 'Colaborador'}
+          </span>
         </div>
       </div>
+
+      <div style={{ borderTop: '1px solid rgba(148, 163, 184, 0.15)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.72rem', color: 'var(--muted)' }}>
+        {employee.email && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--primary)', flexShrink: 0 }}>mail</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={employee.email}>{employee.email}</span>
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--primary)', flexShrink: 0 }}>calendar_today</span>
+          <span style={{ fontWeight: 500 }}>Admissão: {formatDate(employee.dataAdmissao)}</span>
+        </div>
+        {gestor && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--primary)', flexShrink: 0 }}>account_tree</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={gestor.name}>
+              Gestor: <strong style={{ color: 'var(--title)', fontWeight: 600 }}>{gestor.name}</strong>
+            </span>
+          </div>
+        )}
+      </div>
+
+      <button 
+        className="btn-action-exe"
+        style={{ 
+          width: '100%', 
+          justifyContent: 'center', 
+          marginTop: '4px', 
+          padding: '8px 0', 
+          fontSize: '0.72rem', 
+          fontWeight: 700, 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '6px',
+          border: '1px solid var(--line)',
+          borderRadius: '10px',
+          cursor: 'pointer'
+        }}
+        onClick={() => onOpenProfile(employee)}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
+        Visualizar Perfil
+      </button>
     </div>
   );
 }

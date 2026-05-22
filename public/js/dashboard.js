@@ -304,6 +304,7 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
     'Saúde (Exames/Consultas)': 'medical_services',
     'Saúde': 'medical_services',
     'Reunião': 'groups',
+    'Reunião Executiva': 'badge',
     'Workshop': 'school',
     'Treinamento': 'menu_book',
     'Feedback': 'chat',

@@ -668,6 +668,7 @@ function SettingsModal({
                       const getTypeBadgeColor = (type) => {
                         switch(type) {
                           case 'Reunião': return { bg: 'rgba(51,204,204,0.12)', color: 'var(--primary)' };
+                          case 'Reunião Executiva': return { bg: 'rgba(148, 163, 184, 0.12)', color: 'var(--title)' };
                           case 'Workshop': return { bg: 'rgba(139,92,246,0.12)', color: '#8b5cf6' };
                           case 'Treinamento': return { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' };
                           case 'Aniversário': return { bg: 'rgba(236,72,153,0.12)', color: '#ec4899' }; // Pink color for birthdays

@@ -4,7 +4,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
     const timer = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(timer);
   }, []);
-  const TIPO_OPTIONS = ['Reunião', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Aniversário de Tempo de casa', 'Outro'];
+  const TIPO_OPTIONS = ['Reunião', 'Reunião Executiva', 'Workshop', 'Apresentação', 'Treinamento', 'Evento Corporativo', 'Aniversário', 'Aniversário de Tempo de casa', 'Outro'];
 
   const getDefaultDates = () => {
     const now = new Date();

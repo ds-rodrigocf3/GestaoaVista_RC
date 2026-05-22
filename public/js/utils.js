@@ -42,6 +42,7 @@ function getStatusPillClass(s) {
 
 const EVENT_TYPE_STYLES = {
   'Reunião':           { bg: 'rgba(51,204,204,0.12)',   color: 'var(--primary)',  icon: 'groups' },
+  'Reunião Executiva': { bg: 'rgba(148, 163, 184, 0.12)', color: 'var(--title)',   icon: 'badge' },
   'Workshop':          { bg: 'rgba(139,92,246,0.12)',   color: '#8b5cf6',         icon: 'school' },
   'Apresentação':      { bg: 'rgba(59,130,246,0.12)',   color: '#3b82f6',         icon: 'present_to_all' },
   'Treinamento':       { bg: 'rgba(245,158,11,0.12)',   color: '#f59e0b',         icon: 'menu_book' },
