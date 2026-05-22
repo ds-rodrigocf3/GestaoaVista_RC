@@ -835,7 +835,7 @@ function App() {
           </div>
         </aside>
 
-        <main className={`main-content ${activeView === 'scale' ? 'scale-view-active' : ''}`}>
+        <main className={`main-content ${activeView === 'scale' ? 'scale-view-active' : ''} ${activeView === 'eventos' ? 'events-view-active' : ''}`}>
           {(() => {
             const PAGE_META = {
               dashboard: { title: 'Visão Executiva 360°', description: 'Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.' },

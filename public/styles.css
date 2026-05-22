@@ -6710,6 +6710,83 @@ select:focus, input:focus, textarea:focus {
     gap: 10px !important;
     padding-right: 4px !important;
   }
+
+  /* =====================================================
+     VIEWPORT-FITTING - EVENTOS (Desktop Only)
+     Layout: topbar full-width + [sidebar esquerda | lista direita]
+     ===================================================== */
+  .main-content.events-view-active {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    display: grid !important;
+    grid-template-areas:
+      "header header"
+      "sidebar main" !important;
+    grid-template-columns: 245px 1fr !important;
+    grid-template-rows: auto 1fr !important;
+    padding: 16px 20px 12px 20px !important;
+    gap: 16px !important;
+  }
+
+  .main-content.events-view-active .topbar {
+    grid-area: header !important;
+  }
+  .main-content.events-view-active .topbar-header {
+    grid-area: header !important;
+  }
+
+  .main-content.events-view-active .events-sidebar {
+    grid-area: sidebar !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    border-radius: var(--radius-xl) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+    flex-wrap: nowrap !important; /* CRITICAL: prevent column wrapping which breaks scrolling */
+  }
+
+  .main-content.events-view-active .events-main {
+    grid-area: main !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .main-content.events-view-active .events-list-container {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-right: 4px !important;
+    /* remove overflow-y from the container to let the inner grid scroll */
+  }
+
 }
+
+@media (max-width: 1024px) {
+  .main-content.events-view-active .events-list-container {
+    flex: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .main-content.events-view-active .events-grid-inner {
+    flex: none !important;
+    overflow-y: visible !important;
+    height: auto !important;
+  }
+}
+
 
 

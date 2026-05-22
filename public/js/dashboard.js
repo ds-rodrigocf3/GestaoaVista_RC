@@ -485,15 +485,19 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
               const relTime = getRelativeTime(a.sortDate, a.type, a.endDate);
               const isHappeningSoon = relTime === 'AGORA' || relTime === 'Em breve';
               return (
-              <div className={`workload-item glass-card ${isHappeningSoon ? 'pulse-emphasis' : ''}`} key={a.id || Math.random()} style={{ position: 'relative', overflow: 'hidden' }}>
+              <div className={`workload-item glass-card ${isHappeningSoon ? 'pulse-emphasis' : ''}`} key={a.id || Math.random()} style={{ 
+                position: 'relative', 
+                overflow: 'hidden',
+                ...(a.type === 'Reunião Executiva' ? { border: '1px solid rgba(148, 163, 184, 0.4)', borderLeft: '4px solid #64748b' } : {})
+              }}>
                 {isHappeningSoon && <div className="border-beam"></div>}
 
 
                 {a.isEvent ? (
                   <div className="workload-avatar" style={{ 
-                    background: a.type === 'Aniversário' || a.type === 'Aniversário de Tempo de casa' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : 'var(--primary)', 
+                    background: a.type === 'Aniversário' || a.type === 'Aniversário de Tempo de casa' ? 'linear-gradient(135deg, #ff3399, #ff9900)' : (a.type === 'Reunião Executiva' ? '#475569' : 'var(--primary)'), 
                     color: '#fff',
-                    boxShadow: a.type === 'Aniversário' || a.type === 'Aniversário de Tempo de casa' ? '0 0 12px rgba(255,51,153,0.4)' : 'none',
+                    boxShadow: a.type === 'Aniversário' || a.type === 'Aniversário de Tempo de casa' ? '0 0 12px rgba(255,51,153,0.4)' : (a.type === 'Reunião Executiva' ? '0 4px 12px rgba(71, 85, 105, 0.2)' : 'none'),
                     border: 'none'
                   }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{EVENT_ICONS[a.type] || EVENT_ICONS['Compromisso']}</span>
@@ -580,14 +584,14 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                   <div style={{ fontSize: '.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     {a.isEvent ? (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)', opacity: 0.8 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: a.areaInfo.isGlobal ? 'var(--muted)' : (a.type === 'Reunião Executiva' ? '#475569' : 'var(--primary)'), opacity: 0.8 }}>
                           {a.areaInfo.isGlobal ? 'public' : 'category'}
                         </span>
                         <span 
                           title={a.areaInfo.full}
                           style={{ 
                             fontWeight: a.areaInfo.isGlobal ? 500 : 700,
-                            color: a.areaInfo.isGlobal ? 'var(--muted)' : 'var(--primary)',
+                            color: a.areaInfo.isGlobal ? 'var(--muted)' : (a.type === 'Reunião Executiva' ? '#475569' : 'var(--primary)'),
                             cursor: 'help'
                           }}
                         >
@@ -611,11 +615,11 @@ function DashboardView({ stats, requests, pendingRequests, rejectedRequests, tim
                     <div style={{ 
                       display: 'flex', alignItems: 'center', gap: '6px', 
                       fontSize: '.72rem', fontWeight: 700, 
-                      color: a.isEvent ? 'var(--primary)' : '#f59e0b', 
-                      background: a.isEvent ? 'rgba(51,204,204,0.06)' : 'rgba(245,158,11,0.06)', 
+                      color: a.type === 'Reunião Executiva' ? '#475569' : (a.isEvent ? 'var(--primary)' : '#f59e0b'), 
+                      background: a.type === 'Reunião Executiva' ? 'rgba(71, 85, 105, 0.08)' : (a.isEvent ? 'rgba(51,204,204,0.06)' : 'rgba(245,158,11,0.06)'), 
                       padding: '3px 10px', borderRadius: 'var(--radius-sm)',
                       border: '1px solid transparent',
-                      borderColor: a.isEvent ? 'rgba(51,204,204,0.1)' : 'rgba(245,158,11,0.1)'
+                      borderColor: a.type === 'Reunião Executiva' ? 'rgba(71, 85, 105, 0.2)' : (a.isEvent ? 'rgba(51,204,204,0.1)' : 'rgba(245,158,11,0.1)')
                     }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
                       {a.isMultiDay && a.type !== 'Aniversário' && a.type !== 'Aniversário de Tempo de casa'
