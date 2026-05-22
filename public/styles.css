@@ -421,6 +421,22 @@ button {
   grid-template-columns: 80px minmax(0, 1fr);
 }
 
+/* =====================================================
+   MAIN CONTENT
+   ===================================================== */
+.main-content {
+  min-width: 0;
+  padding: 32px 36px;
+  overflow-x: hidden;
+}
+
+/* Base layout for scale page section wrapper */
+.form-grid-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .sidebar {
   padding: 18px 16px;
   border-right: 1px solid var(--line);
@@ -1526,6 +1542,23 @@ button {
   min-height: 58px;
   display: grid;
   place-items: center;
+  position: relative;
+}
+
+@media (min-width: 769px) {
+  .calendar-day {
+    aspect-ratio: 1.7 / 1;
+    min-height: 52px;
+    padding: 8px 6px;
+    --cal-icon-size: 19px;
+    --cal-event-icon-size: 16px;
+  }
+  .calendar-stats-strip {
+    --cal-stats-padding: 10px 16px;
+  }
+}
+
+.dummy-selector-day {
   position: relative;
 }
 
@@ -3218,6 +3251,32 @@ button {
   display: block !important;
 }
 
+.top-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+
+@media (min-width: 769px) {
+  .top-filters .filter-group {
+    max-width: 320px;
+  }
+  .page-header {
+    margin-bottom: 16px;
+  }
+  .top-filters {
+    margin-bottom: 16px;
+    padding: 12px 20px;
+    min-height: 65px;
+  }
+}
+
+.dummy-selector {
+  display: none;
+}
+
 /* Padr├â┬úo de Cabe├â┬ºalho de P├â┬ígina */
 .page-header {
   padding: 0;
@@ -3344,33 +3403,6 @@ button {
 /* =====================================================
    TOPBAR HEADER (mobile top bar with hamburger)
    ===================================================== */
-.topbar-header {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: none !important;
-  background: transparent !important;
-}
-
-/* =====================================================
-   MAIN CONTENT
-   ===================================================== */
-.main-content {
-  min-width: 0;
-  padding: 32px 36px;
-  overflow-x: hidden;
-}
-
-/* =====================================================
-   SIDEBAR ├óÔé¼ÔÇØ desktop default (fixed column)
-   ===================================================== */
-.app-shell {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  min-height: 100vh;
-}
 .sidebar {
   padding: 18px 16px;
   border-right: 1px solid var(--line);
@@ -3820,13 +3852,27 @@ select:focus, input:focus, textarea:focus {
 
 .scale-layout-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 73% 1fr;
   gap: 32px;
+}
+
+.scale-stats-panel {
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 769px) {
+  .scale-stats-panel {
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+  }
 }
 
 @media (min-width: 1600px) {
   .scale-layout-grid {
-    grid-template-columns: 1fr 440px;
+    grid-template-columns: 73% 1fr;
     gap: 40px;
   }
 }
@@ -4295,7 +4341,7 @@ select:focus, input:focus, textarea:focus {
 .main-content {
   width: 100%;
   max-width: none !important; /* Allow full expansion */
-  padding: 32px;
+  padding: 20px 24px;
   overflow-x: hidden;
 }
 
@@ -4325,7 +4371,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 .sidebar.collapsed + .main-content {
-  padding: 32px 48px;
+  padding: 20px 32px;
 }
 
 /* Remove hardcoded max-width from dashboard containers */
@@ -6414,3 +6460,256 @@ select:focus, input:focus, textarea:focus {
 @media (max-width: 768px) {
   .delegation-form-grid { align-items: flex-start !important; }
 }
+
+/* =====================================================
+   KPI CARDS INLINE (Scale View) - Global Styles
+   ===================================================== */
+.main-content.scale-view-active .scale-kpi-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.main-content.scale-view-active .scale-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.main-content.scale-view-active .scale-kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.main-content.scale-view-active .scale-kpi-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+.main-content.scale-view-active .scale-kpi-value {
+  font-size: 1.3rem;
+  font-weight: 900;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1;
+}
+.main-content.scale-view-active .scale-kpi-sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Mobile adjustments for KPI inline */
+@media (max-width: 1024px) {
+  .main-content.scale-view-active .top-filters {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    padding: 16px !important; /* Adjust padding for mobile to prevent cramping */
+  }
+  .main-content.scale-view-active .top-filters .filter-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 8px !important;
+  }
+  .main-content.scale-view-active .top-filters .filter-group select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .main-content.scale-view-active .scale-kpi-inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .main-content.scale-view-active .scale-kpi-card {
+    flex: 1 1 140px;
+  }
+}
+
+
+/* =====================================================
+   VIEWPORT-FITTING - ESCALA MENSAL (Desktop Only)
+   Layout: topbar full-width + [sidebar esquerda | calendário direita]
+   ===================================================== */
+@media (min-width: 1025px) {
+
+  /* 1. Main: CSS GRID - topbar full + [sidebar esquerda | calendário direita] */
+  .main-content.scale-view-active {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    display: grid !important;
+    grid-template-areas:
+      "header header"
+      "sidebar main" !important;
+    grid-template-columns: 230px 1fr !important;
+    grid-template-rows: auto 1fr !important;
+    padding: 16px 20px 12px 20px !important;
+    gap: 10px !important;
+  }
+
+  /* 2. Topbar: padrão das outras páginas, ocupa linha inteira */
+  .main-content.scale-view-active .topbar {
+    grid-area: header !important;
+  }
+  .main-content.scale-view-active .topbar-header {
+    grid-area: header !important;
+  }
+
+  /* 3. top-filters: vai para a coluna sidebar (esquerda) */
+  .main-content.scale-view-active .top-filters {
+    grid-area: sidebar !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 16px !important; /* Slightly more gap between filter groups */
+    margin: 0 !important;
+    padding: 16px !important; /* Padding simétrico */
+    border-radius: var(--radius-xl) !important;
+    overflow-y: auto !important; /* Permitir scroll se houver muitos filtros */
+    overflow-x: hidden !important;
+    align-self: stretch !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Filtros em coluna na sidebar */
+  .main-content.scale-view-active .top-filters .filter-group {
+    width: 100% !important;
+    max-width: none !important;
+    margin-bottom: 0 !important;
+    flex: 0 0 auto !important; /* PREVENT VERTICAL STRETCHING */
+  }
+  .main-content.scale-view-active .top-filters .filter-group select {
+    width: 100% !important;
+    height: 38px !important; /* Reduz altura */
+    font-size: 0.75rem !important; /* Reduz fonte */
+    padding: 0 10px !important; /* Reduz padding */
+  }
+  .main-content.scale-view-active .top-filters .btn-clear {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* 4. dashboard-grid: vai para a área principal (direita), cresce */
+  .main-content.scale-view-active .dashboard-grid {
+    grid-area: main !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 5. form-grid-layout: FLEX COLUMN - apenas o calendário */
+  .main-content.scale-view-active .form-grid-layout {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+  }
+
+  /* O scale-calendar-card cresce para preencher o espaço */
+  .main-content.scale-view-active .scale-calendar-card {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 12px 16px !important;
+    margin-bottom: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Cabeçalho interno do card não cresce */
+  .main-content.scale-view-active .scale-calendar-card .section-title {
+    flex-shrink: 0 !important;
+    margin-bottom: 8px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* scale-layout-grid (calendário + status) ocupa todo o restante */
+  .main-content.scale-view-active .scale-layout-grid {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 72% 1fr !important;
+    gap: 16px !important;
+    overflow: hidden !important;
+  }
+
+  /* calendar-container em flex column */
+  .main-content.scale-view-active .calendar-container {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .main-content.scale-view-active .calendar-container .legend {
+    flex-shrink: 0 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .main-content.scale-view-active .calendar-month-nav {
+    flex-shrink: 0 !important;
+    margin-bottom: 6px !important;
+    padding: 6px !important;
+  }
+
+  /* Grid de dias ocupa o restante */
+  .main-content.scale-view-active .calendar-grid {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    grid-auto-rows: 1fr !important;
+    gap: 5px !important;
+  }
+
+  .main-content.scale-view-active .calendar-grid .calendar-day {
+    aspect-ratio: unset !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    padding: 4px !important;
+  }
+
+  /* Sidebar status da equipe rola localmente */
+  .main-content.scale-view-active .scale-stats-panel {
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding-right: 4px !important;
+  }
+}
+
+

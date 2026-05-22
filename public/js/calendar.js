@@ -1,4 +1,4 @@
-function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast, authorizedScope }) {
+function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, workDays, setWorkDays, requests, setRequests, eventos, employees, areas, currentUser, authToken, globalFilters, setToast, authorizedScope, onKpiUpdate }) {
   const [selectedMonthOffset, setSelectedMonthOffset] = React.useState(0);
   const [loadingToggle, setLoadingToggle] = React.useState(null); // Rastreia qual dia está sendo processado
 
@@ -393,8 +393,15 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   const uniqueAreas = Array.from(new Set((employees || []).map(e => e?.areaNome).filter(Boolean)));
   const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+  // Envia dados KPI para o componente pai (app.js) para exibir na sidebar
+  React.useEffect(() => {
+    if (onKpiUpdate) {
+      onKpiUpdate({ businessDaysCount, totalBusinessDays, presencialCount });
+    }
+  }, [businessDaysCount, totalBusinessDays, presencialCount]);
+
   return (
-    <div className="dashboard-grid">
+    <div className="dashboard-grid" style={{ maxWidth: '1440px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
       {adjustModal && (
         <div className="status-modal-overlay">
@@ -442,56 +449,9 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
         </div>
       )}
 
-      <section className="form-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-        <div style={{ width: '100%' }}>
-          {/* Numeric Indicators Bar */}
-          <div className="calendar-stats-strip glass" style={{ 
-            display: 'flex', gap: '16px', 
-            padding: '16px 20px', 
-            borderRadius: 'var(--radius-xl)', border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-sm)',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            flexWrap: 'wrap',
-            width: '100%'
-          }}>
-            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
-               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(100, 116, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '20px' }}>calendar_month</span>
-               </div>
-               <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Dias Disponíveis</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--title)', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>
-                    {businessDaysCount} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {totalBusinessDays}</span>
-                  </div>
-               </div>
-            </div>
+      <section className="form-grid-layout">
 
-            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
-               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(51, 204, 204, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>analytics</span>
-               </div>
-               <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Meta (Mínimo 50%)</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>
-                    {Math.floor(businessDaysCount / 2)} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted)', opacity: 0.6 }}>/ {businessDaysCount}</span>
-                  </div>
-               </div>
-            </div>
-
-            <div className="stat-card-item" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', textAlign: 'left' }}>
-               <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
-               </div>
-               <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px', textAlign: 'left' }}>Realizado (Presencial)</div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#10b981', fontFamily: "'Outfit', sans-serif", lineHeight: 1, textAlign: 'left' }}>{presencialCount}</div>
-               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card">
+      <div className="glass-card scale-calendar-card">
           <div className="section-title" style={{ 
             marginBottom: '20px', 
             display: 'flex', 
@@ -620,7 +580,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
               </div>
 
               <div className="calendar-grid">
-                {weekdayLabels.map((label) => <div key={label} className="calendar-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', textAlign: 'center', paddingBottom: '12px' }}>{label}</div>)}
+                {weekdayLabels.map((label) => <div key={label} className="calendar-label" style={{ fontSize: 'clamp(0.7rem, 0.9vw, 0.8rem)', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', textAlign: 'center', paddingBottom: '12px' }}>{label}</div>)}
                 {displayMonthDays.map((day, index) => {
                   if (!day) return <div key={`empty-${index}`} className="calendar-day empty" style={{ border: 'none', background: 'transparent' }}></div>;
                   const dateKey = formatDateLocal(day);
@@ -712,38 +672,82 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                         pointerEvents: 'auto'
                       }}
                     >
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--title)', opacity: 0.9, zIndex: 2 }}>{day.getDate()}</span>
+                      <span style={{ 
+                        position: 'absolute', 
+                        top: '5px', 
+                        left: '8px', 
+                        fontSize: 'clamp(0.72rem, 0.95vw, 0.85rem)', 
+                        fontWeight: 700, 
+                        color: 'var(--title)', 
+                        opacity: 0.9, 
+                        zIndex: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        {day.getDate()}
+                        {holidayInfo && !absenceRequest && (
+                          <span 
+                            title={holidayInfo} 
+                            style={{ 
+                              width: '7px', 
+                              height: '7px', 
+                              borderRadius: '50%', 
+                              background: '#ef4444', 
+                              boxShadow: '0 0 5px rgba(239, 68, 68, 0.5)', 
+                              display: 'inline-block' 
+                            }}
+                          />
+                        )}
+                      </span>
                       
-                      {!absenceRequest && status === 'Presencial' && !pendingAbsence && <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px', marginTop: '4px' }}>check_circle</span>}
-                      {!absenceRequest && status === 'Home Office' && !pendingAbsence && <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '24px', marginTop: '4px' }}>home</span>}
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        width: '100%', 
+                        height: '100%',
+                        paddingTop: '8px'
+                      }}>
+                        {!absenceRequest && status === 'Presencial' && !pendingAbsence && (
+                          <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: 'var(--cal-icon-size, 24px)' }}>check_circle</span>
+                        )}
+                        {!absenceRequest && status === 'Home Office' && !pendingAbsence && (
+                          <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: 'var(--cal-icon-size, 24px)' }}>home</span>
+                        )}
+
+                        {!absenceRequest && pendingAbsence && (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.9 }}>
+                            <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: 'var(--cal-icon-size, 22px)' }}>
+                              {getAbsenceIcon(pendingAbsence)}
+                            </span>
+                          </div>
+                        )}
+
+                        {absenceRequest && (
+                          <div className="day-label" style={{ color: absenceColor, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', marginTop: 0 }} title={`${absenceRequest.type} (${absenceRequest.status})`}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 20px)' }}>{absenceIcon}</span>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{absenceRequest.type.split(' ')[0].toUpperCase()}</span>
+                          </div>
+                        )}
+                      </div>
 
                       {!absenceRequest && pendingAbsence && (
-                        <>
-                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.9 }}>
-                              <span className="material-symbols-outlined" style={{ color: '#f59e0b', fontSize: '22px', marginTop: '4px' }}>
-                                {getAbsenceIcon(pendingAbsence)}
-                              </span>
-                           </div>
-                           <span className="material-symbols-outlined" style={{ 
-                             position: 'absolute', bottom: '6px', right: '6px', 
-                             fontSize: '14px', color: '#f59e0b', opacity: 0.8,
-                             fontVariationSettings: "'FILL' 1"
-                           }}>hourglass_top</span>
-                        </>
+                        <span className="material-symbols-outlined" style={{ 
+                          position: 'absolute', bottom: '6px', right: '6px', 
+                          fontSize: '14px', color: '#f59e0b', opacity: 0.8,
+                          fontVariationSettings: "'FILL' 1"
+                        }}>hourglass_top</span>
                       )}
 
                       {loadingToggle === dateKey && (
                         <div className="mini-spinner" style={{ position: 'absolute', top: '6px', right: '6px', width: '12px', height: '12px' }}></div>
                       )}
                       
-                      {/* Holiday Slot: Top-Left */}
-                      {holidayInfo && !absenceRequest && (
-                        <div title={holidayInfo} style={{ position: 'absolute', top: '8px', left: '8px', width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 5px rgba(239, 68, 68, 0.5)', zIndex: 3 }}></div>
-                      )}
-                      
                       {/* Event Slot: Top-Right */}
                       {dayEvents.length > 0 && !status && !absenceRequest && (
-                          <div 
+                        <div 
                           title={`${dayEvents.length} evento(s): ${dayEvents.map(e => (e.titulo || e.Titulo) + (e.anos ? ` (${e.anos} anos)` : '')).join(', ')}`}
                           style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '2px' }}
                         >
@@ -762,7 +766,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                               const config = EVENT_TYPE_STYLES[type] || EVENT_TYPE_STYLES['Outro'];
 
                               return (
-                                <span key={i} className="material-symbols-outlined" style={{ fontSize: '15px', color: config.color, opacity: 0.9 }}>
+                                <span key={i} className="material-symbols-outlined" style={{ fontSize: 'var(--cal-event-icon-size, 20px)', color: config.color, opacity: 0.9 }}>
                                   {config.icon}
                                 </span>
                               );
@@ -773,21 +777,12 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                       
                       {/* Lock Slot: Bottom-Right (Only if past and no status) */}
                       {isPast && !isNonWorkingDay && !status && !absenceRequest && (
-                        <div className="day-label" style={{ fontSize: '0.65rem', position: 'absolute', bottom: '6px', right: '6px', margin: 0 }}>🔒</div>
-                      )}
-
-                      {/* Status Label (Removed text in favor of icons above) */}
-                      
-                      {absenceRequest && (
-                        <div className="day-label" style={{ color: absenceColor, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }} title={`${absenceRequest.type} (${absenceRequest.status})`}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 20px)' }}>{absenceIcon}</span>
-                          <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>{absenceRequest.type.split(' ')[0].toUpperCase()}</span>
-                        </div>
+                        <div className="day-label" style={{ fontSize: '0.65rem', position: 'absolute', bottom: '4px', right: '6px', margin: 0 }}>🔒</div>
                       )}
 
                       {/* Avatars: Bottom-Left (To avoid overlap with markers) */}
                       {isComparedPresent && !isNonWorkingDay && (
-                        <div className="avatar-overlap-group" title={unifiedTooltip} style={{ position: 'absolute', bottom: '6px', left: '6px', display: 'flex', zIndex: 10 }}>
+                        <div className="avatar-overlap-group" title={unifiedTooltip} style={{ position: 'absolute', bottom: '4px', left: '6px', display: 'flex', zIndex: 10 }}>
                           {comparedPeople.slice(0, 2).map((p, idx) => (
                             <img
                               key={p.id}
@@ -810,101 +805,101 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                   );
                 })}
               </div>
+
+              {/* Feriados e Eventos horizontally side-by-side at the bottom of the calendar container */}
+              <div className="calendar-footer-events" style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
+                {/* Holiday List Card */}
+                {Object.keys(holidays).length > 0 && Object.entries(holidays).some(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
+                  <div style={{ flex: '1 1 300px' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>celebration</span>
+                      Feriados em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}
+                    </h4>
+                    <div className="custom-scrollbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '100px', overflowY: 'auto', alignContent: 'flex-start', paddingRight: '4px' }}>
+                        {Object.entries(holidays)
+                          .filter(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7)))
+                          .map(([date, name]) => (
+                          <span key={date} className="dash-micro-badge" style={{ fontSize: '0.68rem', padding: '4px 8px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
+                            {date.split('-').reverse()[0]}/{date.split('-')[1]} - {name}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Event List Card */}
+                {(eventos || []).some(ev => (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
+                  <div style={{ flex: '1 1 300px' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>event</span>
+                      Reuniões / Eventos em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}
+                    </h4>
+                    <div className="custom-scrollbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '100px', overflowY: 'auto', alignContent: 'flex-start', paddingRight: '4px' }}>
+                      {(eventos || [])
+                        .filter(ev => {
+                          const matchesMonth = (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7));
+                          if (!matchesMonth) return false;
+                          
+                          if (ev.areaId || ev.AreaId) {
+                            const eventAreas = String(ev.areaId || ev.AreaId).split(',').filter(Boolean);
+                            const currentEmp = employees.find(e => Number(e.id) === Number(selectedEmployeeId));
+                            const empArea = currentEmp ? String(currentEmp.areaId || currentEmp.AreaId) : null;
+                            if (empArea && !eventAreas.includes(empArea)) return false;
+                          }
+                          return true;
+                        })
+                        .sort((a, b) => (a.dataInicio || a.inicio || '').localeCompare(b.dataInicio || b.inicio || ''))
+                        .map((ev, i) => {
+                          const date = (ev.dataInicio || ev.inicio || '').slice(8, 10);
+                          const month = (ev.dataInicio || ev.inicio || '').slice(5, 7);
+                          const title = (ev.titulo || ev.Titulo || ev.name || 'Sem título') + (ev.anos ? ` (${ev.anos} anos)` : '');
+                          const tipo = ev.tipo || ev.Tipo || 'Evento';
+                          const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];
+                          
+                          return (
+                            <span key={i} className="dash-micro-badge" style={{ 
+                              fontSize: '0.68rem', 
+                              padding: '6px 10px', 
+                              background: style.bg, 
+                              color: style.color, 
+                              border: `1px solid ${style.color}33`, 
+                              borderRadius: 'var(--radius-sm)', 
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxSizing: 'border-box'
+                            }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{style.icon}</span>
+                              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{date}/{month} - {title}</span>
+                            </span>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="scale-stats-panel" style={{ maxHeight: '600px', overflowY: 'auto', paddingRight: '8px' }}>
+            <div className="scale-stats-panel">
                <div className="glass-card">
-                 <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '20px', color: 'var(--title)' }}>Status da Equipe</h4>
+                 <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '20px', color: 'var(--title)' }}>Status da Equipe</h4>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {fillStats.map(s => (
                       <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--title)' }}>{s.name}</span>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: s.pct >= 50 ? '#10b981' : '#f59e0b' }}>{s.pct}%</span>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--title)' }}>{s.name}</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: s.pct >= 50 ? '#10b981' : '#f59e0b' }}>{s.pct}%</span>
                          </div>
-                         <div style={{ height: '8px', background: 'var(--bg-soft)', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--line)' }}>
-                            <div style={{ width: `${s.pct}%`, height: '100%', background: s.pct >= 50 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #f59e0b, #fbbf24)', borderRadius: '4px', transition: 'width 0.5s ease' }}></div>
+                         <div style={{ height: '6px', background: 'var(--bg-soft)', borderRadius: '3px', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                            <div style={{ width: `${s.pct}%`, height: '100%', background: s.pct >= 50 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #f59e0b, #fbbf24)', borderRadius: '3px', transition: 'width 0.5s ease' }}></div>
                          </div>
                       </div>
                     ))}
                  </div>
                </div>
+
             </div>
-          </div>
-
-          {/* Legends Section */}
-          <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', borderTop: '1px solid var(--line)', paddingTop: '24px' }}>
-            {/* Holiday List */}
-            {Object.keys(holidays).length > 0 && Object.entries(holidays).some(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
-              <div>
-                <p style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)' }}>celebration</span>
-                  Feriados em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}:
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    {Object.entries(holidays)
-                      .filter(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7)))
-                      .map(([date, name]) => (
-                      <span key={date} className="dash-micro-badge" style={{ fontSize: '0.7rem', padding: '6px 12px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
-                        {date.split('-').reverse()[0]}/{date.split('-')[1]} - {name}
-                      </span>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Event List */}
-            {(eventos || []).some(ev => (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
-              <div>
-                <p style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 'var(--cal-icon-size, 18px)' }}>event</span>
-                  Reuniões / Eventos em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}:
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {(eventos || [])
-                    .filter(ev => {
-                      const matchesMonth = (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7));
-                      if (!matchesMonth) return false;
-                      
-                      // Filter by Area if not Global
-                      if (ev.areaId || ev.AreaId) {
-                        const eventAreas = String(ev.areaId || ev.AreaId).split(',').filter(Boolean);
-                        const currentEmp = employees.find(e => Number(e.id) === Number(selectedEmployeeId));
-                        const empArea = currentEmp ? String(currentEmp.areaId || currentEmp.AreaId) : null;
-                        if (empArea && !eventAreas.includes(empArea)) return false;
-                      }
-                      return true;
-                    })
-                    .sort((a, b) => (a.dataInicio || a.inicio || '').localeCompare(b.dataInicio || b.inicio || ''))
-                    .map((ev, i) => {
-                      const date = (ev.dataInicio || ev.inicio || '').slice(8, 10);
-                      const month = (ev.dataInicio || ev.inicio || '').slice(5, 7);
-                      const title = (ev.titulo || ev.Titulo || ev.name || 'Sem título') + (ev.anos ? ` (${ev.anos} anos)` : '');
-                      const tipo = ev.tipo || ev.Tipo || 'Evento';
-                      
-                      const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];
-                      
-                      return (
-                        <span key={i} className="dash-micro-badge" style={{ 
-                          fontSize: '0.72rem', 
-                          padding: '6px 14px', 
-                          background: style.bg, 
-                          color: style.color, 
-                          border: `1px solid ${style.color}33`, 
-                          borderRadius: 'var(--radius-md)', 
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{style.icon}</span>
-                          {date}/{month} - {title}
-                        </span>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>

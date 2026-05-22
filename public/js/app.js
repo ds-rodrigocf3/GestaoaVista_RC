@@ -39,6 +39,7 @@ function App() {
   const [requestedModal, setRequestedModal] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [scaleKpiData, setScaleKpiData] = useState({ businessDaysCount: 0, totalBusinessDays: 0, presencialCount: 0 });
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -834,7 +835,7 @@ function App() {
           </div>
         </aside>
 
-        <main className="main-content">
+        <main className={`main-content ${activeView === 'scale' ? 'scale-view-active' : ''}`}>
           {(() => {
             const PAGE_META = {
               dashboard: { title: 'Visão Executiva 360°', description: 'Panorama estratégico: acompanhamento de entregas, capacidade técnica e escala tática.' },
@@ -934,6 +935,43 @@ function App() {
                     Limpar
                   </button>
                 )}
+                {activeView === 'scale' && (
+                  <div className="scale-kpi-inline">
+                    <div className="scale-kpi-card">
+                      <div className="scale-kpi-icon" style={{ background: 'rgba(100,116,139,0.15)' }}>
+                        <span className="material-symbols-outlined" style={{ color: 'var(--muted)', fontSize: '20px' }}>calendar_month</span>
+                      </div>
+                      <div>
+                        <div className="scale-kpi-label">Dias Disponíveis</div>
+                        <div className="scale-kpi-value" style={{ color: 'var(--title)' }}>
+                          {scaleKpiData.businessDaysCount} <span className="scale-kpi-sub">/ {scaleKpiData.totalBusinessDays}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="scale-kpi-card">
+                      <div className="scale-kpi-icon" style={{ background: 'rgba(51,204,204,0.12)' }}>
+                        <span className="material-symbols-outlined" style={{ color: 'var(--primary)', fontSize: '20px' }}>analytics</span>
+                      </div>
+                      <div>
+                        <div className="scale-kpi-label">Meta (Mínimo 50%)</div>
+                        <div className="scale-kpi-value" style={{ color: 'var(--primary)' }}>
+                          {Math.floor(scaleKpiData.businessDaysCount / 2)} <span className="scale-kpi-sub">/ {scaleKpiData.businessDaysCount}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="scale-kpi-card">
+                      <div className="scale-kpi-icon" style={{ background: 'rgba(16,185,129,0.12)' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '20px' }}>verified</span>
+                      </div>
+                      <div>
+                        <div className="scale-kpi-label">Realizado (Presencial)</div>
+                        <div className="scale-kpi-value" style={{ color: '#10b981' }}>
+                          {scaleKpiData.presencialCount}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -942,7 +980,7 @@ function App() {
           {activeView === 'requests' && <RequestView form={form} setForm={setForm} employees={dbEmployees} requests={detailedRequests} formEmployee={formEmployee} formConflicts={formConflicts} formConflictLevel={formConflictLevel} formConflictDetails={formConflictDetails} selectedDuration={selectedDuration} submitRequest={submitRequest} currentUser={currentUser} editingRequestId={editingRequestId} setEditingRequestId={setEditingRequestId} deleteRequest={deleteRequest} eventos={eventos} setToast={setToast} />}
           {activeView === 'tasks' && <TaskView tasks={filteredTasks} setTasks={setTasks} employees={dbEmployees} requests={detailedRequests} currentUser={currentUser} demandas={demandas} setDemandas={setDemandas} authToken={authToken} globalFilters={globalFilters} onAddTask={handleAdd} onAddDemanda={handleNewDemanda} requestedModal={requestedModal} setRequestedModal={setRequestedModal} authorizedScope={authorizedScope} />}
           {activeView === 'approvals' && <ApprovalView pendingRequests={pendingRequests} allRequests={detailedRequests} handleApproval={handleApproval} currentUser={currentUser} processingApprovalId={processingApprovalId} dbEmployees={dbEmployees} authToken={authToken} fetchAll={fetchAll} setToast={setToast} />}
-          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} calendarViewDate={calendarViewDate} setCalendarViewDate={setCalendarViewDate} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} />}
+          {activeView === 'scale' && <ScaleView currentMonth={currentMonth} monthDays={monthDays} calendarViewDate={calendarViewDate} setCalendarViewDate={setCalendarViewDate} workDays={workDays} setWorkDays={setWorkDays} requests={detailedRequests} setRequests={setRequests} eventos={eventos} employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} globalFilters={globalFilters} setToast={setToast} authorizedScope={authorizedScope} onKpiUpdate={setScaleKpiData} />}
           {activeView === 'eventos' && <EventsView eventos={eventos} areas={areas} colaboradores={colaboradores} authToken={authToken} fetchAll={fetchAll} currentUser={currentUser} setToast={setToast} />}
           {activeView === 'structure' && <StructureView employees={dbEmployees} areas={areas} currentUser={currentUser} authToken={authToken} fetchAll={fetchAll} setToast={setToast} />}
         </main>
