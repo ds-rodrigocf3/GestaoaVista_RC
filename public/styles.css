@@ -6704,11 +6704,11 @@ select:focus, input:focus, textarea:focus {
     min-height: 0 !important;
     height: 100% !important;
     max-height: 100% !important;
-    overflow-y: auto !important;
+    overflow-y: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 10px !important;
-    padding-right: 4px !important;
+    padding-right: 0 !important;
   }
 
   /* =====================================================

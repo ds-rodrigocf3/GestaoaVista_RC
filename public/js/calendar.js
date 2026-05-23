@@ -85,6 +85,7 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   const isReadOnly = !currentUser.isAdmin && Number(selectedEmployeeId) !== Number(currentUser?.colaboradorId);
   
   const [compareEntity, setCompareEntity] = React.useState('none');
+  const [rightPanelTab, setRightPanelTab] = React.useState('stats'); // 'stats' ou 'agenda'
   const [adjustModal, setAdjustModal] = React.useState(null); // { dateKey, currentStatus }
   const [adjustMotivo, setAdjustMotivo] = React.useState('');
   const [adjustNewValue, setAdjustNewValue] = React.useState('Presencial');
@@ -393,6 +394,30 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
   const uniqueAreas = Array.from(new Set((employees || []).map(e => e?.areaNome).filter(Boolean)));
   const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+  const monthHolidays = React.useMemo(() => {
+    const currentMonthPrefix = formatDateLocal(displayMonth).slice(0, 7);
+    return Object.entries(holidays)
+      .filter(([date]) => date.startsWith(currentMonthPrefix));
+  }, [holidays, displayMonth]);
+
+  const monthEvents = React.useMemo(() => {
+    const currentMonthPrefix = formatDateLocal(displayMonth).slice(0, 7);
+    return (eventos || []).filter(ev => {
+      const matchesMonth = (ev.dataInicio || ev.inicio || '').startsWith(currentMonthPrefix);
+      if (!matchesMonth) return false;
+      
+      if (ev.areaId || ev.AreaId) {
+        const eventAreas = String(ev.areaId || ev.AreaId).split(',').filter(Boolean);
+        const currentEmp = employees.find(e => Number(e.id) === Number(selectedEmployeeId));
+        const empArea = currentEmp ? String(currentEmp.areaId || currentEmp.AreaId) : null;
+        if (empArea && !eventAreas.includes(empArea)) return false;
+      }
+      return true;
+    }).sort((a, b) => (a.dataInicio || a.inicio || '').localeCompare(b.dataInicio || b.inicio || ''));
+  }, [eventos, displayMonth, employees, selectedEmployeeId]);
+
+  const totalEventsAndHolidays = monthHolidays.length + monthEvents.length;
+
   // Envia dados KPI para o componente pai (app.js) para exibir na sidebar
   React.useEffect(() => {
     if (onKpiUpdate) {
@@ -452,66 +477,53 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
       <section className="form-grid-layout">
 
       <div className="glass-card scale-calendar-card">
-          <div className="section-title" style={{ 
-            marginBottom: '20px', 
+          <div className="calendar-filters-row" style={{ 
+            marginBottom: '16px', 
             display: 'flex', 
-            justifyContent: 'space-between', 
             alignItems: 'center', 
             flexWrap: 'wrap', 
-            gap: '16px', 
+            gap: '12px 24px', 
             background: 'var(--bg)', 
-            padding: '12px 16px', 
+            padding: '10px 16px', 
             borderRadius: 'var(--radius-lg)', 
             border: '1px solid var(--line)',
             width: '100%',
             boxSizing: 'border-box'
           }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '1 1 250px' }}>
-               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--title)', margin: 0 }}>Controle Mensal</h3>
-               <p style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 500, margin: 0 }}>Toque nos dias para alternar Presencial/Home Office.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 1 auto' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--muted)' }}>person</span>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Colaborador:</label>
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
+                style={{ padding: '6px 12px', fontSize: '0.82rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
+              >
+                {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
+                {filteredEmployees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {shortenName(employee.name)} · {employee.team}
+                  </option>
+                ))}
+              </select>
             </div>
-            
-            <div className="calendar-inline-filters" style={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: '12px 20px', 
-              alignItems: 'center', 
-              flex: '2 1 400px', 
-              justifyContent: 'flex-end'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: '240px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap', width: '85px', textAlign: 'right' }}>Colaborador:</label>
-                <select
-                  value={selectedEmployeeId}
-                  onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-                  style={{ flex: '1 1 180px', maxWidth: '280px', padding: '8px 12px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
-                >
-                  {filteredEmployees.length === 0 && <option value="">Nenhum colaborador encontrado</option>}
-                  {filteredEmployees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {shortenName(employee.name)} · {employee.team}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '0 1 auto' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--muted)' }}>compare_arrows</span>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Comparar com:</label>
+              <select 
+                value={compareEntity} 
+                onChange={(e) => setCompareEntity(e.target.value)} 
+                style={{ padding: '6px 12px', fontSize: '0.82rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
+              >
+                <option value="none">Nenhum</option>
+                <optgroup label="Colaboradores">
+                  {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
+                    <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
+                      {shortenName(employee.name)}
                     </option>
                   ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 auto', justifyContent: 'flex-end', minWidth: '240px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', whiteSpace: 'nowrap', width: '85px', textAlign: 'right' }}>Comparar com:</label>
-                <select 
-                  value={compareEntity} 
-                  onChange={(e) => setCompareEntity(e.target.value)} 
-                  style={{ flex: '1 1 160px', maxWidth: '280px', padding: '8px 12px', fontSize: '0.85rem', fontWeight: 600, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--title)' }}
-                >
-                  <option value="none">Nenhum</option>
-                  <optgroup label="Colaboradores">
-                    {filteredEmployees.filter(e => Number(e.id) !== Number(selectedEmployeeId)).map(employee => (
-                      <option key={`emp_${employee.id}`} value={`emp_${employee.id}`}>
-                        {shortenName(employee.name)}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
+                </optgroup>
+              </select>
             </div>
           </div>
 
@@ -806,96 +818,177 @@ function ScaleView({ currentMonth: defaultMonth, monthDays: defaultMonthDays, wo
                 })}
               </div>
 
-              {/* Feriados e Eventos horizontally side-by-side at the bottom of the calendar container */}
-              <div className="calendar-footer-events" style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
-                {/* Holiday List Card */}
-                {Object.keys(holidays).length > 0 && Object.entries(holidays).some(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
-                  <div style={{ flex: '1 1 300px' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444' }}>celebration</span>
-                      Feriados em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}
-                    </h4>
-                    <div className="custom-scrollbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '100px', overflowY: 'auto', alignContent: 'flex-start', paddingRight: '4px' }}>
-                        {Object.entries(holidays)
-                          .filter(([date]) => date.startsWith(formatDateLocal(displayMonth).slice(0, 7)))
-                          .map(([date, name]) => (
-                          <span key={date} className="dash-micro-badge" style={{ fontSize: '0.68rem', padding: '4px 8px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
-                            {date.split('-').reverse()[0]}/{date.split('-')[1]} - {name}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Event List Card */}
-                {(eventos || []).some(ev => (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7))) && (
-                  <div style={{ flex: '1 1 300px' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '12px', color: 'var(--title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--primary)' }}>event</span>
-                      Reuniões / Eventos em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}
-                    </h4>
-                    <div className="custom-scrollbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '100px', overflowY: 'auto', alignContent: 'flex-start', paddingRight: '4px' }}>
-                      {(eventos || [])
-                        .filter(ev => {
-                          const matchesMonth = (ev.dataInicio || ev.inicio || '').startsWith(formatDateLocal(displayMonth).slice(0, 7));
-                          if (!matchesMonth) return false;
-                          
-                          if (ev.areaId || ev.AreaId) {
-                            const eventAreas = String(ev.areaId || ev.AreaId).split(',').filter(Boolean);
-                            const currentEmp = employees.find(e => Number(e.id) === Number(selectedEmployeeId));
-                            const empArea = currentEmp ? String(currentEmp.areaId || currentEmp.AreaId) : null;
-                            if (empArea && !eventAreas.includes(empArea)) return false;
-                          }
-                          return true;
-                        })
-                        .sort((a, b) => (a.dataInicio || a.inicio || '').localeCompare(b.dataInicio || b.inicio || ''))
-                        .map((ev, i) => {
-                          const date = (ev.dataInicio || ev.inicio || '').slice(8, 10);
-                          const month = (ev.dataInicio || ev.inicio || '').slice(5, 7);
-                          const title = (ev.titulo || ev.Titulo || ev.name || 'Sem título') + (ev.anos ? ` (${ev.anos} anos)` : '');
-                          const tipo = ev.tipo || ev.Tipo || 'Evento';
-                          const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];
-                          
-                          return (
-                            <span key={i} className="dash-micro-badge" style={{ 
-                              fontSize: '0.68rem', 
-                              padding: '6px 10px', 
-                              background: style.bg, 
-                              color: style.color, 
-                              border: `1px solid ${style.color}33`, 
-                              borderRadius: 'var(--radius-sm)', 
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              boxSizing: 'border-box'
-                            }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{style.icon}</span>
-                              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{date}/{month} - {title}</span>
-                            </span>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
 
             <div className="scale-stats-panel">
-               <div className="glass-card">
-                 <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '20px', color: 'var(--title)' }}>Status da Equipe</h4>
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {fillStats.map(s => (
-                      <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--title)' }}>{s.name}</span>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: s.pct >= 50 ? '#10b981' : '#f59e0b' }}>{s.pct}%</span>
-                         </div>
-                         <div style={{ height: '6px', background: 'var(--bg-soft)', borderRadius: '3px', overflow: 'hidden', border: '1px solid var(--line)' }}>
-                            <div style={{ width: `${s.pct}%`, height: '100%', background: s.pct >= 50 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #f59e0b, #fbbf24)', borderRadius: '3px', transition: 'width 0.5s ease' }}></div>
-                         </div>
+               <div className="glass-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px 20px', boxSizing: 'border-box' }}>
+                 
+                 {/* Tabs Header */}
+                 <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', marginBottom: '18px', gap: '12px' }}>
+                   <button 
+                     onClick={() => setRightPanelTab('stats')}
+                     style={{ 
+                       flex: 1, 
+                       padding: '10px 4px', 
+                       background: 'transparent', 
+                       border: 'none', 
+                       borderBottom: rightPanelTab === 'stats' ? '3px solid var(--primary)' : '3px solid transparent',
+                       color: rightPanelTab === 'stats' ? 'var(--title)' : 'var(--muted)',
+                       fontWeight: rightPanelTab === 'stats' ? '800' : '600',
+                       fontSize: '0.80rem',
+                       cursor: 'pointer',
+                       transition: 'all 0.2s',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       gap: '6px'
+                     }}
+                   >
+                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
+                     <span style={{ whiteSpace: 'nowrap' }}>Equipe</span>
+                   </button>
+                   <button 
+                     onClick={() => setRightPanelTab('agenda')}
+                     style={{ 
+                       flex: 1, 
+                       padding: '10px 4px', 
+                       background: 'transparent', 
+                       border: 'none', 
+                       borderBottom: rightPanelTab === 'agenda' ? '3px solid var(--primary)' : '3px solid transparent',
+                       color: rightPanelTab === 'agenda' ? 'var(--title)' : 'var(--muted)',
+                       fontWeight: rightPanelTab === 'agenda' ? '800' : '600',
+                       fontSize: '0.80rem',
+                       cursor: 'pointer',
+                       transition: 'all 0.2s',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       gap: '6px'
+                     }}
+                   >
+                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>event_note</span>
+                     <span style={{ whiteSpace: 'nowrap' }}>Agenda</span>
+                     {totalEventsAndHolidays > 0 && (
+                       <span style={{ 
+                         background: 'var(--primary)', 
+                         color: '#ffffff', 
+                         fontSize: '0.68rem', 
+                         padding: '1px 6px', 
+                         borderRadius: '10px', 
+                         fontWeight: 800,
+                         boxShadow: '0 2px 4px rgba(51, 204, 204, 0.3)'
+                       }}>
+                         {totalEventsAndHolidays}
+                       </span>
+                     )}
+                   </button>
+                 </div>
+
+                 {/* Tab Content */}
+                 <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: '12px' }} className="custom-scrollbar">
+                   {rightPanelTab === 'stats' ? (
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 800, marginBottom: '4px', color: 'var(--title)', display: 'none' }}>Status da Equipe</h4>
+                        {fillStats.map(s => (
+                          <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--title)' }}>{s.name}</span>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: s.pct >= 50 ? '#10b981' : '#f59e0b' }}>{s.pct}%</span>
+                             </div>
+                             <div style={{ height: '6px', background: 'var(--bg-soft)', borderRadius: '3px', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                                <div style={{ width: `${s.pct}%`, height: '100%', background: s.pct >= 50 ? 'linear-gradient(90deg, #10b981, #34d399)' : 'linear-gradient(90deg, #f59e0b, #fbbf24)', borderRadius: '3px', transition: 'width 0.5s ease' }}></div>
+                             </div>
+                          </div>
+                        ))}
+                     </div>
+                   ) : (
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        
+                        {/* Feriados list */}
+                        {monthHolidays.length > 0 && (
+                          <div>
+                            <h5 style={{ fontSize: '0.72rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '15px', color: '#ef4444' }}>celebration</span>
+                              Feriados em {displayMonth.toLocaleDateString('pt-BR', { month: 'long' })}
+                            </h5>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {monthHolidays.map(([date, name]) => {
+                                const dayNum = date.split('-').reverse()[0];
+                                return (
+                                  <div key={date} style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'flex-start', 
+                                    gap: '8px', 
+                                    padding: '6px 10px', 
+                                    background: 'rgba(239, 68, 68, 0.04)', 
+                                    border: '1px solid rgba(239, 68, 68, 0.1)', 
+                                    borderRadius: 'var(--radius-sm)' 
+                                  }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', minWidth: '38px', marginTop: '2px', flexShrink: 0 }}>
+                                      {dayNum}/{date.split('-')[1]}
+                                    </span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#ef4444', flexShrink: 0, marginTop: '2px' }}>
+                                      celebration
+                                    </span>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--title)', lineHeight: '1.35', wordBreak: 'break-word' }}>
+                                      {name}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Eventos list */}
+                        {monthEvents.length > 0 && (
+                          <div>
+                            <h5 style={{ fontSize: '0.72rem', fontWeight: 800, marginBottom: '8px', color: 'var(--title)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--primary)' }}>event</span>
+                              Reuniões / Eventos
+                            </h5>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {monthEvents.map((ev, i) => {
+                                const date = (ev.dataInicio || ev.inicio || '').slice(8, 10);
+                                const month = (ev.dataInicio || ev.inicio || '').slice(5, 7);
+                                const title = (ev.titulo || ev.Titulo || ev.name || 'Sem título') + (ev.anos ? ` (${ev.anos} anos)` : '');
+                                const tipo = ev.tipo || ev.Tipo || 'Evento';
+                                const style = EVENT_TYPE_STYLES[tipo] || EVENT_TYPE_STYLES['Outro'];
+                                
+                                return (
+                                  <div key={i} style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'flex-start', 
+                                    gap: '8px', 
+                                    padding: '6px 10px', 
+                                    background: style.bg, 
+                                    border: `1px solid ${style.color}25`, 
+                                    borderRadius: 'var(--radius-sm)' 
+                                  }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: style.color, minWidth: '38px', marginTop: '2px', flexShrink: 0 }}>
+                                      {date}/{month}
+                                    </span>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: style.color, flexShrink: 0, marginTop: '2px' }}>
+                                      {style.icon}
+                                    </span>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--title)', lineHeight: '1.35', wordBreak: 'break-word' }}>
+                                      {title}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {totalEventsAndHolidays === 0 && (
+                          <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--muted)', fontSize: '0.75rem' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '28px', marginBottom: '6px', opacity: 0.5 }}>event_busy</span>
+                            <p style={{ margin: 0 }}>Nenhum evento ou feriado neste mês.</p>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                   )}
                  </div>
                </div>
 

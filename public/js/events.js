@@ -422,15 +422,14 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
         {/* KPI Strip */}
         <div className="stats-summary-bar glass-card" style={{ 
           display: 'flex', 
-          flexWrap: 'nowrap',
+          flexWrap: 'wrap',
           justifyContent: 'space-between', 
           gap: '12px', 
           padding: '12px 16px', 
           marginBottom: '16px', 
           borderRadius: 'var(--radius-xl)', 
           border: '1px solid var(--line)', 
-          flexShrink: 0,
-          overflow: 'hidden'
+          flexShrink: 0
         }}>
           {[
             { label: 'Total de Eventos', value: filteredEventos.length, icon: 'event', color: 'var(--primary)' },
@@ -438,7 +437,7 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
             { label: 'Eventos esta Semana', value: eventsThisWeekCount, icon: 'date_range', color: '#8b5cf6' },
           ].map(kpi => (
             <div key={kpi.label} className="stats-summary-item" style={{ 
-              flex: 1, 
+              flex: '1 1 180px', 
               display: 'flex', 
               alignItems: 'center', 
               gap: '12px', 
@@ -446,13 +445,13 @@ function EventsView({ eventos, areas, colaboradores, authToken, fetchAll, curren
               background: 'var(--surface)', 
               borderRadius: 'var(--radius-lg)', 
               border: '1px solid var(--line)',
-              minWidth: 0
+              minWidth: '140px'
             }}>
               <div className="stats-summary-icon" style={{ background: `${kpi.color}15`, width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', flexShrink: 0 }}>
                 <span className="material-symbols-outlined" style={{ color: kpi.color, fontSize: '20px' }}>{kpi.icon}</span>
               </div>
-              <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                <div className="stats-summary-label" style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kpi.label}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="stats-summary-label" style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 700, lineHeight: '1.25' }}>{kpi.label}</div>
                 <div className="stats-summary-value" style={{ color: kpi.label.includes('Total') ? 'var(--title)' : kpi.color, fontSize: '1.25rem', fontWeight: 800 }}>{kpi.value}</div>
               </div>
             </div>
